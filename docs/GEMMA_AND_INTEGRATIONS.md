@@ -1,98 +1,113 @@
-# Gemma 4, routing, and integrations
+# Gemma 4 and integrations — wiring plan
 
-This file is the **single source of truth** for judges and contributors: what Relay assumes about models, what is **mocked in the repo**, and where to plug in **Ollama**, **Cactus**, **Unsloth**, and device integrations.
+This file is the single source of truth for what's wired, what's stubbed, and exactly how to go live with Gemma 4.
 
 ## What is real today (browser capability layer)
 
-Relay exposes real browser pillars through typed services:
+| Capability | How it works |
+|------------|--------------|
+| **Microphone** | `audioCaptureService` — `getUserMedia({ audio })` + `AnalyserNode` RMS level meter for the listening pulse. |
+| **Speech-to-text** | `speechRecognitionService` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Detects unsupported browsers and falls back to the **Type instead** sheet. |
+| **Text-to-speech** | `speechSynthesisService` — `window.speechSynthesis` with async voice loading and best-match language selection. |
+| **Camera** | `cameraService` — `getUserMedia({ video })` preview + frame capture into `SessionContext.pendingImage` as a data URL. |
+| **Permissions** | `permissionsService` — `navigator.permissions` query + `getUserMedia` request + graceful `unavailable` fallback. |
 
-- **Microphone**: `audioCaptureService` (`getUserMedia({ audio })` + analyser level meter).
-- **Speech-to-text**: `speechRecognitionService` wrapping Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Detects unsupported browsers and falls back to the Type-instead sheet.
-- **Text-to-speech**: `speechSynthesisService` (`window.speechSynthesis`) with async voice loading and best-match language selection.
-- **Camera**: `cameraService` for preview + frame capture (stored as a data URL on `SessionContext.pendingImage`).
-- **Permissions**: `permissionsService` (`navigator.permissions` query + `getUserMedia` request, with `unavailable` fallback).
+Everything above runs end-to-end without Gemma. Tap the mic, speak, watch the interim transcript stream, and see an honest "Gemma not connected" notice instead of a fabricated answer.
 
-Everything above runs without Gemma. The session log, routing log, and emergency countdown are all fed from these real inputs.
+## What is still stubbed (awaiting implementation)
 
-## What is still mocked / pending
+| Capability | File | Current behavior |
+|------------|------|------------------|
+| **Gemma 4 interpretation** | `src/services/interpretation/GemmaInterpreterAdapter.ts` | Throws `GemmaNotConnectedError`. |
+| **Twilio emergency** | `src/services/emergency.ts` | Throws `EmergencyNotConnectedError`. UI surfaces the message in the banner. |
+| **Twilio SMS** | `src/services/twilio.ts` | Throws `TwilioNotConnectedError`. Settings test button surfaces the message. |
+| **SmartThings** | `src/services/smartthings.ts` | Throws `SmartThingsNotConnectedError`. Settings test button surfaces the message. |
 
-| Capability | Status | Location |
-|------------|--------|----------|
-| Gemma 4 inference (E2B / E4B / 27B) | **Mocked** | `src/services/modelRouter.ts` — `inferE2B`, `inferE4B`, `infer27B` simulate latency + text |
-| Cactus-style routing | **Rule-based stub** | `chooseModel()` — replace with your routing API while keeping `RoutingDecision` |
-| Unsloth fine-tune metrics | **UX + local metrics only** | `FineTuningContext` |
-| Twilio voice/SMS | **Mock** | `services/emergency.ts`, `services/twilio.ts` |
-| SmartThings | **Mock** | `services/smartthings.ts` |
-| Multimodal vision inference | **Not wired** | Camera frame is captured into `SessionContext.pendingImage`; `MockRouterAdapter` + `GemmaInterpreterAdapter` are the plug-in points |
+None of these return fake successes. That way the UI is honest about what's real vs. what needs to be connected.
 
-## Interpretation adapter architecture
+## The single interpretation entry point
 
-`interpretationService.interpret(input, { mode })` dispatches to one of three adapters based on `settings.devMode.interpreter`:
+Every input surface (mic → STT, typed, quick phrases, symbols, camera-attached frame) calls the same function:
 
-| Mode | Adapter | Behavior |
-|------|---------|----------|
-| `browser` | `BrowserPassthroughAdapter` | Normalizes the transcript (trim + capitalize + optional fragment-map expand). No AI. The default for real-mic flows before Gemma ships. |
-| `mock` | `MockRouterAdapter` | Wraps `chooseModel` + `runInference` from `modelRouter.ts`. Preserves the RoutingLog + ModelChip. Used by demo scenarios. |
-| `gemma` | `GemmaInterpreterAdapter` | Placeholder — throws `NotImplemented`. This is where you wire Ollama. |
+```ts
+import { interpret } from '@/services/interpretationService';
 
-The `InterpretationResult` shape is a superset of the future Gemma response so the UI never changes when swapping adapters. This means **the Home loop already works end-to-end** (mic → STT → interpretation → confirm → TTS → log) before Gemma is integrated.
+const result = await interpret({
+  sourceType: 'speech' | 'text' | 'symbols',
+  transcript?: string,
+  symbols?: string[],
+  imageDataUrl?: string,      // optional multimodal context
+  language?: string,
+  urgencyHint?: 'LOW' | 'NORMAL' | 'HIGH',
+});
+```
 
-## Model tiers (conceptual)
+`interpret` delegates to the single adapter (`GemmaInterpreterAdapter`). Implementing that adapter's body is what takes the app from "wired plumbing" to "real Gemma answers."
 
-Relay labels three **Gemma-family** slots for product narrative and routing:
+## Model tiers (routing narrative)
+
+Relay labels three Gemma-family slots for product narrative and routing:
 
 | Id | Role | Typical use |
-|----|------|----------------|
+|----|------|-------------|
 | **E2B** | Fast / real-time | Short utterances, low-latency path |
-| **E4B** | Fine-tuned / personalized | Symbol and phrase expansion after user-specific tuning (Unsloth narrative) |
-| **27B** | Reasoning / multimodal | Vision+audio, high-urgency, longer reasoning |
+| **E4B** | Personalized | Symbol and phrase expansion after user-specific tuning |
+| **26B / 31B (or 27B)** | Reasoning / multimodal | Vision+audio, high-urgency, longer reasoning |
 
-**Selection today** is implemented in `chooseModel()` inside `MockRouterAdapter`. A production **Cactus** router would replace the body of `chooseModel` and optionally add telemetry.
+`chooseModel(req)` in `src/services/modelRouter.ts` returns `{ model, reason }` as a pure function of input shape (text vs speech vs symbols, visionOn, urgencyHint). Swap it for a Cactus-style learned router without touching UI.
 
-## Why Gemma 4 (product narrative)
+## Plugging Gemma in (step-by-step)
 
-- **Fragmented speech** from ALS, aphasia, dysarthria, or Parkinson's does not match clean ASR output. A compact instruction-tuned model family (Gemma 4) is appropriate for **intent reconstruction**, **multilingual** caregiver lines, and **safety-aware** escalation when urgency is high.
-- **On-device or local** deployment (e.g. Ollama) supports privacy and offline-first use; the PWA shell is already offline-capable.
+Open `src/services/interpretation/GemmaInterpreterAdapter.ts` and replace the stub body:
 
-## Plugging Gemma in (check list)
+1. **Build the request.** Convert `InterpretationInput` → your model request payload (include `imageDataUrl` for multimodal).
+2. **Pick a tier.** Call `chooseModel(req)` from `../modelRouter` (or swap in Cactus).
+3. **Call Gemma 4.** POST to your local Ollama (`POST /api/generate` or the OpenAI-compatible `POST /v1/chat/completions`) or your hosted gateway. Respect `input.language` and the user's `primaryLanguage`.
+4. **Map the response.** Return an `InterpretationResult`:
+   ```ts
+   {
+     id, ts,
+     primaryText,
+     alternates: [...],
+     confidence,
+     urgency,                // 'LOW' | 'NORMAL' | 'HIGH'
+     mood,
+     detectedLanguage,
+     translation?,           // optional bilingual line
+     sourceModel: 'E2B' | 'E4B' | '27B',
+     sourceType,
+     routingReason,          // shown in the routing log
+     latencyMs,
+     visionUsed,
+     sourceFragment,
+   }
+   ```
+5. **Done.** The routing log, ModelChip, history, TTS playback, alternates, and emergency banner all fire from this single return value.
 
-Implement `src/services/interpretation/GemmaInterpreterAdapter.ts`:
+## Emergency + integrations wiring
 
-1. Replace the `NotImplemented` body with a `fetch` to your local Ollama endpoint (OpenAI-compatible `POST /v1/chat/completions` or Ollama's `POST /api/generate`).
-2. Select between `E2B` / `E4B` / `27B` via Cactus or by mirroring `chooseModel` rules.
-3. Pass multimodal payloads (`input.imageDataUrl`) when available — Relay already captures frames into the session.
-4. Run the emergency classifier before returning a `HIGH` urgency result.
-5. Respect `input.language` and `settings.language.primaryLanguage` for multilingual inference.
-6. Return a populated `InterpretationResult`, including `routingReason` + `latencyMs` so the caregiver routing log + ModelChip remain meaningful.
-7. Flip the mode in Settings → Developer → Interpreter to `Gemma 4 (local)` (or set it as the default at build time).
+The UI already calls these — they just throw today:
+
+```ts
+await triggerEmergency({ message, caregiverPhone, ts });  // src/services/emergency.ts
+await sendTestSms(phone);                                 // src/services/twilio.ts
+await testConnection(apiKey);                             // src/services/smartthings.ts
+await runScene(scene);                                    // src/services/smartthings.ts
+```
+
+Implement these against a tiny server proxy (keep secrets out of the PWA bundle) and the existing UI (EmergencyBanner countdown, Integrations test buttons) starts working untouched.
 
 ## Offline vs cloud
 
-- **Offline (today)**: Service worker precaches the app shell; interpretation runs fully in-browser (either passthrough or mock).
-- **Target architecture**: Run Gemma via **Ollama** (or similar) on the same LAN or on-device; `GemmaInterpreterAdapter` becomes the HTTP client.
-
-## Unsloth fine-tuning
-
-- Settings → **Personalization** shows **before/after accuracy** and sample counts — **scaffold** for per-user LoRA or adapter fine-tunes trained with Unsloth (or your pipeline).
-- `FineTuningContext` persists lightweight counters; connect to your training job results when available.
-
-## SmartThings and Twilio
-
-- **SmartThings**: `runScene` and `testConnection` are stubs; production uses OAuth/API tokens via a **caregiver-configured** integration (see Settings UI).
-- **Twilio**: Emergency and test SMS go through **server-side** proxies in production so API secrets are not in the PWA bundle.
-
-## Demo mode vs live
-
-- **Demo mode** (Settings): Disables real hardware (mic/camera). Judges only see scripted Judge Demo scenarios + manual text input, which run through `MockRouterAdapter`.
-- **Live mode** (default): Real mic → STT → `interpretationService.interpret(...)` → TTS; camera frames attach to the next interpretation call. Adapter chosen by the Developer selector.
+- **Offline (today):** The service worker precaches the app shell.
+- **Target architecture:** Run Gemma via **Ollama** on the same LAN or on-device; `GemmaInterpreterAdapter` becomes the local HTTP client. Pair with a hosted fallback only when needed.
 
 ## Remaining work before full production
 
-- Wire `GemmaInterpreterAdapter` to Ollama (see above).
-- STT language picker UI (the lang comes from Settings today).
-- Background-noise mitigation / VAD for better STT on mobile.
-- Voice-bank wiring (currently a wizard scaffold in Settings).
-- Real SmartThings / Twilio proxies.
-- Streaming tokens from Ollama into `StreamingText` instead of the current post-result stream.
+- Implement `GemmaInterpreterAdapter` against Ollama.
+- Wire Twilio + SmartThings via server proxies.
+- STT language picker UI (language currently comes from Settings).
+- Background-noise mitigation / VAD for mobile STT.
+- Streaming tokens from Ollama into `StreamingText` instead of post-result reveal.
 
 For architecture layers, see [ARCHITECTURE.md](./ARCHITECTURE.md).

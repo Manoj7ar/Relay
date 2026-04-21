@@ -8,30 +8,33 @@ export function AboutPage() {
       <header className="shrink-0 pt-[max(env(safe-area-inset-top),6px)]">
         <h1 className="text-lg font-semibold tracking-tight">Gemma &amp; architecture</h1>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          Relay routes inputs through a Gemma-family stack (contracts in code; inference
-          mocked locally for the hackathon). The home header shows the active tier via{' '}
-          <strong>Model</strong> — same signal as caregiver routing logs.
+          Relay is a real mobile-web AAC shell — permissions, microphone,
+          speech-to-text, text-to-speech, and camera all run on real browser
+          APIs. The interpretation layer is a single swap point
+          (<code className="rounded bg-black/5 px-1">GemmaInterpreterAdapter</code>)
+          that calls your Gemma 4 / Ollama endpoint.
         </p>
       </header>
 
       <Card variant="glass-strong" className="p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Cpu className="h-4 w-4 shrink-0" aria-hidden />
-          Model tiers
+          Model tiers (routing policy)
         </div>
         <ul className="mt-2 space-y-2 text-xs leading-relaxed text-muted">
           <li>
-            <strong className="text-text">E2B</strong> — Short speech and low-latency paths
-            (see <code className="rounded bg-black/5 px-1">chooseModel</code> in{' '}
+            <strong className="text-text">E2B</strong> — Short speech and
+            low-latency paths (see{' '}
+            <code className="rounded bg-black/5 px-1">chooseModel</code> in{' '}
             <code className="rounded bg-black/5 px-1">modelRouter.ts</code>).
           </li>
           <li>
-            <strong className="text-text">E4B</strong> — Symbol and expanded phrasing;
-            fine-tuning hooks live in personalization / Unsloth metrics.
+            <strong className="text-text">E4B</strong> — Symbol input and
+            expanded phrasing.
           </li>
           <li>
-            <strong className="text-text">27B</strong> — Multimodal (camera + speech),
-            high-urgency, or safety-critical routing.
+            <strong className="text-text">27B</strong> — Multimodal
+            (camera + speech), high-urgency, or safety-critical.
           </li>
         </ul>
       </Card>
@@ -39,25 +42,25 @@ export function AboutPage() {
       <Card variant="glass-strong" className="p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Layers className="h-4 w-4 shrink-0" aria-hidden />
-          Offline vs future Ollama
+          Interpretation adapter
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted">
-          The PWA shell installs and runs offline (Workbox). Interpretation in this repo
-          uses in-browser mocks with realistic latency bands. Wiring to Ollama or a hosted
-          Gemma endpoint replaces the <code className="rounded bg-black/5 px-1">infer*</code>{' '}
-          functions — no UI rewrite required.
+          Every input surface (mic + STT, typed fallback, quick phrases,
+          symbols, camera frame) routes through a single{' '}
+          <code className="rounded bg-black/5 px-1">interpret(input)</code>{' '}
+          call. The adapter body is the only thing to swap — the UI never
+          changes.
         </p>
       </Card>
 
       <Card variant="glass-strong" className="p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <WifiOff className="h-4 w-4 shrink-0" aria-hidden />
-          Proof in the UI
+          Offline shell
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted">
-          <strong className="text-text">Connection</strong> badge, <strong className="text-text">Model</strong>{' '}
-          chip (top bar), and Settings → <strong className="text-text">Routing log</strong>{' '}
-          show tier choice and reasons after each interpretation.
+          The PWA shell installs and runs offline (Workbox). Pairing it with a
+          local Ollama-hosted Gemma 4 keeps the full pipeline edge-first.
         </p>
       </Card>
 
@@ -67,9 +70,13 @@ export function AboutPage() {
           Documentation
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted">
-          Full seam list and honest &quot;mocked vs real&quot; notes live in{' '}
-          <code className="rounded bg-black/5 px-1">docs/GEMMA_AND_INTEGRATIONS.md</code> and{' '}
-          <code className="rounded bg-black/5 px-1">docs/ARCHITECTURE.md</code> in the repo.
+          The full architecture and Gemma wiring checklist live in{' '}
+          <code className="rounded bg-black/5 px-1">docs/ARCHITECTURE.md</code>{' '}
+          and{' '}
+          <code className="rounded bg-black/5 px-1">
+            docs/GEMMA_AND_INTEGRATIONS.md
+          </code>{' '}
+          in the repo.
         </p>
       </Card>
 

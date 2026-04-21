@@ -19,9 +19,9 @@ interface CameraPreviewProps {
  * the patient has the vision toggle on and camera permission is granted.
  *
  * The captured frame is stored in `SessionContext.pendingImage`; the next
- * submit() picks it up and attaches it to the interpretation input. Until
- * Gemma ships, the `MockRouterAdapter` still runs inference (no actual
- * vision model) but the routing log notes `vision+speech`.
+ * submit() picks it up and passes it (as `imageDataUrl`) into the single
+ * `interpret()` call — the Gemma adapter consumes it for multimodal
+ * reasoning once wired.
  */
 export function CameraPreview({ active, onToggleOff, compact }: CameraPreviewProps) {
   const permissions = usePermissions('camera');

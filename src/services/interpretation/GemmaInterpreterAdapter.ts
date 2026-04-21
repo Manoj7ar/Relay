@@ -1,24 +1,23 @@
 /**
- * Placeholder for the real Gemma 4 interpretation adapter.
+ * The real Gemma 4 interpretation adapter — currently unimplemented on
+ * purpose so the UI never silently fakes a response.
  *
- * This file intentionally does not call any model. When Gemma is wired,
- * implement `interpret()` to:
+ * When wiring this up, implement `interpret()` to:
  *
- *   1. Hit the local Ollama endpoint (or a hosted gateway) with a typed
- *      `InferenceRequest` payload derived from `InterpretationInput`.
- *   2. Select between E2B / E4B / 27B (mirror the logic in
- *      `modelRouter.chooseModel`, or replace with Cactus routing).
- *   3. Pass multimodal payloads (image data URL / blob) when available.
- *   4. Run the emergency classifier before returning HIGH urgency.
- *   5. Handle multilingual inputs (respect `input.language` and the
- *      `SettingsContext.language.primaryLanguage`).
- *   6. Produce a `InterpretationResult` with routing reason + latency so
- *      the caregiver routing log + ModelChip stay meaningful.
- *   7. Expose smart-home function-call suggestions on the result, once the
- *      SmartThings adapter gains a production endpoint.
+ *   1. Build an `InferenceRequest` from `InterpretationInput`.
+ *   2. Call `chooseModel(req)` (from `../modelRouter`) — or a Cactus-style
+ *      learned router — to pick between Gemma E2B / E4B / 26B / 31B.
+ *   3. POST to your local Ollama endpoint (or a hosted gateway) with the
+ *      typed payload (text + optional image data URL).
+ *   4. Map the raw model output into `InterpretationResult`, including the
+ *      routing reason + latency so the caregiver routing log stays real.
+ *   5. Respect `input.language` for multilingual inputs.
+ *   6. Emit tool-call suggestions (SmartThings / Twilio) once those
+ *      integrations are wired in their respective services.
  *
- * Keeping this as a thrown `NotImplemented` prevents the UI from silently
- * pretending to call Gemma while the adapter is still a stub.
+ * Throwing `NotImplemented` until then is intentional: the rest of the
+ * app will surface a clear "Gemma not connected" state rather than print
+ * a fabricated answer.
  *
  * See docs/GEMMA_AND_INTEGRATIONS.md for the full wiring plan.
  */
@@ -29,13 +28,21 @@ import type {
   InterpreterAdapter,
 } from '../interpretationService';
 
+export class GemmaNotConnectedError extends Error {
+  constructor() {
+    super(
+      'Gemma 4 is not connected. Implement ' +
+        'src/services/interpretation/GemmaInterpreterAdapter.ts ' +
+        '(see docs/GEMMA_AND_INTEGRATIONS.md).',
+    );
+    this.name = 'GemmaNotConnectedError';
+  }
+}
+
 async function interpret(
   _input: InterpretationInput,
 ): Promise<InterpretationResult> {
-  throw new Error(
-    'GemmaInterpreterAdapter is not implemented. Wire an Ollama or Gemma ' +
-      'endpoint here — see docs/GEMMA_AND_INTEGRATIONS.md.',
-  );
+  throw new GemmaNotConnectedError();
 }
 
 export const GemmaInterpreterAdapter: InterpreterAdapter = {

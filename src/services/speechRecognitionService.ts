@@ -2,7 +2,7 @@
  * Browser Web Speech API wrapper.
  *
  * Feature-detects `SpeechRecognition`/`webkitSpeechRecognition`. If absent,
- * consumers should fall back to the Type-instead sheet or demo scenarios.
+ * consumers should fall back to the Type-instead sheet.
  * No auto-restart loops — each `start()` is one logical "utterance".
  */
 

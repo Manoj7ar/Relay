@@ -7,12 +7,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { load, save } from '@/lib/storage';
-import {
-  DEFAULT_SETTINGS,
-  type InterpreterModeSetting,
-  type SettingsState,
-  type VoiceBankingState,
-} from '@/types/settings';
+import { DEFAULT_SETTINGS, type SettingsState } from '@/types/settings';
 
 type Action =
   | { type: 'SET_HIGH_CONTRAST'; value: boolean }
@@ -23,9 +18,6 @@ type Action =
   | { type: 'SET_CAREGIVER_PHONE'; value: string }
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
-  | { type: 'SET_DEMO_MODE'; value: boolean }
-  | { type: 'SET_INTERPRETER_MODE'; value: InterpreterModeSetting }
-  | { type: 'VOICE_BANKING'; patch: Partial<VoiceBankingState> }
   | { type: 'RESET' };
 
 function reducer(state: SettingsState, action: Action): SettingsState {
@@ -91,18 +83,6 @@ function reducer(state: SettingsState, action: Action): SettingsState {
         ...state,
         language: { ...state.language, caregiverLanguage: action.value },
       };
-    case 'SET_DEMO_MODE':
-      return { ...state, demoMode: action.value };
-    case 'SET_INTERPRETER_MODE':
-      return {
-        ...state,
-        devMode: { ...state.devMode, interpreter: action.value },
-      };
-    case 'VOICE_BANKING':
-      return {
-        ...state,
-        voiceBanking: { ...state.voiceBanking, ...action.patch },
-      };
     case 'RESET':
       return DEFAULT_SETTINGS;
   }
@@ -120,8 +100,6 @@ const STORAGE_KEY = 'relay.settings';
 export function SettingsProvider({ children }: PropsWithChildren) {
   const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, (fallback) => {
     const stored = load<Partial<SettingsState>>(STORAGE_KEY, fallback);
-    // Shallow-merge top-level groups so new fields (e.g. `devMode`) added after
-    // a user's settings were first persisted still pick up their defaults.
     return {
       ...fallback,
       ...stored,
@@ -139,8 +117,6 @@ export function SettingsProvider({ children }: PropsWithChildren) {
         },
       },
       language: { ...fallback.language, ...stored.language },
-      voiceBanking: { ...fallback.voiceBanking, ...stored.voiceBanking },
-      devMode: { ...fallback.devMode, ...stored.devMode },
     } as SettingsState;
   });
 

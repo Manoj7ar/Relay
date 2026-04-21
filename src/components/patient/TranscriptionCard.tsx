@@ -7,15 +7,11 @@ import { InterpretationAlternates } from './InterpretationAlternates';
 import { CameraToggle } from './CameraToggle';
 import { CameraPreview } from './CameraPreview';
 import { useSession } from '@/contexts/SessionContext';
-import { useSettings } from '@/contexts/SettingsContext';
-import { useJudgeDemo } from '@/contexts/JudgeDemoContext';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/cn';
 
 export function TranscriptionCard() {
-  const { state, acceptAlternate, dispatch } = useSession();
-  const { settings } = useSettings();
-  const judge = useJudgeDemo();
+  const { state, acceptAlternate, dispatch, clearError } = useSession();
   const tts = useSpeechSynthesis();
   const {
     currentInterpretation,
@@ -23,31 +19,25 @@ export function TranscriptionCard() {
     isProcessing,
     visionOn,
     interimTranscript,
+    lastError,
   } = state;
-  const demoMode = settings.demoMode;
-  const showJudgeFragment =
-    judge.phase === 'fragment' && Boolean(judge.fragmentDisplay);
 
   const lastSpokenIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!currentInterpretation) return;
-    if (judge.phase !== 'idle' && judge.phase !== 'outcome') return;
-    if (demoMode) return;
     if (lastSpokenIdRef.current === currentInterpretation.id) return;
     lastSpokenIdRef.current = currentInterpretation.id;
     void tts.speak(currentInterpretation.primary, {
       lang: currentInterpretation.detectedLanguage,
     });
-  }, [currentInterpretation, demoMode, judge.phase, tts]);
+  }, [currentInterpretation, tts]);
 
-  const placeholderTitle = showJudgeFragment
-    ? 'Fragmented input (simulated)'
-    : isListening
-      ? 'Listening…'
-      : isProcessing
-        ? 'Interpreting…'
-        : 'Tap the mic to start';
+  const placeholderTitle = isListening
+    ? 'Listening…'
+    : isProcessing
+      ? 'Interpreting…'
+      : 'Tap the mic to start';
 
   const liveText = useMemo(() => {
     if (isListening && interimTranscript) return interimTranscript;
@@ -89,13 +79,12 @@ export function TranscriptionCard() {
           ) : null}
           <CameraToggle
             on={visionOn}
-            disabled={demoMode}
             onToggle={() => dispatch({ type: 'TOGGLE_VISION' })}
           />
         </div>
       </div>
 
-      {visionOn && !demoMode ? (
+      {visionOn ? (
         <div className="mt-1.5 shrink-0">
           <CameraPreview
             active={visionOn}
@@ -106,11 +95,7 @@ export function TranscriptionCard() {
       ) : null}
 
       <div className="my-1 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-1">
-        {showJudgeFragment && judge.fragmentDisplay ? (
-          <p className="line-clamp-4 text-center text-[clamp(1.1rem,4.2vw,1.5rem)] font-semibold leading-snug text-text">
-            {judge.fragmentDisplay}
-          </p>
-        ) : liveText ? (
+        {liveText ? (
           <p
             aria-live="polite"
             className="line-clamp-4 text-center text-[clamp(1.05rem,4.2vw,1.5rem)] font-medium italic leading-snug text-muted"
@@ -145,6 +130,21 @@ export function TranscriptionCard() {
       </div>
 
       <div className="shrink-0 space-y-1.5">
+        {lastError ? (
+          <div
+            role="alert"
+            className="flex items-start justify-between gap-2 rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-2.5 py-1.5 text-[11px] text-text"
+          >
+            <span className="min-w-0 leading-snug">{lastError}</span>
+            <button
+              type="button"
+              onClick={clearError}
+              className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
         {currentInterpretation ? (
           <>
             <ConfidenceMoodRow
@@ -189,15 +189,11 @@ export function TranscriptionCard() {
               </span>
             </div>
           </>
-        ) : showJudgeFragment ? (
-          <p className="text-center text-xs text-muted">
-            Model tier and confidence fill in after the interpret step.
-          </p>
-        ) : (
+        ) : !lastError ? (
           <p className="text-center text-xs text-muted">
             Your words appear here.
           </p>
-        )}
+        ) : null}
       </div>
     </Card>
   );

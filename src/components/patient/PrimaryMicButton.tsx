@@ -19,7 +19,6 @@ export function PrimaryMicButton() {
   const stt = useSpeechRecognition({
     lang: settings.language.primaryLanguage,
   });
-  const demoMode = settings.demoMode;
   const [finalizing, setFinalizing] = useState(false);
   const pendingSubmitRef = useRef(false);
 
@@ -79,7 +78,6 @@ export function PrimaryMicButton() {
   const copy = MIC_COPY[uiState];
 
   const handleTap = async () => {
-    if (demoMode) return;
     haptics('tap');
 
     if (state.isListening) {
@@ -104,7 +102,6 @@ export function PrimaryMicButton() {
   };
 
   const disabled =
-    demoMode ||
     uiState === 'processing' ||
     (uiState === 'permission_denied' && !state.isListening);
 
@@ -146,7 +143,7 @@ export function PrimaryMicButton() {
           : undefined
       }
     >
-      {demoMode ? 'Demo mode — use Demo tab' : copy.label}
+      {copy.label}
     </PillButton>
   );
 }

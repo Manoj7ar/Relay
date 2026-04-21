@@ -19,26 +19,10 @@ export interface LanguageSettings {
   caregiverLanguage: string;
 }
 
-export interface VoiceBankingState {
-  currentStep: 0 | 1 | 2 | 3;
-  recordedPhrases: number;
-  cloneReady: boolean;
-}
-
-export type InterpreterModeSetting = 'browser' | 'mock' | 'gemma';
-
-export interface DevModeSettings {
-  /** Which interpreter adapter to use when hardware inputs arrive. */
-  interpreter: InterpreterModeSetting;
-}
-
 export interface SettingsState {
   accessibility: AccessibilitySettings;
   integrations: IntegrationsSettings;
   language: LanguageSettings;
-  voiceBanking: VoiceBankingState;
-  demoMode: boolean;
-  devMode: DevModeSettings;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -59,14 +43,5 @@ export const DEFAULT_SETTINGS: SettingsState = {
   language: {
     primaryLanguage: 'en-US',
     caregiverLanguage: 'en-US',
-  },
-  voiceBanking: {
-    currentStep: 0,
-    recordedPhrases: 0,
-    cloneReady: false,
-  },
-  demoMode: false,
-  devMode: {
-    interpreter: 'browser',
   },
 };

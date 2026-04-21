@@ -1,10 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import {
-  Activity,
-  Home,
-  PlayCircle,
-  Settings as SettingsIcon,
-} from 'lucide-react';
+import { Activity, Home, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useSession } from '@/contexts/SessionContext';
 import type { PropsWithChildren } from 'react';
@@ -18,7 +13,6 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/caregiver', label: 'Caregiver', icon: Activity },
-  { to: '/demo', label: 'Demo', icon: PlayCircle },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 

@@ -1,13 +1,13 @@
 /**
  * Session state: interpretations, history, listening/processing.
  *
- * All "raw input -> interpreted phrase" calls go through
- * `interpretationService.interpret`. The adapter is selected by
- * `settings.devMode.interpreter` so the Home flow can run without Gemma
- * (browser passthrough) or with the mocked Cactus-style router
- * (`mock` adapter) that preserves RoutingLog + ModelChip.
+ * All "raw input → interpreted phrase" calls go through
+ * `interpretationService.interpret`, which delegates to
+ * `GemmaInterpreterAdapter`. Until Gemma is wired, interpret() throws
+ * `GemmaNotConnectedError`; we surface that as `state.lastError` so the
+ * UI can show an honest "not connected" state instead of a fake answer.
  *
- * See docs/ARCHITECTURE.md
+ * See docs/ARCHITECTURE.md + docs/GEMMA_AND_INTEGRATIONS.md.
  */
 import {
   createContext,
@@ -21,8 +21,6 @@ import {
 import { load, save } from '@/lib/storage';
 import { directionFor } from '@/hooks/useRTL';
 import { useModelRouting } from './ModelRoutingContext';
-import { useFineTuning } from './FineTuningContext';
-import { useSettings } from './SettingsContext';
 import {
   interpret as runInterpret,
   type InterpretationInput,
@@ -47,6 +45,7 @@ type Action =
   | { type: 'SET_PENDING_IMAGE'; image: PendingImageContext | null }
   | { type: 'SET_LANGUAGE'; language: string; direction: 'ltr' | 'rtl' }
   | { type: 'CANCEL_CURRENT' }
+  | { type: 'SET_ERROR'; message: string | null }
   | { type: 'PUSH_HISTORY'; record: InteractionRecord }
   | { type: 'UPDATE_HISTORY'; id: string; patch: Partial<InteractionRecord> }
   | { type: 'CLEAR_HISTORY' }
@@ -63,12 +62,18 @@ const INITIAL: SessionState = {
   direction: 'ltr',
   interimTranscript: '',
   pendingImage: null,
+  lastError: null,
 };
 
 function reducer(state: SessionState, action: Action): SessionState {
   switch (action.type) {
     case 'START_LISTEN':
-      return { ...state, isListening: true, interimTranscript: '' };
+      return {
+        ...state,
+        isListening: true,
+        interimTranscript: '',
+        lastError: null,
+      };
     case 'STOP_LISTEN':
       return { ...state, isListening: false };
     case 'SET_INTERIM':
@@ -79,6 +84,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         isProcessing: true,
         isListening: false,
         interimTranscript: '',
+        lastError: null,
       };
     case 'SET_INTERPRETATION':
       return {
@@ -87,6 +93,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         currentInterpretation: action.interpretation,
         detectedLanguage: action.interpretation.detectedLanguage,
         direction: directionFor(action.interpretation.detectedLanguage),
+        lastError: null,
       };
     case 'APPLY_ALTERNATE':
       if (!state.currentInterpretation) return state;
@@ -122,6 +129,8 @@ function reducer(state: SessionState, action: Action): SessionState {
         isProcessing: false,
         interimTranscript: '',
       };
+    case 'SET_ERROR':
+      return { ...state, lastError: action.message, isProcessing: false };
     case 'PUSH_HISTORY':
       return { ...state, history: [action.record, ...state.history].slice(0, 100) };
     case 'UPDATE_HISTORY':
@@ -149,9 +158,6 @@ function resultToInterpretation(result: InterpretationResult): Interpretation {
     mood: result.mood,
     detectedLanguage: result.detectedLanguage,
     translation: result.translation,
-    // Only `ModelId` values are valid for the routing log / ModelChip.
-    // For browser/gemma modes we fall back to "E2B" semantically so the
-    // UI stays consistent; the real source model is in `result.sourceModel`.
     model: isModelId(result.sourceModel) ? result.sourceModel : 'E2B',
     latencyMs: result.latencyMs,
     inputType:
@@ -177,10 +183,10 @@ interface SessionContextValue {
   submit: (req: InferenceRequest) => Promise<InterpretationResult | null>;
   acceptAlternate: (alt: string) => void;
   applyActionTaken: (id: string, actionTaken: string, cancelled?: boolean) => void;
-  setInterpretation: (interpretation: Interpretation, reason: string) => void;
   setInterimTranscript: (text: string) => void;
   setPendingImage: (image: PendingImageContext | null) => void;
   clearCurrent: () => void;
+  clearError: () => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -190,38 +196,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
     ...init,
     history: load<InteractionRecord[]>(STORAGE_KEY, []),
   }));
-  const { settings } = useSettings();
   const { recordInterpretation } = useModelRouting();
-  const { logInteraction } = useFineTuning();
 
   useEffect(() => {
     save(STORAGE_KEY, state.history);
   }, [state.history]);
 
-  const setInterpretation = useCallback(
-    (interp: Interpretation, reason: string) => {
-      dispatch({ type: 'SET_INTERPRETATION', interpretation: interp });
-      const record: InteractionRecord = {
-        ...interp,
-        actionTaken: interp.actionTaken ?? 'Spoken only',
-      };
-      dispatch({ type: 'PUSH_HISTORY', record });
-      recordInterpretation(interp, reason);
-      logInteraction();
-    },
-    [recordInterpretation, logInteraction],
-  );
-
   const submit = useCallback(
     async (req: InferenceRequest): Promise<InterpretationResult | null> => {
-      if (
-        settings.demoMode &&
-        (req.inputType === 'speech' || req.inputType === 'vision+speech')
-      ) {
-        dispatch({ type: 'STOP_LISTEN' });
-        return null;
-      }
-
       const visionOn = req.visionOn ?? state.visionOn;
       const input: InterpretationInput = {
         sourceType:
@@ -238,9 +220,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
       };
 
       dispatch({ type: 'START_PROCESSING' });
-      const mode = settings.devMode.interpreter;
       try {
-        const result = await runInterpret(input, { mode });
+        const result = await runInterpret(input);
         if (visionOn || state.pendingImage) {
           result.visionUsed = true;
         }
@@ -253,32 +234,28 @@ export function SessionProvider({ children }: PropsWithChildren) {
           spoken: false,
           cameraUsed: Boolean(state.pendingImage),
           sourceType: input.sourceType,
-          interpreter: mode,
         };
         dispatch({ type: 'SET_INTERPRETATION', interpretation: interp });
         dispatch({ type: 'PUSH_HISTORY', record });
         recordInterpretation(interp, result.routingReason);
-        logInteraction();
         if (state.pendingImage) {
           dispatch({ type: 'SET_PENDING_IMAGE', image: null });
         }
         return result;
       } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Interpretation failed. Please try again.';
         dispatch({ type: 'CANCEL_CURRENT' });
+        dispatch({ type: 'SET_ERROR', message });
         if (import.meta.env?.DEV) {
           console.error('[interpretationService]', err);
         }
         return null;
       }
     },
-    [
-      settings.demoMode,
-      settings.devMode.interpreter,
-      state.visionOn,
-      state.pendingImage,
-      recordInterpretation,
-      logInteraction,
-    ],
+    [state.visionOn, state.pendingImage, recordInterpretation],
   );
 
   const acceptAlternate = useCallback((alt: string) => {
@@ -304,6 +281,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
     dispatch({ type: 'CANCEL_CURRENT' });
   }, []);
 
+  const clearError = useCallback(() => {
+    dispatch({ type: 'SET_ERROR', message: null });
+  }, []);
+
   const value = useMemo(
     () => ({
       state,
@@ -311,20 +292,20 @@ export function SessionProvider({ children }: PropsWithChildren) {
       submit,
       acceptAlternate,
       applyActionTaken,
-      setInterpretation,
       setInterimTranscript,
       setPendingImage,
       clearCurrent,
+      clearError,
     }),
     [
       state,
       submit,
       acceptAlternate,
       applyActionTaken,
-      setInterpretation,
       setInterimTranscript,
       setPendingImage,
       clearCurrent,
+      clearError,
     ],
   );
 

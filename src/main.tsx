@@ -5,9 +5,7 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { ModelRoutingProvider } from './contexts/ModelRoutingContext';
-import { FineTuningProvider } from './contexts/FineTuningContext';
 import { SessionProvider } from './contexts/SessionContext';
-import { JudgeDemoProvider } from './contexts/JudgeDemoContext';
 import './index.css';
 
 registerSW({ immediate: true });
@@ -17,13 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <SettingsProvider>
         <ModelRoutingProvider>
-          <FineTuningProvider>
-            <SessionProvider>
-              <JudgeDemoProvider>
-                <App />
-              </JudgeDemoProvider>
-            </SessionProvider>
-          </FineTuningProvider>
+          <SessionProvider>
+            <App />
+          </SessionProvider>
         </ModelRoutingProvider>
       </SettingsProvider>
     </BrowserRouter>

@@ -6,8 +6,8 @@ import { useSettings } from '@/contexts/SettingsContext';
 
 /**
  * Manual text fallback for when SpeechRecognition is unsupported or the
- * user prefers to type. Always available beneath the mic button and in
- * demo mode. Uses the exact same `submit()` path as speech input so the
+ * user prefers to type. Always available beneath the mic button. Uses the
+ * exact same `submit()` path as speech input so the
  * interpretation -> confirm -> TTS -> log loop behaves identically.
  */
 export function TypeInsteadSheet() {

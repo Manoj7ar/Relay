@@ -1,21 +1,19 @@
 /**
- * Single "raw input -> interpreted phrase" entry point.
+ * Single "raw input → interpreted phrase" entry point.
  *
- * All UI + contexts call `interpret(input, opts)`; the adapter is selected
- * by `mode` (browser fallback, mock/demo that wraps the local routing
- * policy, or Gemma once wired). The returned shape matches the future
- * Gemma output schema so UI never changes when swapping adapters.
+ * All UI + contexts call `interpret(input)`. The implementation is whatever
+ * the single adapter does — currently `GemmaInterpreterAdapter`, which
+ * throws `NotImplemented` until a real Gemma 4 / Ollama endpoint is wired.
+ * The returned shape is aligned to Gemma's eventual output so UI never
+ * changes when the adapter body is filled in.
  *
  * See docs/GEMMA_AND_INTEGRATIONS.md.
  */
 
 import type { Mood, Urgency } from '@/types/model';
-import { BrowserPassthroughAdapter } from './interpretation/BrowserPassthroughAdapter';
-import { MockRouterAdapter } from './interpretation/MockRouterAdapter';
 import { GemmaInterpreterAdapter } from './interpretation/GemmaInterpreterAdapter';
 
-export type InterpretationSourceType = 'speech' | 'text' | 'symbols' | 'demo';
-export type InterpreterMode = 'browser' | 'mock' | 'gemma';
+export type InterpretationSourceType = 'speech' | 'text' | 'symbols';
 
 export interface InterpretationInput {
   sourceType: InterpretationSourceType;
@@ -24,8 +22,6 @@ export interface InterpretationInput {
   imageDataUrl?: string;
   language?: string;
   urgencyHint?: Urgency;
-  /** Optional scenario id when `sourceType === 'demo'`. */
-  scenarioId?: string;
 }
 
 export interface InterpretationResult {
@@ -38,6 +34,7 @@ export interface InterpretationResult {
   mood: Mood;
   detectedLanguage: string;
   translation?: string;
+  /** E2B / E4B / 27B — populated by the real adapter. */
   sourceModel: string;
   sourceType: InterpretationSourceType;
   /** For the routing log / ModelChip. */
@@ -49,31 +46,20 @@ export interface InterpretationResult {
 }
 
 export interface InterpreterAdapter {
-  readonly id: InterpreterMode;
+  readonly id: string;
   interpret(input: InterpretationInput): Promise<InterpretationResult>;
 }
 
-const adapters: Record<InterpreterMode, InterpreterAdapter> = {
-  browser: BrowserPassthroughAdapter,
-  mock: MockRouterAdapter,
-  gemma: GemmaInterpreterAdapter,
-};
-
-export interface InterpretOptions {
-  mode: InterpreterMode;
-}
+/**
+ * The one and only adapter. Replace the body of
+ * `GemmaInterpreterAdapter.interpret` with a real Gemma 4 call and every
+ * input source (mic → STT, typed, quick phrases, symbols, camera frame)
+ * starts producing real results without any UI change.
+ */
+const adapter: InterpreterAdapter = GemmaInterpreterAdapter;
 
 export async function interpret(
   input: InterpretationInput,
-  opts: InterpretOptions,
 ): Promise<InterpretationResult> {
-  const adapter = adapters[opts.mode];
-  if (!adapter) {
-    throw new Error(`Unknown interpreter mode: ${opts.mode}`);
-  }
   return adapter.interpret(input);
-}
-
-export function getAdapter(mode: InterpreterMode): InterpreterAdapter {
-  return adapters[mode];
 }

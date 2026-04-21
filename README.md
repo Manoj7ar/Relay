@@ -1,8 +1,8 @@
 # Relay
 
-**Relay** is a mobile-first PWA for people whose speech is hard to understand — including ALS, stroke-related aphasia, dysarthria, and Parkinson’s. It turns fragmented or unclear speech into a clear phrase the user can confirm, speak back in their own voice (voice banking), and optionally route to smart-home actions or a staged emergency flow.
+**Relay** is a mobile-first PWA for people whose speech is hard to understand — including ALS, stroke-related aphasia, dysarthria, and Parkinson's. It turns fragmented or unclear speech into a clear phrase the user can confirm, speak back via browser TTS, and optionally capture multimodal context from the camera.
 
-This repository ships a **production-quality frontend prototype**: typed seams for Gemma-family inference, Cactus-style routing, Twilio, and SmartThings; **mock implementations** ship in-repo so you can run the full UX locally without API keys.
+This repository ships a **real browser-capability foundation** — permissions, microphone capture, speech-to-text, text-to-speech, and camera preview all run on real browser APIs — with a **single swap point** (`GemmaInterpreterAdapter`) that takes the app from "input pipeline wired" to "Gemma 4 answering" without any UI rewrite. No scripted scenarios, no fake answers, no demo mode.
 
 ---
 
@@ -12,63 +12,62 @@ When words do not come out reliably, communication fatigue is real. Relay is des
 
 ---
 
-## Key features
+## What's wired today
 
-| Area | Route | What it does |
-|------|-------|----------------|
-| Patient home | `/` | Streaming interpretation card, urgency/mood, alternates, bilingual line, camera toggle, quick phrases, symbol board, emergency countdown |
-| Caregiver | `/caregiver` | Today’s interactions, routing log, emergency timeline, handover note |
-| Settings | `/settings` | Voice banking, accessibility, integrations, language, offline status, routing log, **About Relay** |
-| Judge Demo | `/demo` | Demo mode toggle, **Start Judge Demo** walkthrough, four scripted scenarios |
-| Gemma & architecture | `/about` | Model tiers (E2B / E4B / 27B), offline story, pointers to docs |
+| Capability | Status | Where |
+|------------|--------|-------|
+| Microphone permission + capture | Real | `src/services/audioCaptureService.ts`, `src/hooks/useMicrophone.ts` |
+| Speech-to-text (interim + final) | Real (browser-native) | `src/services/speechRecognitionService.ts`, `src/hooks/useSpeechRecognition.ts` |
+| Text-to-speech (replay, cancel, language-matched voice) | Real | `src/services/speechSynthesisService.ts`, `src/hooks/useSpeechSynthesis.ts` |
+| Camera permission + preview + frame capture | Real | `src/services/cameraService.ts`, `src/hooks/useCamera.ts` |
+| Permissions query + prompt + denied-recovery copy | Real | `src/services/permissionsService.ts`, `src/hooks/usePermissions.ts` |
+| Routing policy (`chooseModel`) | Real | `src/services/modelRouter.ts` |
+| Gemma 4 interpretation | **Stub** (throws until wired) | `src/services/interpretation/GemmaInterpreterAdapter.ts` |
+| Emergency dispatch (Twilio) | **Stub** (throws until wired) | `src/services/emergency.ts` |
+| Twilio SMS | **Stub** (throws until wired) | `src/services/twilio.ts` |
+| SmartThings smart-home | **Stub** (throws until wired) | `src/services/smartthings.ts` |
 
----
-
-## Demo flow
-
-1. Open **Settings** → enable **Demo mode** (live mic and camera paths are disabled; text/symbols still exercise inference).
-2. Open **Demo** → tap **Start Judge Demo** or **Play scenario** on any card.
-3. You are taken to **Home** for a phased walkthrough: fragmented input → routing line → interpretation → **Confirm** → outcome (including emergency copy for HIGH urgency).
-4. Check **Settings → Routing log** or the home **Model** chip for tier and reason.
+The app surfaces stub errors honestly: tap the mic, speak, and you'll see a real transcript → a real "Gemma not connected" status — not a fake answer.
 
 ---
 
-## Architecture
+## Screens
 
-UI → React contexts (`Session`, `ModelRouting`, `Settings`, `FineTuning`, `JudgeDemo`) → `modelRouter` (`chooseModel`, `infer*`) → mocked smart home / emergency services.
-
-**Details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · **Mocks vs production:** [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)
-
----
-
-## How Gemma 4 is used
-
-Relay treats **Gemma 4** as the family behind three tiers (**E2B**, **E4B**, **27B**) selected by input type, urgency, and multimodal context. In this build, **`inferE2B` / `inferE4B` / `infer27B`** are browser mocks with realistic latency; swapping in **Ollama** or a hosted endpoint is a service-layer change, not a UI rewrite.
+| Route | What it does |
+|-------|--------------|
+| `/` (Home) | Real mic, live transcript, quick phrases, symbol board, camera toggle, typed fallback sheet, TTS replay |
+| `/caregiver` | History + routing log (populated once interpretation is wired) |
+| `/settings` | Accessibility, Integrations (real config fields), Language, Connectivity, Routing log, **Developer** (capability status dashboard) |
+| `/about` | Architecture overview + Gemma wiring notes |
 
 ---
 
-## Integrations (summary)
+## Architecture (one page)
 
-| Topic | Doc / code |
-|-------|------------|
-| **Cactus-style routing** | `chooseModel` in [src/services/modelRouter.ts](src/services/modelRouter.ts) |
-| **Unsloth / fine-tuning** | [src/contexts/FineTuningContext.tsx](src/contexts/FineTuningContext.tsx), Personalize in Settings |
-| **Ollama / local** | Replace `infer*` bodies; see [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) |
-| **SmartThings** | [src/services/smartthings.ts](src/services/smartthings.ts) |
-| **Twilio / emergency** | [src/services/emergency.ts](src/services/emergency.ts) |
+```
+UI (React)
+  → contexts: Session, ModelRouting, Settings
+  → hooks: usePermissions, useMicrophone, useSpeechRecognition, useSpeechSynthesis, useCamera
+  → services: permissions, audioCapture, speechRecognition, speechSynthesis, camera
+  → single entry: interpretationService.interpret(input)
+      → GemmaInterpreterAdapter   ← implement this to light everything up
+```
+
+Every user input (mic+STT, typed, quick phrases, symbols, camera frame) is funneled into one `interpret(input)` call. Implement the adapter body and the entire app starts producing real responses.
+
+**Details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · **Gemma wiring plan:** [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)
 
 ---
 
-## Demo mode
+## Plugging Gemma 4 in
 
-When **Demo mode** is on:
-
-- The **primary mic** does not start capture; **camera** toggle is disabled.
-- **`submit`** ignores `speech` and `vision+speech` requests (defense in depth).
-- Text **quick phrases** and **symbols** still run the mocked inference pipeline for accessibility testing.
-- A **banner** on the patient home reminds you that live mic/network capture is off.
-
-Toggle: **Settings** (Demo mode section on the Demo page, or the dedicated toggle widget on `/demo`).
+1. Open `src/services/interpretation/GemmaInterpreterAdapter.ts`.
+2. Replace the `throw new GemmaNotConnectedError()` body with:
+   - Build an `InferenceRequest` from `InterpretationInput`.
+   - Call `chooseModel(req)` from `src/services/modelRouter.ts` (or swap in your own router).
+   - POST to your local Ollama (or hosted) Gemma 4 endpoint.
+   - Return an `InterpretationResult` (primaryText, alternates, confidence, urgency, mood, detectedLanguage, sourceModel, routingReason, latencyMs, …).
+3. That's it. Every input surface — mic, typed, quick phrases, symbols, camera-attached frame — now produces real answers. The routing log + ModelChip populate automatically.
 
 ---
 
@@ -90,24 +89,33 @@ npm run preview
 
 ---
 
-## Screenshots & media
+## Integrations (real config, stub bodies)
 
-Optional assets can live under **`docs/media/`**.
+| Topic | File |
+|-------|------|
+| Gemma adapter swap | [src/services/interpretation/GemmaInterpreterAdapter.ts](src/services/interpretation/GemmaInterpreterAdapter.ts) |
+| Routing policy | [src/services/modelRouter.ts](src/services/modelRouter.ts) |
+| SmartThings | [src/services/smartthings.ts](src/services/smartthings.ts) |
+| Twilio | [src/services/twilio.ts](src/services/twilio.ts) |
+| Emergency dispatch | [src/services/emergency.ts](src/services/emergency.ts) |
+
+The Settings → Integrations panel stores real API keys / phone numbers in `localStorage`; wiring the services above makes the test buttons actually work.
 
 ---
 
 ## Roadmap
 
-- Wire **SpeechRecognition** / server STT and **SpeechSynthesis** / cloned voice.
-- Replace routing with a live **Cactus** (or equivalent) endpoint.
-- Connect **Ollama** or cloud Gemma for real inference.
-- Production **Twilio** and **SmartThings** behind small server proxies.
+- Implement `GemmaInterpreterAdapter` against a local Ollama endpoint (E2B / E4B / 26B / 31B).
+- Wire Twilio Voice/SMS proxy for emergency + caregiver pings.
+- Wire SmartThings OAuth + scene runner.
+- Add a learned router (Cactus-style) behind `chooseModel`.
+- Add on-device voice banking / personalization (once TTS target model is picked).
 
 ---
 
 ## Ethics & privacy
 
-Relay is built for dignity and clarity: data stays on-device in this prototype except where you explicitly wire cloud services. Voice banking and health-adjacent data deserve explicit consent and clear retention policies in production.
+Relay is built for dignity and clarity: nothing leaves the device until a service is explicitly wired. Voice banking and health-adjacent data deserve explicit consent and clear retention policies in production.
 
 ---
 
@@ -123,4 +131,4 @@ Relay is built for dignity and clarity: data stays on-device in this prototype e
 |----------|---------|
 | [docs/README.md](docs/README.md) | Doc index |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers and data flow |
-| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma, mocks, integrations |
+| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma wiring plan + integration seams |

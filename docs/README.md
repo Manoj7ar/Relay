@@ -2,7 +2,7 @@
 
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | UI, state, routing, services, and mock layers |
-| [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) | Gemma 4, model tiers, offline vs mocked, integration seams |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | UI, hooks, contexts, services, capability layer |
+| [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) | Gemma 4 wiring plan, integration stubs |
 
-See the repository [README.md](../README.md) for setup and demo mode.
+See the repository [README.md](../README.md) for setup and a summary of what's wired vs. stubbed.

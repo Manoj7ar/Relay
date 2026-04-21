@@ -14,6 +14,7 @@ export function EmergencyBanner() {
   const current = state.currentInterpretation;
   const active = current?.urgency === 'HIGH';
   const [armed, setArmed] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const firedFor = useRef<string | null>(null);
 
   useEffect(() => {
@@ -24,26 +25,42 @@ export function EmergencyBanner() {
     if (firedFor.current !== current.id) {
       firedFor.current = current.id;
       setArmed(true);
+      setStatusMsg(null);
       haptics('emergency');
     }
   }, [active, current, haptics]);
 
-  const remaining = useCountdown({
-    from: 5,
-    active: armed,
-    onZero: async () => {
-      if (!current) return;
-      setArmed(false);
+  const dispatchEmergency = async () => {
+    if (!current) return;
+    try {
       await triggerEmergency({
         message: current.primary,
         caregiverPhone: settings.integrations.twilio.caregiverPhone,
         ts: Date.now(),
       });
       applyActionTaken(current.id, 'Emergency call triggered');
+      setStatusMsg(null);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Emergency dispatch failed.';
+      applyActionTaken(current.id, msg);
+      setStatusMsg(msg);
+    }
+  };
+
+  const remaining = useCountdown({
+    from: 5,
+    active: armed,
+    onZero: async () => {
+      setArmed(false);
+      await dispatchEmergency();
     },
   });
 
-  if (!active || !armed || !current) return null;
+  if (!active || !current) return null;
+  if (!armed && !statusMsg) return null;
 
   return (
     <div
@@ -62,42 +79,58 @@ export function EmergencyBanner() {
           <p className="text-xs font-semibold text-[var(--danger)]">
             Emergency detected
           </p>
-          <p className="text-xs text-text">
-            Calling in <span className="font-bold">{remaining}</span>s…
-          </p>
+          {armed ? (
+            <p className="text-xs text-text">
+              Calling in <span className="font-bold">{remaining}</span>s…
+            </p>
+          ) : null}
+          {statusMsg ? (
+            <p className="mt-0.5 text-[11px] leading-snug text-text">
+              {statusMsg}
+            </p>
+          ) : null}
         </div>
       </div>
-      <div className="mt-2 flex gap-2">
-        <PillButton
-          size="sm"
-          variant="glass"
-          fullWidth
-          className="!min-h-11 text-sm"
-          onClick={() => {
-            setArmed(false);
-            applyActionTaken(current.id, 'Emergency cancelled', true);
-          }}
-        >
-          Cancel
-        </PillButton>
-        <PillButton
-          size="sm"
-          variant="danger"
-          className="!min-h-11 text-sm"
-          leftIcon={<PhoneCall className="h-4 w-4" aria-hidden />}
-          onClick={async () => {
-            setArmed(false);
-            await triggerEmergency({
-              message: current.primary,
-              caregiverPhone: settings.integrations.twilio.caregiverPhone,
-              ts: Date.now(),
-            });
-            applyActionTaken(current.id, 'Emergency call triggered');
-          }}
-        >
-          Call now
-        </PillButton>
-      </div>
+      {armed ? (
+        <div className="mt-2 flex gap-2">
+          <PillButton
+            size="sm"
+            variant="glass"
+            fullWidth
+            className="!min-h-11 text-sm"
+            onClick={() => {
+              setArmed(false);
+              applyActionTaken(current.id, 'Emergency cancelled', true);
+            }}
+          >
+            Cancel
+          </PillButton>
+          <PillButton
+            size="sm"
+            variant="danger"
+            className="!min-h-11 text-sm"
+            leftIcon={<PhoneCall className="h-4 w-4" aria-hidden />}
+            onClick={async () => {
+              setArmed(false);
+              await dispatchEmergency();
+            }}
+          >
+            Call now
+          </PillButton>
+        </div>
+      ) : (
+        <div className="mt-2">
+          <PillButton
+            size="sm"
+            variant="glass"
+            fullWidth
+            className="!min-h-10 text-xs"
+            onClick={() => setStatusMsg(null)}
+          >
+            Dismiss
+          </PillButton>
+        </div>
+      )}
     </div>
   );
 }

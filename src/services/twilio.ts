@@ -1,11 +1,21 @@
-// TODO: call Twilio Messaging API from a tiny server proxy.
+/**
+ * Twilio messaging integration. Not wired yet — hook up a server proxy
+ * in this file and `sendTestSms` + the emergency path start working.
+ */
 
-export async function sendTestSms(phone: string): Promise<{
+export class TwilioNotConnectedError extends Error {
+  constructor() {
+    super(
+      'Twilio is not configured. Wire the Messaging API via a server ' +
+        'proxy in src/services/twilio.ts.',
+    );
+    this.name = 'TwilioNotConnectedError';
+  }
+}
+
+export async function sendTestSms(_phone: string): Promise<{
   ok: boolean;
   sid: string;
 }> {
-  await new Promise((r) => setTimeout(r, 500));
-  // eslint-disable-next-line no-console
-  console.info('[mock twilio] would send test SMS to', phone);
-  return { ok: true, sid: `mock_sms_${Date.now()}` };
+  throw new TwilioNotConnectedError();
 }

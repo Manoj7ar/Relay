@@ -3,7 +3,6 @@ import { AppLayout } from '@/components/AppLayout';
 import { PatientHomePage } from '@/pages/PatientHomePage';
 import { CaregiverPage } from '@/pages/CaregiverPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import { DemoPage } from '@/pages/DemoPage';
 import { AboutPage } from '@/pages/AboutPage';
 
 export default function App() {
@@ -13,7 +12,6 @@ export default function App() {
         <Route path="/" element={<PatientHomePage />} />
         <Route path="/caregiver" element={<CaregiverPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/demo" element={<DemoPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<PatientHomePage />} />
       </Routes>

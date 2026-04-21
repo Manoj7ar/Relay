@@ -1,6 +1,12 @@
 # Relay — architecture overview
 
-Relay is a mobile-first PWA. This document maps the codebase to five logical layers.
+Relay is a mobile-first PWA with a clean separation between:
+
+1. **Real browser capability layer** — permissions, mic capture, STT, TTS, camera.
+2. **Thin routing policy** — `chooseModel(req)` picks E2B / E4B / 27B.
+3. **Single interpretation entry point** — `interpret(input)` delegated to one adapter.
+
+There is no demo mode, no scripted scenarios, no fake answer dictionary. Everything that looks like AI output is produced by the adapter; the adapter is the one file you implement.
 
 ## Layer diagram
 
@@ -19,20 +25,15 @@ flowchart TB
     useSTT[useSpeechRecognition]
     useTTS[useSpeechSynthesis]
     useCam[useCamera]
-    useLog[useSessionLog]
   end
   subgraph state [State layer]
     Session[SessionContext]
     RoutingCtx[ModelRoutingContext]
-    Settings[SettingsContext devMode]
-    FineTune[FineTuningContext]
-    JudgeDemo[JudgeDemoContext]
+    Settings[SettingsContext]
   end
   subgraph interp [Interpretation layer]
-    ISvc[interpretationService]
-    PassAdapter[BrowserPassthroughAdapter]
-    MockAdapter[MockRouterAdapter wraps modelRouter]
-    GemmaAdapter[GemmaInterpreterAdapter TODO]
+    ISvc[interpretationService.interpret]
+    GemmaAdapter[GemmaInterpreterAdapter]
   end
   subgraph browser [Browser capability services]
     PermSvc[permissionsService]
@@ -40,15 +41,14 @@ flowchart TB
     STTSvc[speechRecognitionService]
     TTSSvc[speechSynthesisService]
     CamSvc[cameraService]
-    LogSvc[sessionLogService]
   end
-  subgraph services [Integration services]
+  subgraph routing [Routing policy]
+    Router[modelRouter.chooseModel]
+  end
+  subgraph integrations [Integration stubs]
     Emergency[emergency]
     ST[smartthings]
     Twilio[twilio]
-  end
-  subgraph mocks [Mock and demo data]
-    DemoScenarios[demoScenarios]
   end
 
   Pages --> Session
@@ -56,77 +56,79 @@ flowchart TB
   Components --> hooks
   hooks --> browser
   Session --> ISvc
-  ISvc --> PassAdapter
-  ISvc --> MockAdapter
   ISvc --> GemmaAdapter
-  MockAdapter --> modelRouter[modelRouter.ts]
-  Settings --> ISvc
+  GemmaAdapter --> Router
+  Session --> RoutingCtx
   Settings --> Session
-  DemoScenarios --> JudgeDemo
-  JudgeDemo --> Session
   Session --> Emergency
 ```
 
 ## UI layer (`src/pages`, `src/components`)
 
-- **Pages**: route-level shells (`PatientHomePage`, `CaregiverPage`, `SettingsPage`, `DemoPage`, `AboutPage`).
+- **Pages**: `PatientHomePage`, `CaregiverPage`, `SettingsPage`, `AboutPage`.
 - **Primitives**: reusable glass-style controls (`Card`, `PillButton`, `Modal`, etc.).
-- **Domain components**: `patient/`, `caregiver/`, `settings/`, `demo/`.
-- New: `CameraPreview`, `TypeInsteadSheet`, `InterpreterModePicker`, `DeveloperPanel`.
+- **Domain components**: `patient/`, `caregiver/`, `settings/`.
+
+Every input surface (mic + STT, `TypeInsteadSheet`, `QuickPhrases`, `SymbolBoardOverlay`, `CameraPreview` frame capture) funnels into `SessionContext.submit` → `interpret()`.
 
 ## Hooks (`src/hooks`)
 
 Typed wrappers around the browser capability services with lifecycle-safe cleanup:
 
 | Hook | Wraps |
-|------|---------------------|
+|------|-------|
 | `usePermissions(kind)` | `permissionsService` |
 | `useMicrophone` | `audioCaptureService` |
 | `useSpeechRecognition` | `speechRecognitionService` |
 | `useSpeechSynthesis` | `speechSynthesisService` |
 | `useCamera` | `cameraService` |
-| `useSessionLog` | `sessionLogService` |
 
 All browser API access lives inside these services; UI consumes typed state only.
 
 ## State layer (`src/contexts`)
 
 | Context | Responsibility |
-|---------|------------------|
-| `SessionContext` | Listening/processing flags, interim transcript, current interpretation, pending camera frame, history, vision toggle, language/direction |
+|---------|----------------|
+| `SessionContext` | Listening/processing flags, interim transcript, current interpretation, pending camera frame, history, vision toggle, language/direction, `lastError` surface for "not connected" states |
 | `ModelRoutingContext` | Current model id, append-only routing log (persisted) |
-| `SettingsContext` | Accessibility, integrations, languages, demo mode, voice-banking wizard state, `devMode.interpreter` selector |
-| `FineTuningContext` | Mock personalization metrics (Unsloth narrative) |
-| `JudgeDemoContext` | Orchestrates phased "Judge Demo" without coupling all pages to demo logic |
+| `SettingsContext` | Accessibility, integrations, language |
 
 ## Interpretation layer (`src/services/interpretationService.ts`)
 
-Single entry point for `raw input -> interpreted phrase`. The caller never picks the model directly; adapters are selected by `settings.devMode.interpreter`:
+Single entry point: `interpret(input)`. Internally it calls exactly one adapter — `GemmaInterpreterAdapter` — whose body is the one thing you implement.
 
-- **`BrowserPassthroughAdapter`** — trims, capitalizes, fragment-map opt-in. No AI. Works offline.
-- **`MockRouterAdapter`** — wraps `modelRouter.chooseModel` + `runInference`; preserves routing log + ModelChip. Default for demo scenarios.
-- **`GemmaInterpreterAdapter`** — placeholder; throws `NotImplemented`. Wire Ollama here to go live.
+The returned `InterpretationResult` shape is aligned to Gemma's eventual output:
+`primaryText`, `alternates`, `confidence`, `urgency`, `detectedLanguage`, `mood`, `sourceModel`, `sourceType`, `routingReason`, `latencyMs`, `visionUsed`, `sourceFragment`.
 
-The returned `InterpretationResult` shape matches the future Gemma output (primaryText, alternates, confidence, urgency, detectedLanguage, mood, sourceModel, sourceType, routingReason, latencyMs, visionUsed).
+Until wired, `GemmaInterpreterAdapter.interpret` throws `GemmaNotConnectedError`; `SessionContext` surfaces that as `state.lastError` and the `TranscriptionCard` renders a dismissible notice. No fake answers ever reach the UI.
+
+## Routing policy (`src/services/modelRouter.ts`)
+
+Pure, deterministic `chooseModel(req)`. No inference here — the adapter calls this (or substitutes a learned router) before hitting Gemma. Kept as a stable interface so swapping to Cactus is a one-file change.
+
+Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to populate the routing log once real results arrive.
 
 ## Browser capability services (`src/services/*Service.ts`)
 
 | Service | Browser API |
-|---------|---------|
-| `permissionsService` | `navigator.permissions`, `getUserMedia` |
-| `audioCaptureService` | `getUserMedia({ audio })`, `AnalyserNode` |
+|---------|-------------|
+| `permissionsService` | `navigator.permissions`, `getUserMedia` error classification |
+| `audioCaptureService` | `getUserMedia({ audio })`, `AnalyserNode` RMS level |
 | `speechRecognitionService` | `SpeechRecognition` / `webkitSpeechRecognition` |
 | `speechSynthesisService` | `window.speechSynthesis` |
 | `cameraService` | `getUserMedia({ video })`, `<video>` + `<canvas>` for frame capture |
-| `sessionLogService` | `localStorage` via `lib/storage` |
 
-## Integration services (`src/services`)
+## Integration stubs (`src/services`)
 
-Typed boundaries for back-end calls: Twilio emergency, SmartThings scenes, Twilio SMS test. Each file documents `TODO` for production wiring.
+Typed boundaries that currently throw `*NotConnectedError` so the UI shows an honest "not configured" state:
+
+- `emergency.ts` — Twilio Voice/SMS emergency dispatch.
+- `twilio.ts` — Test SMS from Settings → Integrations.
+- `smartthings.ts` — Smart-home scene runner.
 
 ## Persistence
 
-- `localStorage` keys prefixed with `relay.*` (session history, session events, settings, routing log, fine-tuning snapshot).
+- `localStorage` keys prefixed with `relay.*` (session history, settings, routing log).
 
 ## Browser capability caveats
 
@@ -135,18 +137,18 @@ Typed boundaries for back-end calls: Twilio emergency, SmartThings scenes, Twili
 - **Android Chrome**: Most complete path; supports continuous STT, full TTS voice list.
 - **All browsers**: `speechSynthesis.getVoices()` is async; the service resolves after `voiceschanged`.
 
-## Working vs temporary fallback today
+## Wired vs stub today
 
 | Flow | Today | Plug-in point |
-|------|----------------------|---------------|
+|------|-------|---------------|
 | Mic permission + capture | Real `getUserMedia` + analyser level | — |
 | Speech-to-text | Real Web Speech API where supported | `speechRecognitionService` |
-| Typed-input fallback | `TypeInsteadSheet` → `submit({ sourceType: 'text' })` | — |
-| Interpretation (default) | `BrowserPassthroughAdapter` (literal + light fragment map) | Swap `devMode.interpreter` |
-| Interpretation (demo) | `MockRouterAdapter` → `chooseModel` / mocked `infer*` | Same path — swap body of `infer*` with Ollama fetch |
-| Interpretation (Gemma) | `GemmaInterpreterAdapter` — `NotImplemented` | Fill in Ollama HTTP client |
 | Text-to-speech | Real `speechSynthesis` | — |
-| Camera preview + capture | Real `getUserMedia({ video })`; frame stored on session | Wire blob into `27B` multimodal path |
-| Emergency escalation | In-app countdown + mocked Twilio service | Swap `services/twilio.ts` body |
+| Camera preview + frame capture | Real `getUserMedia({ video })`; frame stored on session | Fed into `interpret()` as `imageDataUrl` |
+| Routing decision | Real `chooseModel` | Swap to Cactus if desired |
+| Interpretation | Stub — throws `GemmaNotConnectedError` | `GemmaInterpreterAdapter.interpret` |
+| Emergency escalation | In-app countdown + stub service | `services/emergency.ts` |
+| Twilio SMS | Stub | `services/twilio.ts` |
+| SmartThings | Stub | `services/smartthings.ts` |
 
-For Gemma-specific semantics and what is mocked vs real, see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md).
+For the Gemma wiring checklist, see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md).

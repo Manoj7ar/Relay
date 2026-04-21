@@ -1,39 +1,30 @@
 import { useState } from 'react';
-import { VoiceBankingWizard } from '@/components/settings/VoiceBankingWizard';
 import { AccessibilityPanel } from '@/components/settings/AccessibilityPanel';
 import { IntegrationsPanel } from '@/components/settings/IntegrationsPanel';
 import { LanguagePanel } from '@/components/settings/LanguagePanel';
 import { OfflineStatusPanel } from '@/components/settings/OfflineStatusPanel';
-import { PersonalizationPanel } from '@/components/settings/PersonalizationPanel';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
-import { AboutRelayPanel } from '@/components/settings/AboutRelayPanel';
 import { DeveloperPanel } from '@/components/settings/DeveloperPanel';
 
 type SettingsSection =
-  | 'voice'
-  | 'personalize'
   | 'a11y'
   | 'integrations'
   | 'language'
   | 'offline'
   | 'routing'
-  | 'developer'
-  | 'about';
+  | 'developer';
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
-  { id: 'voice', label: 'Voice banking' },
-  { id: 'personalize', label: 'Personalize' },
   { id: 'a11y', label: 'Accessibility' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'language', label: 'Language' },
   { id: 'offline', label: 'Connectivity' },
   { id: 'routing', label: 'Routing log' },
   { id: 'developer', label: 'Developer' },
-  { id: 'about', label: 'About Relay' },
 ];
 
 export function SettingsPage() {
-  const [section, setSection] = useState<SettingsSection>('voice');
+  const [section, setSection] = useState<SettingsSection>('a11y');
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-2">
@@ -56,8 +47,6 @@ export function SettingsPage() {
       </header>
 
       <div className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
-        {section === 'voice' && <VoiceBankingWizard />}
-        {section === 'personalize' && <PersonalizationPanel />}
         {section === 'a11y' && <AccessibilityPanel />}
         {section === 'integrations' && <IntegrationsPanel />}
         {section === 'language' && <LanguagePanel />}
@@ -70,11 +59,6 @@ export function SettingsPage() {
         {section === 'developer' && (
           <div className="min-h-0 overflow-y-auto">
             <DeveloperPanel />
-          </div>
-        )}
-        {section === 'about' && (
-          <div className="min-h-0 overflow-y-auto">
-            <AboutRelayPanel />
           </div>
         )}
       </div>

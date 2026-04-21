@@ -1,8 +1,5 @@
 import type { Interpretation } from './model';
-import type {
-  InterpretationSourceType,
-  InterpreterMode,
-} from '@/services/interpretationService';
+import type { InterpretationSourceType } from '@/services/interpretationService';
 
 export interface InteractionRecord extends Interpretation {
   cancelled?: boolean;
@@ -11,7 +8,6 @@ export interface InteractionRecord extends Interpretation {
   spoken?: boolean;
   cameraUsed?: boolean;
   sourceType?: InterpretationSourceType;
-  interpreter?: InterpreterMode;
 }
 
 export interface PendingImageContext {
@@ -31,4 +27,6 @@ export interface SessionState {
   interimTranscript: string;
   /** Last captured frame awaiting the next interpretation call. */
   pendingImage: PendingImageContext | null;
+  /** Last interpretation error surfaced to the UI (e.g. "Gemma not connected"). */
+  lastError: string | null;
 }
