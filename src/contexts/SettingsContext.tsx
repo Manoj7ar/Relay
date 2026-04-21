@@ -9,6 +9,7 @@ import {
 import { load, save } from '@/lib/storage';
 import {
   DEFAULT_SETTINGS,
+  type InterpreterModeSetting,
   type SettingsState,
   type VoiceBankingState,
 } from '@/types/settings';
@@ -23,6 +24,7 @@ type Action =
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
   | { type: 'SET_DEMO_MODE'; value: boolean }
+  | { type: 'SET_INTERPRETER_MODE'; value: InterpreterModeSetting }
   | { type: 'VOICE_BANKING'; patch: Partial<VoiceBankingState> }
   | { type: 'RESET' };
 
@@ -91,6 +93,11 @@ function reducer(state: SettingsState, action: Action): SettingsState {
       };
     case 'SET_DEMO_MODE':
       return { ...state, demoMode: action.value };
+    case 'SET_INTERPRETER_MODE':
+      return {
+        ...state,
+        devMode: { ...state.devMode, interpreter: action.value },
+      };
     case 'VOICE_BANKING':
       return {
         ...state,
@@ -111,9 +118,31 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 const STORAGE_KEY = 'relay.settings';
 
 export function SettingsProvider({ children }: PropsWithChildren) {
-  const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, (fallback) =>
-    load<SettingsState>(STORAGE_KEY, fallback),
-  );
+  const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, (fallback) => {
+    const stored = load<Partial<SettingsState>>(STORAGE_KEY, fallback);
+    // Shallow-merge top-level groups so new fields (e.g. `devMode`) added after
+    // a user's settings were first persisted still pick up their defaults.
+    return {
+      ...fallback,
+      ...stored,
+      accessibility: { ...fallback.accessibility, ...stored.accessibility },
+      integrations: {
+        ...fallback.integrations,
+        ...stored.integrations,
+        smartThings: {
+          ...fallback.integrations.smartThings,
+          ...(stored.integrations?.smartThings ?? {}),
+        },
+        twilio: {
+          ...fallback.integrations.twilio,
+          ...(stored.integrations?.twilio ?? {}),
+        },
+      },
+      language: { ...fallback.language, ...stored.language },
+      voiceBanking: { ...fallback.voiceBanking, ...stored.voiceBanking },
+      devMode: { ...fallback.devMode, ...stored.devMode },
+    } as SettingsState;
+  });
 
   useEffect(() => {
     save(STORAGE_KEY, settings);

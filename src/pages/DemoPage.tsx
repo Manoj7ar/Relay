@@ -1,5 +1,6 @@
 import { Gavel } from 'lucide-react';
 import { DemoModeToggle } from '@/components/demo/DemoModeToggle';
+import { InterpreterModePicker } from '@/components/demo/InterpreterModePicker';
 import { ScenarioList } from '@/components/demo/ScenarioList';
 import { PillButton } from '@/components/primitives';
 import { useJudgeDemo } from '@/contexts/JudgeDemoContext';
@@ -28,8 +29,9 @@ export function DemoPage() {
         Start Judge Demo (breakfast walkthrough)
       </PillButton>
 
-      <div className="shrink-0">
+      <div className="shrink-0 space-y-2">
         <DemoModeToggle />
+        <InterpreterModePicker />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         <ScenarioList />

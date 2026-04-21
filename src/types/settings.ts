@@ -25,12 +25,20 @@ export interface VoiceBankingState {
   cloneReady: boolean;
 }
 
+export type InterpreterModeSetting = 'browser' | 'mock' | 'gemma';
+
+export interface DevModeSettings {
+  /** Which interpreter adapter to use when hardware inputs arrive. */
+  interpreter: InterpreterModeSetting;
+}
+
 export interface SettingsState {
   accessibility: AccessibilitySettings;
   integrations: IntegrationsSettings;
   language: LanguageSettings;
   voiceBanking: VoiceBankingState;
   demoMode: boolean;
+  devMode: DevModeSettings;
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -58,4 +66,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
     cloneReady: false,
   },
   demoMode: false,
+  devMode: {
+    interpreter: 'browser',
+  },
 };

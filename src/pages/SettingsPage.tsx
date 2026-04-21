@@ -7,6 +7,7 @@ import { OfflineStatusPanel } from '@/components/settings/OfflineStatusPanel';
 import { PersonalizationPanel } from '@/components/settings/PersonalizationPanel';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { AboutRelayPanel } from '@/components/settings/AboutRelayPanel';
+import { DeveloperPanel } from '@/components/settings/DeveloperPanel';
 
 type SettingsSection =
   | 'voice'
@@ -16,6 +17,7 @@ type SettingsSection =
   | 'language'
   | 'offline'
   | 'routing'
+  | 'developer'
   | 'about';
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
@@ -26,6 +28,7 @@ const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'language', label: 'Language' },
   { id: 'offline', label: 'Connectivity' },
   { id: 'routing', label: 'Routing log' },
+  { id: 'developer', label: 'Developer' },
   { id: 'about', label: 'About Relay' },
 ];
 
@@ -62,6 +65,11 @@ export function SettingsPage() {
         {section === 'routing' && (
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <RoutingLog compact />
+          </div>
+        )}
+        {section === 'developer' && (
+          <div className="min-h-0 overflow-y-auto">
+            <DeveloperPanel />
           </div>
         )}
         {section === 'about' && (

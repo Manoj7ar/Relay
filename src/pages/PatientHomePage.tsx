@@ -6,6 +6,7 @@ import { QuickPhrases } from '@/components/patient/QuickPhrases';
 import { SymbolBoardButton } from '@/components/patient/SymbolBoardButton';
 import { SymbolBoardOverlay } from '@/components/patient/SymbolBoardOverlay';
 import { EmergencyBanner } from '@/components/patient/EmergencyBanner';
+import { TypeInsteadSheet } from '@/components/patient/TypeInsteadSheet';
 import { JudgeDemoStrip } from '@/components/demo/JudgeDemoStrip';
 import { useJudgeDemo } from '@/contexts/JudgeDemoContext';
 import { consumeQueuedJudgeScenario } from '@/lib/judgeDemoQueue';
@@ -35,6 +36,9 @@ export function PatientHomePage() {
       </div>
       <div className="shrink-0 pb-1">
         <PrimaryMicButton />
+        <div className="mt-1.5 flex justify-center">
+          <TypeInsteadSheet />
+        </div>
       </div>
 
       <SymbolBoardOverlay
