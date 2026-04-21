@@ -93,6 +93,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         currentInterpretation: action.interpretation,
         detectedLanguage: action.interpretation.detectedLanguage,
         direction: directionFor(action.interpretation.detectedLanguage),
+        interimTranscript: '',
         lastError: null,
       };
     case 'APPLY_ALTERNATE':
@@ -217,6 +218,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
         imageDataUrl: state.pendingImage?.dataUrl,
         language: req.language,
         urgencyHint: req.urgencyHint,
+        onStreamChunk: (partial) => {
+          dispatch({ type: 'SET_INTERIM', text: partial });
+        },
       };
 
       dispatch({ type: 'START_PROCESSING' });

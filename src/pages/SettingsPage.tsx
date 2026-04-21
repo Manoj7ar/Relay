@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { AccessibilityPanel } from '@/components/settings/AccessibilityPanel';
 import { IntegrationsPanel } from '@/components/settings/IntegrationsPanel';
 import { LanguagePanel } from '@/components/settings/LanguagePanel';
+import { ModelConfigPanel } from '@/components/settings/ModelConfigPanel';
 import { OfflineStatusPanel } from '@/components/settings/OfflineStatusPanel';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { DeveloperPanel } from '@/components/settings/DeveloperPanel';
 
 type SettingsSection =
   | 'a11y'
+  | 'models'
   | 'integrations'
   | 'language'
   | 'offline'
@@ -16,6 +18,7 @@ type SettingsSection =
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'a11y', label: 'Accessibility' },
+  { id: 'models', label: 'Models' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'language', label: 'Language' },
   { id: 'offline', label: 'Connectivity' },
@@ -48,6 +51,7 @@ export function SettingsPage() {
 
       <div className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
         {section === 'a11y' && <AccessibilityPanel />}
+        {section === 'models' && <ModelConfigPanel />}
         {section === 'integrations' && <IntegrationsPanel />}
         {section === 'language' && <LanguagePanel />}
         {section === 'offline' && <OfflineStatusPanel />}

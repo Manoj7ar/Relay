@@ -7,12 +7,14 @@ import { InterpretationAlternates } from './InterpretationAlternates';
 import { CameraToggle } from './CameraToggle';
 import { CameraPreview } from './CameraPreview';
 import { useSession } from '@/contexts/SessionContext';
+import { useHaptics } from '@/hooks/useHaptics';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/cn';
 
 export function TranscriptionCard() {
   const { state, acceptAlternate, dispatch, clearError } = useSession();
   const tts = useSpeechSynthesis();
+  const haptics = useHaptics();
   const {
     currentInterpretation,
     isListening,
@@ -28,10 +30,11 @@ export function TranscriptionCard() {
     if (!currentInterpretation) return;
     if (lastSpokenIdRef.current === currentInterpretation.id) return;
     lastSpokenIdRef.current = currentInterpretation.id;
+    haptics('tap');
     void tts.speak(currentInterpretation.primary, {
       lang: currentInterpretation.detectedLanguage,
     });
-  }, [currentInterpretation, tts]);
+  }, [currentInterpretation, tts, haptics]);
 
   const placeholderTitle = isListening
     ? 'Listening…'
@@ -40,9 +43,11 @@ export function TranscriptionCard() {
       : 'Tap the mic to start';
 
   const liveText = useMemo(() => {
-    if (isListening && interimTranscript) return interimTranscript;
+    if ((isListening || isProcessing) && interimTranscript) {
+      return interimTranscript;
+    }
     return null;
-  }, [isListening, interimTranscript]);
+  }, [isListening, isProcessing, interimTranscript]);
 
   return (
     <Card
@@ -121,8 +126,9 @@ export function TranscriptionCard() {
 
         {currentInterpretation?.translation ? (
           <p
-            className="mt-1 line-clamp-2 text-xs leading-snug text-muted"
-            dir="auto"
+            className="mt-1 line-clamp-2 border-t border-black/5 pt-1 text-sm italic leading-snug text-muted"
+            dir="ltr"
+            lang="en"
           >
             {currentInterpretation.translation}
           </p>

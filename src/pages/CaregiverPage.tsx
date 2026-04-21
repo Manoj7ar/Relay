@@ -5,9 +5,10 @@ import { InteractionCard } from '@/components/caregiver/InteractionCard';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { EmergencyTimeline } from '@/components/caregiver/EmergencyTimeline';
 import { HandoverNote } from '@/components/caregiver/HandoverNote';
-import { MessageCircle } from 'lucide-react';
+import { AlertTriangle, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
+import { detectDistressPattern } from '@/lib/distressDetector';
 
 type Tab = 'today' | 'routing' | 'emergencies' | 'handover';
 
@@ -25,6 +26,10 @@ export function CaregiverPage() {
     () => state.history.filter((h) => h.urgency === 'HIGH'),
     [state.history],
   );
+  const distressPattern = useMemo(
+    () => detectDistressPattern(state.history),
+    [state.history],
+  );
 
   const visibleToday = today.slice(0, MAX_VISIBLE);
   const restToday = Math.max(0, today.length - MAX_VISIBLE);
@@ -40,6 +45,16 @@ export function CaregiverPage() {
       <div className="shrink-0">
         <PatientHeader compact />
       </div>
+
+      {distressPattern ? (
+        <div
+          role="alert"
+          className="flex shrink-0 items-start gap-2 rounded-xl2 border border-[var(--danger)]/40 bg-[var(--danger)]/[0.06] px-3 py-2 text-sm font-medium text-[var(--danger)]"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>Repeated distress signals detected in the last 5 minutes.</span>
+        </div>
+      ) : null}
 
       <div className="shrink-0">
         <SegmentedTabs

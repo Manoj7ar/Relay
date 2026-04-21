@@ -22,6 +22,13 @@ export interface InterpretationInput {
   imageDataUrl?: string;
   language?: string;
   urgencyHint?: Urgency;
+  /**
+   * Optional callback fired as partial output streams back from the model.
+   * The adapter passes the best-effort progressive `primaryText` extracted
+   * from the still-incomplete JSON response. No JSON syntax is ever leaked
+   * through this callback — callers can safely pipe it into UI.
+   */
+  onStreamChunk?: (partialPrimaryText: string) => void;
 }
 
 export interface InterpretationResult {

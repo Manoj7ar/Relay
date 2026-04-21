@@ -1,8 +1,19 @@
 import { useState } from 'react';
-import { ClipboardCheck, FileText } from 'lucide-react';
+import { ClipboardCheck, Download, FileJson, FileText } from 'lucide-react';
 import { Card, PillButton } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
 import { formatClock } from '@/lib/time';
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 function buildSummary(
   name: string,
@@ -73,8 +84,44 @@ export function HandoverNote({
     }
   };
 
+  const today = new Date().toISOString().slice(0, 10);
+
+  const exportTxt = () => {
+    if (!summary) return;
+    downloadBlob(
+      new Blob([summary], { type: 'text/plain' }),
+      `relay-handover-${today}.txt`,
+    );
+  };
+
+  const exportJson = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      patient: patientName,
+      summary: summary || null,
+      interactions: state.history.map((r) => ({
+        time: new Date(r.ts).toISOString(),
+        input: r.rawTranscript,
+        interpreted: r.primary,
+        confidence: Math.round(r.confidence * 100),
+        urgency: r.urgency,
+        mood: r.mood,
+        model: r.model,
+        language: r.detectedLanguage,
+        cancelled: Boolean(r.cancelled),
+      })),
+    };
+    downloadBlob(
+      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+      `relay-session-${today}.json`,
+    );
+  };
+
   return (
-    <Card className={compact ? 'space-y-2 p-3' : 'space-y-3'}>
+    <Card
+      data-print-section="handover"
+      className={compact ? 'space-y-2 p-3' : 'space-y-3'}
+    >
       <div className="flex items-center justify-between gap-2">
         <p
           className={
@@ -106,7 +153,25 @@ export function HandoverNote({
             : 'w-full rounded-xl2 bg-white/70 p-3 text-sm font-mono text-text placeholder:text-muted focus:outline-none'
         }
       />
-      <div className="flex justify-end">
+      <div className="no-print flex flex-wrap justify-end gap-1.5">
+        <PillButton
+          size="sm"
+          variant="glass"
+          onClick={exportJson}
+          disabled={state.history.length === 0}
+          leftIcon={<FileJson className="h-4 w-4" aria-hidden />}
+        >
+          Export JSON
+        </PillButton>
+        <PillButton
+          size="sm"
+          variant="glass"
+          onClick={exportTxt}
+          disabled={!summary}
+          leftIcon={<Download className="h-4 w-4" aria-hidden />}
+        >
+          Export .txt
+        </PillButton>
         <PillButton
           size="sm"
           variant="glass"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
 import { Card, PillButton, Toggle } from '@/components/primitives';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -10,11 +10,37 @@ type CallStatus =
   | { kind: 'ok' }
   | { kind: 'fail'; message: string };
 
+const EMERGENCY_PROXY_KEY = 'relay.emergency.proxyUrl';
+
 export function IntegrationsPanel() {
   const { settings, dispatch } = useSettings();
   const { integrations } = settings;
   const [stStatus, setStStatus] = useState<CallStatus>({ kind: 'idle' });
   const [smsStatus, setSmsStatus] = useState<CallStatus>({ kind: 'idle' });
+  const [proxyUrl, setProxyUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      setProxyUrl(window.localStorage.getItem(EMERGENCY_PROXY_KEY) ?? '');
+    } catch {
+      setProxyUrl('');
+    }
+  }, []);
+
+  const updateProxyUrl = (value: string) => {
+    setProxyUrl(value);
+    if (typeof window === 'undefined') return;
+    try {
+      if (value.trim().length === 0) {
+        window.localStorage.removeItem(EMERGENCY_PROXY_KEY);
+      } else {
+        window.localStorage.setItem(EMERGENCY_PROXY_KEY, value.trim());
+      }
+    } catch {
+      // ignore quota / storage errors
+    }
+  };
 
   const testSt = async () => {
     setStStatus({ kind: 'idle' });
@@ -101,6 +127,20 @@ export function IntegrationsPanel() {
 
       <section className="space-y-2">
         <p className="text-sm font-medium">Twilio</p>
+        <label className="block text-xs">
+          <span className="mb-1 block text-muted">Emergency proxy URL</span>
+          <input
+            type="url"
+            value={proxyUrl}
+            onChange={(e) => updateProxyUrl(e.target.value)}
+            placeholder="https://your-proxy.example/emergency"
+            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
+          />
+          <span className="mt-1 block text-[10px] leading-snug text-muted">
+            Small HTTPS endpoint that forwards to Twilio Voice / SMS. Leave
+            blank to keep emergency dispatch in "not configured" state.
+          </span>
+        </label>
         <label className="block text-xs">
           <span className="mb-1 block text-muted">Caregiver phone</span>
           <input

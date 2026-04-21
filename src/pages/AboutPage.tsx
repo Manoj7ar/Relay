@@ -18,6 +18,51 @@ export function AboutPage() {
 
       <Card variant="glass-strong" className="p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
+          <Layers className="h-4 w-4 shrink-0" aria-hidden />
+          Data flow
+        </div>
+        <pre className="mt-2 overflow-x-auto whitespace-pre text-[10px] leading-relaxed text-text">
+{`Patient speaks
+      |
+      v
+  Microphone (getUserMedia)
+      |
+      v
+  SpeechRecognition API  -->  Type-instead sheet
+      |                             |
+  SessionContext.submit() <---------+
+      |
+      v
+  interpretationService.interpret()
+      |
+      v
+  GemmaInterpreterAdapter
+      |
+      v
+  modelRouter.chooseModel()
+      |
+      v
+  +-----------------------------+
+  |  E2B  |  E4B  |  27B        |
+  | <2s   | tuned | multimodal  |
+  +-----------------------------+
+      | (Ollama localhost:11434)
+      v
+  InterpretationResult
+      |
+      v
+  SessionContext --> TranscriptionCard
+      |
+      v
+  speechSynthesis.speak()
+      |
+      v
+Patient hears their words, clearly`}
+        </pre>
+      </Card>
+
+      <Card variant="glass-strong" className="p-3">
+        <div className="flex items-center gap-2 text-sm font-semibold">
           <Cpu className="h-4 w-4 shrink-0" aria-hidden />
           Model tiers (routing policy)
         </div>
