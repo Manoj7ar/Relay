@@ -46,9 +46,13 @@ function buildSummary(
 
 interface HandoverNoteProps {
   patientName?: string;
+  compact?: boolean;
 }
 
-export function HandoverNote({ patientName = 'Maya Singh' }: HandoverNoteProps) {
+export function HandoverNote({
+  patientName = 'Maya Singh',
+  compact,
+}: HandoverNoteProps) {
   const { state } = useSession();
   const [summary, setSummary] = useState('');
   const [copied, setCopied] = useState(false);
@@ -70,21 +74,37 @@ export function HandoverNote({ patientName = 'Maya Singh' }: HandoverNoteProps) 
   };
 
   return (
-    <Card className="space-y-3">
+    <Card className={compact ? 'space-y-2 p-3' : 'space-y-3'}>
       <div className="flex items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold">
-          <FileText className="h-4 w-4" /> Handover summary
+        <p
+          className={
+            compact
+              ? 'inline-flex items-center gap-1.5 text-xs font-semibold'
+              : 'inline-flex items-center gap-2 text-sm font-semibold'
+          }
+        >
+          <FileText className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />{' '}
+          Handover
         </p>
-        <PillButton size="sm" variant="accent" onClick={generate}>
+        <PillButton
+          size="sm"
+          variant="accent"
+          className={compact ? '!min-h-9 text-xs' : undefined}
+          onClick={generate}
+        >
           Generate
         </PillButton>
       </div>
       <textarea
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
-        placeholder="Tap Generate to create a structured summary you can hand to the next caregiver."
-        rows={10}
-        className="w-full rounded-xl2 bg-white/70 p-3 text-sm font-mono text-text placeholder:text-muted focus:outline-none"
+        placeholder="Tap Generate for a summary."
+        rows={compact ? 5 : 10}
+        className={
+          compact
+            ? 'w-full rounded-xl2 bg-white/70 p-2 text-xs font-mono text-text placeholder:text-muted focus:outline-none'
+            : 'w-full rounded-xl2 bg-white/70 p-3 text-sm font-mono text-text placeholder:text-muted focus:outline-none'
+        }
       />
       <div className="flex justify-end">
         <PillButton

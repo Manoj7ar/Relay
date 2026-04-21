@@ -6,29 +6,29 @@ export function AccessibilityPanel() {
   const { accessibility } = settings;
 
   return (
-    <Card className="space-y-5">
-      <p className="text-sm font-semibold">Accessibility</p>
+    <Card padded={false} className="h-full min-h-0 space-y-3 overflow-hidden p-3">
+      <p className="text-xs font-semibold">Accessibility</p>
 
       <Toggle
         label="High-contrast mode"
-        description="Pure black/white palette meeting WCAG AAA."
+        description="WCAG AAA black/white."
         checked={accessibility.highContrast}
         onChange={(v) => dispatch({ type: 'SET_HIGH_CONTRAST', value: v })}
       />
 
       <Toggle
         label="Larger text"
-        description="Scales font sizes across the app by ~18%."
+        description="Scales UI text ~18%."
         checked={accessibility.largeText}
         onChange={(v) => dispatch({ type: 'SET_LARGE_TEXT', value: v })}
       />
 
-      <div className="rounded-xl2 border border-black/10 bg-white/70 p-4">
-        <p className="mb-1 text-[11px] uppercase tracking-wider text-muted">
+      <div className="rounded-xl2 border border-black/10 bg-white/70 p-2">
+        <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted">
           Preview
         </p>
-        <p className="text-lg font-semibold">I would like some water.</p>
-        <p className="text-sm text-muted">Confidence 91% · LOW urgency</p>
+        <p className="text-sm font-semibold">I would like some water.</p>
+        <p className="text-xs text-muted">91% · LOW</p>
       </div>
     </Card>
   );

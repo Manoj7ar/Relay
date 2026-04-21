@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   Activity,
   Home,
@@ -24,18 +24,15 @@ const NAV: NavItem[] = [
 
 export function AppLayout({ children }: PropsWithChildren) {
   const { state } = useSession();
-  const { pathname } = useLocation();
-
   return (
     <div
       dir={state.direction}
-      className="relative mx-auto flex min-h-[100dvh] w-full max-w-mobile flex-col safe-x"
+      className="relative mx-auto flex h-full min-h-0 w-full max-w-mobile flex-col overflow-hidden safe-x"
     >
       <main
         className={cn(
-          'flex flex-1 flex-col',
-          pathname === '/' ? 'pt-3' : 'pt-3',
-          'pb-[calc(92px+env(safe-area-inset-bottom))]',
+          'flex min-h-0 flex-1 flex-col overflow-hidden',
+          'pb-[calc(88px+env(safe-area-inset-bottom))]',
         )}
       >
         {children}

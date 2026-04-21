@@ -8,6 +8,8 @@ interface ConfidenceMoodRowProps {
   urgency: Urgency;
   mood: Mood;
   className?: string;
+  /** Tighter badges for single-screen mobile layout */
+  compact?: boolean;
 }
 
 const URGENCY_TONE: Record<Urgency, 'ok' | 'warn' | 'danger'> = {
@@ -28,26 +30,25 @@ export function ConfidenceMoodRow({
   urgency,
   mood,
   className,
+  compact,
 }: ConfidenceMoodRowProps) {
   const pct = Math.round(confidence * 100);
+  const sz = compact ? 'h-3 w-3' : 'h-3.5 w-3.5';
+  const text = compact ? 'text-[10px] px-2 py-1' : 'text-[11px]';
   return (
-    <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
+    <div className={cn('flex flex-wrap items-center gap-1', className)}>
       <StatusBadge
-        icon={<Gauge className="h-3.5 w-3.5" aria-hidden />}
-        className="text-[11px]"
+        icon={<Gauge className={sz} aria-hidden />}
+        className={text}
       >
-        {pct}% confidence
+        {pct}%
       </StatusBadge>
-      <StatusBadge
-        tone={URGENCY_TONE[urgency]}
-        dot
-        className="text-[11px]"
-      >
+      <StatusBadge tone={URGENCY_TONE[urgency]} dot className={text}>
         {urgency}
       </StatusBadge>
       <StatusBadge
-        icon={<HeartPulse className="h-3.5 w-3.5" aria-hidden />}
-        className="text-[11px]"
+        icon={<HeartPulse className={sz} aria-hidden />}
+        className={text}
       >
         {MOOD_LABEL[mood]}
       </StatusBadge>

@@ -49,15 +49,16 @@ export function QuickPhrases() {
 
   return (
     <section aria-label="Quick phrases">
-      <h3 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
+      <h3 className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
         Quick phrases
       </h3>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         {phrases.map((p) => (
           <PillButton
             key={p.id}
-            size="md"
+            size="sm"
             variant="glass"
+            className="!min-h-11 text-sm font-medium"
             disabled={state.isProcessing}
             onClick={() =>
               submit({ inputType: 'text', transcript: p.text })

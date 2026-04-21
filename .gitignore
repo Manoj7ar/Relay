@@ -7,3 +7,12 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Submission / meta (keep locally; not part of the app repo)
+/DELIVER.md
+/SUBMISSION_SUMMARY.md
+/TECHNICAL_WRITEUP.md
+/VIDEO_SCRIPT.md
+docs/MEDIA_CHECKLIST.md
+/evaluation/
+/scripts/evaluate.mjs

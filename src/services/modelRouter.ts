@@ -1,3 +1,10 @@
+/**
+ * Model routing and Gemma-family inference stubs.
+ *
+ * Layer: service / model routing. Production wiring: HTTP to Ollama or your
+ * gateway; replace `infer*` bodies. Routing policy: replace `chooseModel` with
+ * Cactus or equivalent — see docs/GEMMA_AND_INTEGRATIONS.md
+ */
 import { uid } from '@/lib/id';
 import type {
   InferenceRequest,
@@ -35,7 +42,7 @@ export function chooseModel(req: InferenceRequest): RoutingDecision {
   return { model: 'E2B', reason: 'Short speech → real-time inference.' };
 }
 
-// TODO: wire to Gemma 4 / Ollama endpoints — see backend/README.md
+// TODO: wire to Gemma 4 / Ollama endpoints — see docs/GEMMA_AND_INTEGRATIONS.md
 export async function inferE2B(
   req: InferenceRequest,
 ): Promise<Interpretation> {

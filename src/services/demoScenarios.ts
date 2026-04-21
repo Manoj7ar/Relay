@@ -1,10 +1,22 @@
 import { uid } from '@/lib/id';
 import type { Interpretation } from '@/types/model';
 
+/** Hackathon judge categories (one scenario each in the default set). */
+export type JudgeCategory =
+  | 'fragmented'
+  | 'multilingual'
+  | 'smarthome'
+  | 'emergency';
+
 export interface DemoScenario {
   id: string;
   title: string;
   description: string;
+  /** Judge helper: what the demo will show step-by-step */
+  whatYouWillSee: string;
+  judgeCategory: JudgeCategory;
+  /** Log line; should align with `chooseModel` rules for this input */
+  routingReasonExplicit: string;
   language: string;
   direction: 'ltr' | 'rtl';
   interpretation: Omit<Interpretation, 'id' | 'ts'>;
@@ -15,6 +27,11 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     id: 'breakfast',
     title: 'Breakfast request',
     description: 'Morning routine, low urgency, E4B fine-tuned.',
+    whatYouWillSee:
+      'Fragmented ASR → reconstructed phrase, bilingual caregiver line, E4B.',
+    judgeCategory: 'fragmented',
+    routingReasonExplicit:
+      'Short speech → real-time path; demo pins E4B for personalized phrasing.',
     language: 'en-US',
     direction: 'ltr',
     interpretation: {
@@ -36,6 +53,11 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     id: 'toilet',
     title: 'Bathroom / Toilet',
     description: 'Common phrase, symbol-driven, E4B.',
+    whatYouWillSee:
+      'Symbol tap → expanded intent; Spanish caregiver translation.',
+    judgeCategory: 'multilingual',
+    routingReasonExplicit:
+      'Symbol input → fine-tuned phrase expansion (E4B).',
     language: 'en-US',
     direction: 'ltr',
     interpretation: {
@@ -57,6 +79,10 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     id: 'cold',
     title: 'Cold / adjust temperature',
     description: 'SmartThings action candidate, E2B.',
+    whatYouWillSee:
+      'Interpretation + suggested smart-home action (thermostat).',
+    judgeCategory: 'smarthome',
+    routingReasonExplicit: 'Short speech → real-time inference (E2B).',
     language: 'en-US',
     direction: 'ltr',
     interpretation: {
@@ -79,6 +105,11 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     id: 'respiratory',
     title: 'Respiratory distress (Arabic)',
     description: 'RTL, vision + voice, HIGH urgency → 27B.',
+    whatYouWillSee:
+      'RTL layout, multimodal path, HIGH urgency + emergency countdown.',
+    judgeCategory: 'emergency',
+    routingReasonExplicit:
+      'Camera + speech → multimodal reasoning (27B). High-stakes safety.',
     language: 'ar-EG',
     direction: 'rtl',
     interpretation: {

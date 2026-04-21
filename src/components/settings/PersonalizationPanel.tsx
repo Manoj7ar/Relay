@@ -8,25 +8,25 @@ export function PersonalizationPanel() {
   const pct = Math.round((sampleCount / targetSamples) * 100);
 
   return (
-    <Card className="space-y-4">
-      <p className="text-sm font-semibold">Personalization · Unsloth fine-tune</p>
+    <Card padded={false} className="h-full min-h-0 space-y-2 overflow-hidden p-3">
+      <p className="text-xs font-semibold">Personalization · Unsloth</p>
 
-      <div className="rounded-xl2 bg-white/70 p-4">
+      <div className="rounded-xl2 bg-white/70 p-2">
         <div className="flex items-center gap-3">
           <div className="text-center">
-            <p className="text-[11px] uppercase tracking-wider text-muted">
+            <p className="text-[10px] uppercase tracking-wider text-muted">
               Before
             </p>
-            <p className="text-2xl font-semibold tabular-nums">
+            <p className="text-lg font-semibold tabular-nums">
               {Math.round(baselineAccuracy * 100)}%
             </p>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted" aria-hidden />
+          <ArrowRight className="h-4 w-4 text-muted" aria-hidden />
           <div className="text-center">
-            <p className="text-[11px] uppercase tracking-wider text-muted">
+            <p className="text-[10px] uppercase tracking-wider text-muted">
               After
             </p>
-            <p className="text-2xl font-semibold tabular-nums text-emerald-700">
+            <p className="text-lg font-semibold tabular-nums text-emerald-700">
               {Math.round(currentAccuracy * 100)}%
             </p>
           </div>
@@ -52,9 +52,8 @@ export function PersonalizationPanel() {
         </div>
       </div>
 
-      <p className="text-xs text-muted">
-        {corrections} corrections recorded so far. The model is retrained on-device
-        nightly using Unsloth.
+      <p className="line-clamp-2 text-[10px] text-muted">
+        {corrections} corrections · retrained nightly (Unsloth).
       </p>
     </Card>
   );

@@ -4,6 +4,7 @@ import { PatientHomePage } from '@/pages/PatientHomePage';
 import { CaregiverPage } from '@/pages/CaregiverPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { DemoPage } from '@/pages/DemoPage';
+import { AboutPage } from '@/pages/AboutPage';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/caregiver" element={<CaregiverPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/demo" element={<DemoPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<PatientHomePage />} />
       </Routes>
     </AppLayout>

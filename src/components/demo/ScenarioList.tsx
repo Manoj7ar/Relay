@@ -1,51 +1,42 @@
 import { PlayCircle } from 'lucide-react';
-import { Card, PillButton } from '@/components/primitives';
-import { DEMO_SCENARIOS, instantiateScenario } from '@/services/demoScenarios';
-import { useSession } from '@/contexts/SessionContext';
 import { useNavigate } from 'react-router-dom';
+import { Card, PillButton } from '@/components/primitives';
+import { DEMO_SCENARIOS } from '@/services/demoScenarios';
+import { queueJudgeScenario } from '@/lib/judgeDemoQueue';
 
 export function ScenarioList() {
-  const { setInterpretation } = useSession();
   const navigate = useNavigate();
 
+  const playScenario = (id: string) => {
+    queueJudgeScenario(id);
+    navigate('/');
+  };
+
   return (
-    <Card className="space-y-3">
-      <p className="text-sm font-semibold">Scripted scenarios</p>
-      <p className="text-sm text-muted">
-        Each scenario drives the same interpretation pipeline so you can
-        experience Relay without any real model running.
+    <Card padded={false} className="flex h-full min-h-0 flex-col gap-2 p-3">
+      <p className="shrink-0 text-xs font-semibold">Scenarios</p>
+      <p className="text-[10px] leading-snug text-muted">
+        Each run sends you home and plays the phased judge walkthrough: fragment
+        → routing → inference → confirm.
       </p>
-      <ul className="space-y-2">
+      <ul className="min-h-0 space-y-1.5 overflow-hidden">
         {DEMO_SCENARIOS.map((scenario) => (
           <li key={scenario.id}>
-            <div className="glass flex items-center justify-between gap-3 rounded-xl2 p-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-medium">
-                  {scenario.title}
-                </p>
-                <p className="truncate text-xs text-muted">
-                  {scenario.description}
+            <div className="glass flex flex-col gap-1.5 rounded-xl2 p-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{scenario.title}</p>
+                <p className="mt-0.5 line-clamp-2 text-[10px] text-muted">
+                  {scenario.whatYouWillSee}
                 </p>
               </div>
               <PillButton
                 size="sm"
                 variant="accent"
-                leftIcon={<PlayCircle className="h-4 w-4" aria-hidden />}
-                onClick={() => {
-                  const interp = instantiateScenario(scenario);
-                  const reason =
-                    scenario.interpretation.visionUsed
-                      ? 'Camera + speech → multimodal reasoning.'
-                      : scenario.interpretation.urgency === 'HIGH'
-                        ? 'High urgency hint → reasoning model.'
-                        : scenario.interpretation.inputType === 'symbols'
-                          ? 'Symbol input → fine-tuned phrase expansion.'
-                          : 'Short speech → real-time inference.';
-                  setInterpretation(interp, reason);
-                  navigate('/');
-                }}
+                className="!min-h-9 shrink-0 px-3 text-xs"
+                leftIcon={<PlayCircle className="h-3.5 w-3.5" aria-hidden />}
+                onClick={() => playScenario(scenario.id)}
               >
-                Play
+                Play scenario
               </PillButton>
             </div>
           </li>

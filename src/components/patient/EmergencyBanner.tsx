@@ -49,27 +49,30 @@ export function EmergencyBanner() {
     <div
       role="alert"
       aria-live="assertive"
-      className="glass-strong animate-slide-up rounded-xl2 border border-[var(--danger)]/40 bg-[var(--danger)]/[0.08] p-4"
+      className="glass-strong animate-slide-up fixed left-1/2 z-40 w-[min(calc(100vw-1.5rem),calc(430px-1.5rem))] max-w-mobile -translate-x-1/2 rounded-xl2 border border-[var(--danger)]/40 bg-[var(--danger)]/[0.08] p-3 shadow-glass-lg"
+      style={{
+        bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+      }}
     >
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--danger)] text-white">
-          <AlertTriangle className="h-5 w-5" aria-hidden />
+      <div className="flex items-start gap-2">
+        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--danger)] text-white">
+          <AlertTriangle className="h-4 w-4" aria-hidden />
         </span>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-[var(--danger)]">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-[var(--danger)]">
             Emergency detected
           </p>
-          <p className="text-sm text-text">
-            Calling caregiver in <span className="font-bold">{remaining}</span> second
-            {remaining === 1 ? '' : 's'}…
+          <p className="text-xs text-text">
+            Calling in <span className="font-bold">{remaining}</span>s…
           </p>
         </div>
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-2 flex gap-2">
         <PillButton
-          size="md"
+          size="sm"
           variant="glass"
           fullWidth
+          className="!min-h-11 text-sm"
           onClick={() => {
             setArmed(false);
             applyActionTaken(current.id, 'Emergency cancelled', true);
@@ -78,9 +81,10 @@ export function EmergencyBanner() {
           Cancel
         </PillButton>
         <PillButton
-          size="md"
+          size="sm"
           variant="danger"
-          leftIcon={<PhoneCall className="h-5 w-5" aria-hidden />}
+          className="!min-h-11 text-sm"
+          leftIcon={<PhoneCall className="h-4 w-4" aria-hidden />}
           onClick={async () => {
             setArmed(false);
             await triggerEmergency({

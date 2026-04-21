@@ -5,30 +5,39 @@ import { ConfidenceMoodRow } from './ConfidenceMoodRow';
 import { InterpretationAlternates } from './InterpretationAlternates';
 import { CameraToggle } from './CameraToggle';
 import { useSession } from '@/contexts/SessionContext';
+import { useSettings } from '@/contexts/SettingsContext';
+import { useJudgeDemo } from '@/contexts/JudgeDemoContext';
 import { cn } from '@/lib/cn';
 
 export function TranscriptionCard() {
   const { state, acceptAlternate, dispatch } = useSession();
+  const { settings } = useSettings();
+  const judge = useJudgeDemo();
   const { currentInterpretation, isListening, isProcessing, visionOn } = state;
+  const demoMode = settings.demoMode;
+  const showJudgeFragment =
+    judge.phase === 'fragment' && Boolean(judge.fragmentDisplay);
 
-  const placeholderTitle = isListening
-    ? 'Listening…'
-    : isProcessing
-      ? 'Interpreting…'
-      : 'Tap the mic to start';
+  const placeholderTitle = showJudgeFragment
+    ? 'Fragmented input (simulated)'
+    : isListening
+      ? 'Listening…'
+      : isProcessing
+        ? 'Interpreting…'
+        : 'Tap the mic to start';
 
   return (
     <Card
       variant="glass-strong"
       padded={false}
       className={cn(
-        'relative flex flex-1 flex-col justify-between',
-        'min-h-[58dvh] px-5 pb-5 pt-4',
+        'relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden',
+        'px-3 pb-2 pt-2',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted">
-          <Sparkles className="h-3.5 w-3.5" aria-hidden />
+      <div className="flex shrink-0 items-start justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted">
+          <Sparkles className="h-3 w-3" aria-hidden />
           Interpretation
         </div>
         <div className="flex items-center gap-2">
@@ -42,26 +51,33 @@ export function TranscriptionCard() {
           ) : null}
           <CameraToggle
             on={visionOn}
+            disabled={demoMode}
             onToggle={() => dispatch({ type: 'TOGGLE_VISION' })}
           />
         </div>
       </div>
 
-      <div className="my-4 flex-1 flex flex-col justify-center">
-        {currentInterpretation ? (
-          <StreamingText
-            text={currentInterpretation.primary}
-            className="text-[30px] sm:text-[34px] font-semibold"
-          />
+      <div className="my-1 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-1">
+        {showJudgeFragment && judge.fragmentDisplay ? (
+          <p className="line-clamp-4 text-center text-[clamp(1.1rem,4.2vw,1.5rem)] font-semibold leading-snug text-text">
+            {judge.fragmentDisplay}
+          </p>
+        ) : currentInterpretation ? (
+          <div className="min-h-0 overflow-hidden">
+            <StreamingText
+              text={currentInterpretation.primary}
+              className="line-clamp-4 text-[clamp(1.05rem,4.2vw,1.5rem)] font-semibold leading-snug"
+            />
+          </div>
         ) : (
-          <p className="text-center text-[22px] font-medium text-muted">
+          <p className="line-clamp-2 text-center text-[clamp(0.95rem,3.5vw,1.15rem)] font-medium text-muted">
             {placeholderTitle}
           </p>
         )}
 
         {currentInterpretation?.translation ? (
           <p
-            className="mt-3 text-base text-muted"
+            className="mt-1 line-clamp-2 text-xs leading-snug text-muted"
             dir="auto"
           >
             {currentInterpretation.translation}
@@ -69,30 +85,39 @@ export function TranscriptionCard() {
         ) : null}
       </div>
 
-      <div className="space-y-3">
+      <div className="shrink-0 space-y-1.5">
         {currentInterpretation ? (
           <>
             <ConfidenceMoodRow
               confidence={currentInterpretation.confidence}
               urgency={currentInterpretation.urgency}
               mood={currentInterpretation.mood}
+              compact
             />
             <InterpretationAlternates
               alternates={currentInterpretation.alternates}
               onSelect={acceptAlternate}
             />
-            <div className="flex items-center justify-between text-[11px] text-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <Cpu className="h-3.5 w-3.5" aria-hidden />
-                Processed by {currentInterpretation.model}
-                {currentInterpretation.visionUsed ? ' · vision+voice' : ''}
+            <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
+              <span className="inline-flex min-w-0 items-center gap-1 truncate">
+                <Cpu className="h-3 w-3 shrink-0" aria-hidden />
+                <span className="truncate">
+                  {currentInterpretation.model}
+                  {currentInterpretation.visionUsed ? ' · vision' : ''}
+                </span>
               </span>
-              <span>{currentInterpretation.latencyMs} ms</span>
+              <span className="shrink-0 tabular-nums">
+                {currentInterpretation.latencyMs} ms
+              </span>
             </div>
           </>
+        ) : showJudgeFragment ? (
+          <p className="text-center text-xs text-muted">
+            Model tier and confidence fill in after the interpret step.
+          </p>
         ) : (
-          <p className="text-center text-sm text-muted">
-            Your words will appear here.
+          <p className="text-center text-xs text-muted">
+            Your words appear here.
           </p>
         )}
       </div>

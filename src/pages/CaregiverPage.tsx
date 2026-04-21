@@ -5,10 +5,13 @@ import { InteractionCard } from '@/components/caregiver/InteractionCard';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { EmergencyTimeline } from '@/components/caregiver/EmergencyTimeline';
 import { HandoverNote } from '@/components/caregiver/HandoverNote';
+import { MessageCircle } from 'lucide-react';
 import { Card } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
 
 type Tab = 'today' | 'routing' | 'emergencies' | 'handover';
+
+const MAX_VISIBLE = 2;
 
 export function CaregiverPage() {
   const [tab, setTab] = useState<Tab>('today');
@@ -23,45 +26,82 @@ export function CaregiverPage() {
     [state.history],
   );
 
+  const visibleToday = today.slice(0, MAX_VISIBLE);
+  const restToday = Math.max(0, today.length - MAX_VISIBLE);
+
   return (
-    <div className="flex flex-col gap-4 px-4 pt-2">
-      <header className="safe-top">
-        <h1 className="text-xl font-semibold tracking-tight">Caregiver</h1>
-        <p className="text-sm text-muted">
-          Oversight and coordination for today's interactions.
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-3 pt-2">
+      <header className="shrink-0 pt-[max(env(safe-area-inset-top),6px)]">
+        <h1 className="text-lg font-semibold tracking-tight">Caregiver</h1>
+        <p className="line-clamp-1 text-xs text-muted">
+          Today&apos;s interactions and routing.
         </p>
       </header>
-      <PatientHeader />
+      <div className="shrink-0">
+        <PatientHeader compact />
+      </div>
 
-      <SegmentedTabs
-        label="Caregiver sections"
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: 'today', label: 'Today' },
-          { value: 'routing', label: 'Routing log' },
-          { value: 'emergencies', label: 'Emergencies' },
-          { value: 'handover', label: 'Handover' },
-        ]}
-      />
+      <div className="shrink-0">
+        <SegmentedTabs
+          label="Caregiver sections"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'today', label: 'Today' },
+            { value: 'routing', label: 'Routing' },
+            { value: 'emergencies', label: 'Alerts' },
+            { value: 'handover', label: 'Handover' },
+          ]}
+        />
+      </div>
 
-      {tab === 'today' && (
-        <div className="space-y-3">
-          {today.length ? (
-            today.map((r) => <InteractionCard key={r.id} record={r} />)
-          ) : (
-            <Card className="text-center text-sm text-muted">
-              No interactions yet today.
-            </Card>
-          )}
-        </div>
-      )}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {tab === 'today' && (
+          <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
+            {visibleToday.length ? (
+              <>
+                {visibleToday.map((r) => (
+                  <InteractionCard key={r.id} record={r} compact />
+                ))}
+                {restToday > 0 ? (
+                  <p className="text-center text-xs text-muted">
+                    +{restToday} more in history
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <Card className="flex flex-col items-center gap-2 py-8 text-center">
+                <MessageCircle
+                  className="h-9 w-9 text-muted/70"
+                  aria-hidden
+                />
+                <p className="text-xs font-medium text-text">No interactions yet today</p>
+                <p className="max-w-[260px] text-[11px] leading-snug text-muted">
+                  Interpretations from the patient home appear here with mood and urgency.
+                </p>
+              </Card>
+            )}
+          </div>
+        )}
 
-      {tab === 'routing' && <RoutingLog />}
+        {tab === 'routing' && (
+          <div className="h-full min-h-0 overflow-hidden">
+            <RoutingLog compact />
+          </div>
+        )}
 
-      {tab === 'emergencies' && <EmergencyTimeline events={emergencies} />}
+        {tab === 'emergencies' && (
+          <div className="h-full min-h-0 overflow-hidden">
+            <EmergencyTimeline events={emergencies} compact />
+          </div>
+        )}
 
-      {tab === 'handover' && <HandoverNote />}
+        {tab === 'handover' && (
+          <div className="h-full min-h-0 overflow-hidden">
+            <HandoverNote compact />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -34,20 +34,24 @@
   --glass-border: #000000;
 }
 
-html,
-body,
-#root {
-  height: 100%;
-}
-
 html {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   font-size: calc(16px * var(--font-scale));
   -webkit-text-size-adjust: 100%;
   background: var(--bg);
 }
 
 body {
+  height: 100%;
+  max-height: 100dvh;
   margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: relative;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text);
   background: radial-gradient(
@@ -61,9 +65,17 @@ body {
       transparent 60%
     ),
     var(--bg);
-  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+#root {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 :root[data-contrast='high'] body {

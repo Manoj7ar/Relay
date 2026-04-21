@@ -5,25 +5,47 @@ import { useSession } from '@/contexts/SessionContext';
 
 interface PatientHeaderProps {
   name?: string;
+  compact?: boolean;
 }
 
-export function PatientHeader({ name = 'Maya Singh' }: PatientHeaderProps) {
+export function PatientHeader({
+  name = 'Maya Singh',
+  compact,
+}: PatientHeaderProps) {
   const online = useOnlineStatus();
   const { state } = useSession();
   const last = state.history[0]?.ts;
 
   return (
-    <Card variant="glass-strong" className="flex items-center gap-4">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-xl font-semibold text-white">
+    <Card
+      variant="glass-strong"
+      padded={!compact}
+      className={compact ? 'flex items-center gap-2.5 p-3' : 'flex items-center gap-4'}
+    >
+      <div
+        className={
+          compact
+            ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-semibold text-white'
+            : 'flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-xl font-semibold text-white'
+        }
+      >
         {name
           .split(' ')
           .map((n) => n[0])
           .join('')
           .slice(0, 2)}
       </div>
-      <div className="flex-1">
-        <p className="text-lg font-semibold tracking-tight">{name}</p>
-        <p className="text-sm text-muted">
+      <div className="min-w-0 flex-1">
+        <p
+          className={
+            compact
+              ? 'truncate text-sm font-semibold tracking-tight'
+              : 'text-lg font-semibold tracking-tight'
+          }
+        >
+          {name}
+        </p>
+        <p className={compact ? 'truncate text-xs text-muted' : 'text-sm text-muted'}>
           <span
             className={
               online

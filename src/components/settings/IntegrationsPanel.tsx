@@ -24,11 +24,11 @@ export function IntegrationsPanel() {
   };
 
   return (
-    <Card className="space-y-5">
-      <p className="text-sm font-semibold">Integrations</p>
+    <Card padded={false} className="h-full min-h-0 space-y-3 overflow-hidden p-3 text-sm">
+      <p className="text-xs font-semibold">Integrations</p>
 
-      <section className="space-y-3">
-        <p className="text-base font-medium">SmartThings</p>
+      <section className="space-y-2">
+        <p className="text-sm font-medium">SmartThings</p>
         <Toggle
           label="Enable smart-home control"
           description="Let Relay turn on lights, adjust thermostats, etc."
@@ -37,7 +37,7 @@ export function IntegrationsPanel() {
             dispatch({ type: 'SET_SMARTTHINGS_ENABLED', value: v })
           }
         />
-        <label className="block text-sm">
+        <label className="block text-xs">
           <span className="mb-1 block text-muted">API key</span>
           <input
             type="password"
@@ -49,10 +49,10 @@ export function IntegrationsPanel() {
               })
             }
             placeholder="st-xxxxxxxx"
-            className="w-full rounded-full bg-white/70 px-4 py-3 text-base placeholder:text-muted focus:outline-none"
+            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
           />
         </label>
-        <label className="block text-sm">
+        <label className="block text-xs">
           <span className="mb-1 block text-muted">Hub name</span>
           <input
             type="text"
@@ -63,7 +63,7 @@ export function IntegrationsPanel() {
                 value: e.target.value,
               })
             }
-            className="w-full rounded-full bg-white/70 px-4 py-3 text-base placeholder:text-muted focus:outline-none"
+            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
           />
         </label>
         <div className="flex items-center gap-2">
@@ -78,9 +78,9 @@ export function IntegrationsPanel() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <p className="text-base font-medium">Twilio</p>
-        <label className="block text-sm">
+      <section className="space-y-2">
+        <p className="text-sm font-medium">Twilio</p>
+        <label className="block text-xs">
           <span className="mb-1 block text-muted">Caregiver phone</span>
           <input
             type="tel"
@@ -89,7 +89,7 @@ export function IntegrationsPanel() {
               dispatch({ type: 'SET_CAREGIVER_PHONE', value: e.target.value })
             }
             placeholder="+1 555 555 5555"
-            className="w-full rounded-full bg-white/70 px-4 py-3 text-base placeholder:text-muted focus:outline-none"
+            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
           />
         </label>
         <div className="flex items-center gap-2">

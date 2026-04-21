@@ -1,114 +1,126 @@
 # Relay
 
-Mobile-first PWA voice accessibility assistant for people with speech
-impairments (ALS, stroke aphasia, dysarthria, Parkinson's, etc.). Relay
-interprets degraded speech, confirms with the user, and speaks it back in
-their own voice — optionally triggering smart-home actions or emergency
-flows.
+**Relay** is a mobile-first PWA for people whose speech is hard to understand — including ALS, stroke-related aphasia, dysarthria, and Parkinson’s. It turns fragmented or unclear speech into a clear phrase the user can confirm, speak back in their own voice (voice banking), and optionally route to smart-home actions or a staged emergency flow.
 
-> This repository ships the production-quality **frontend prototype**. All
-> model / network boundaries are clean and typed, with mocks behind them
-> (look for `TODO` comments). The real backends (Gemma 4 / Ollama,
-> Cactus router, Unsloth fine-tune, Twilio, SmartThings) plug in behind
-> the services in [`src/services`](src/services).
+This repository ships a **production-quality frontend prototype**: typed seams for Gemma-family inference, Cactus-style routing, Twilio, and SmartThings; **mock implementations** ship in-repo so you can run the full UX locally without API keys.
 
-## Features
+---
 
-- **Patient home** (`/`) — streaming transcription card, confidence +
-  mood + urgency indicators, primary/alternate interpretations,
-  bilingual output with RTL support, camera toggle, quick phrases
-  (time-of-day aware), 12-tile symbol board overlay, emergency
-  detection with 5-second cancellable countdown.
-- **Caregiver** (`/caregiver`) — today's interactions, model routing log,
-  emergency timeline, one-click handover-note generator with copy.
-- **Settings** (`/settings`) — voice-banking wizard, accessibility
-  (high-contrast AAA + larger text), SmartThings + Twilio integration
-  fields, language & RTL, offline status, Unsloth personalization
-  metrics, routing log.
-- **Demo** (`/demo`) — 4 scripted scenarios (Breakfast, Toilet, Cold,
-  Arabic respiratory emergency with RTL + HIGH urgency) so judges can
-  experience the full loop without local models.
+## Why this problem
 
-## Tech
+When words do not come out reliably, communication fatigue is real. Relay is designed to reduce the gap between intent and clarity for both the speaker and caregivers, with explicit confirmation, bilingual support, RTL, and safety-aware urgency.
 
-- Vite + React 18 + TypeScript (strict).
-- Tailwind CSS v3 + CSS variables for the glass / grey palette.
-- React Router v6.
-- `vite-plugin-pwa` (Workbox) for installable offline shell.
-- `lucide-react` icons.
-- Pure React Context + `useReducer`, persisted to `localStorage`.
+---
 
-## Getting started
+## Key features
+
+| Area | Route | What it does |
+|------|-------|----------------|
+| Patient home | `/` | Streaming interpretation card, urgency/mood, alternates, bilingual line, camera toggle, quick phrases, symbol board, emergency countdown |
+| Caregiver | `/caregiver` | Today’s interactions, routing log, emergency timeline, handover note |
+| Settings | `/settings` | Voice banking, accessibility, integrations, language, offline status, routing log, **About Relay** |
+| Judge Demo | `/demo` | Demo mode toggle, **Start Judge Demo** walkthrough, four scripted scenarios |
+| Gemma & architecture | `/about` | Model tiers (E2B / E4B / 27B), offline story, pointers to docs |
+
+---
+
+## Demo flow
+
+1. Open **Settings** → enable **Demo mode** (live mic and camera paths are disabled; text/symbols still exercise inference).
+2. Open **Demo** → tap **Start Judge Demo** or **Play scenario** on any card.
+3. You are taken to **Home** for a phased walkthrough: fragmented input → routing line → interpretation → **Confirm** → outcome (including emergency copy for HIGH urgency).
+4. Check **Settings → Routing log** or the home **Model** chip for tier and reason.
+
+---
+
+## Architecture
+
+UI → React contexts (`Session`, `ModelRouting`, `Settings`, `FineTuning`, `JudgeDemo`) → `modelRouter` (`chooseModel`, `infer*`) → mocked smart home / emergency services.
+
+**Details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · **Mocks vs production:** [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)
+
+---
+
+## How Gemma 4 is used
+
+Relay treats **Gemma 4** as the family behind three tiers (**E2B**, **E4B**, **27B**) selected by input type, urgency, and multimodal context. In this build, **`inferE2B` / `inferE4B` / `infer27B`** are browser mocks with realistic latency; swapping in **Ollama** or a hosted endpoint is a service-layer change, not a UI rewrite.
+
+---
+
+## Integrations (summary)
+
+| Topic | Doc / code |
+|-------|------------|
+| **Cactus-style routing** | `chooseModel` in [src/services/modelRouter.ts](src/services/modelRouter.ts) |
+| **Unsloth / fine-tuning** | [src/contexts/FineTuningContext.tsx](src/contexts/FineTuningContext.tsx), Personalize in Settings |
+| **Ollama / local** | Replace `infer*` bodies; see [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) |
+| **SmartThings** | [src/services/smartthings.ts](src/services/smartthings.ts) |
+| **Twilio / emergency** | [src/services/emergency.ts](src/services/emergency.ts) |
+
+---
+
+## Demo mode
+
+When **Demo mode** is on:
+
+- The **primary mic** does not start capture; **camera** toggle is disabled.
+- **`submit`** ignores `speech` and `vision+speech` requests (defense in depth).
+- Text **quick phrases** and **symbols** still run the mocked inference pipeline for accessibility testing.
+- A **banner** on the patient home reminds you that live mic/network capture is off.
+
+Toggle: **Settings** (Demo mode section on the Demo page, or the dedicated toggle widget on `/demo`).
+
+---
+
+## Setup & development
+
+**Stack:** Vite, React 18, TypeScript (strict), Tailwind CSS, React Router, `vite-plugin-pwa` (Workbox).
 
 ```bash
 npm install
-npm run dev         # http://localhost:5173
-```
-
-```bash
-npm run build       # type-check + production build with service worker
-npm run preview     # serve the built app locally
+npm run dev          # http://localhost:5173
 npm run typecheck
+npm run build        # tsc + production build + service worker
+npm run preview
 ```
 
-Tested with Node 20+ / 22.
+**Node:** 20+ recommended.
 
-### Installing on a phone
+**Phone install:** `npm run build && npm run preview -- --host`, open the URL on the same LAN, then Add to Home Screen (iOS) or install prompt (Android).
 
-1. `npm run build && npm run preview -- --host`
-2. Open the shown URL on your phone (same LAN).
-3. In iOS Safari: Share → Add to Home Screen. In Android Chrome: the
-   install prompt appears automatically.
+---
 
-Offline-first: after the first visit, the app shell (HTML/CSS/JS and
-icons) stays available without network.
+## Screenshots & media
 
-## Integration points
+Optional assets can live under **`docs/media/`**.
 
-These are the typed seams where real backends plug in:
+---
 
-| Concern                      | File                                         | Notes                                             |
-| ---------------------------- | -------------------------------------------- | ------------------------------------------------- |
-| Gemma 4 / Ollama inference   | `src/services/modelRouter.ts`                | `inferE2B`, `inferE4B`, `infer27B`                |
-| Cactus model routing         | `src/services/modelRouter.ts#chooseModel`    | Rule-based today, replace with Cactus API         |
-| Unsloth fine-tune metrics    | `src/contexts/FineTuningContext.tsx`         | Drives Settings / Personalization panel           |
-| Microphone / STT             | `src/services/speech.ts`                     | Swap in `SpeechRecognition` or server STT         |
-| Voice synthesis (voice bank) | `src/services/speech.ts#speak`               | Wire to `SpeechSynthesis` or cloned voice model   |
-| Camera context               | `src/services/camera.ts`                     | Replace with `getUserMedia`                       |
-| Emergency (Twilio)           | `src/services/emergency.ts`                  | Replace with a tiny server proxy                  |
-| SmartThings                  | `src/services/smartthings.ts`                | Replace with SmartThings REST API                 |
+## Roadmap
 
-## Project layout
+- Wire **SpeechRecognition** / server STT and **SpeechSynthesis** / cloned voice.
+- Replace routing with a live **Cactus** (or equivalent) endpoint.
+- Connect **Ollama** or cloud Gemma for real inference.
+- Production **Twilio** and **SmartThings** behind small server proxies.
 
-```
-src/
-  components/
-    primitives/     Reusable UI primitives (Card, PillButton, Toggle, …)
-    patient/        Patient home widgets
-    caregiver/      Caregiver views
-    settings/       Settings panels
-    demo/           Demo mode widgets
-  contexts/         Session, ModelRouting, Settings, FineTuning
-  hooks/            useStreamingText, useCountdown, useOnlineStatus, useHaptics, useRTL
-  lib/              cn, storage, time, id helpers
-  pages/            PatientHomePage, CaregiverPage, SettingsPage, DemoPage
-  services/         Mocked model/backend boundaries (typed)
-  types/            model, session, settings, symbol
-```
+---
 
-## Accessibility
+## Ethics & privacy
 
-- 80px minimum tap targets for primary controls.
-- `prefers-reduced-motion` disables streaming animations.
-- `data-contrast="high"` flips the palette to WCAG AAA black/white.
-- Live regions: `aria-live="polite"` on transcription, `"assertive"` on
-  the emergency banner.
-- RTL handled at the layout level via the `dir` attribute and detected
-  language.
+Relay is built for dignity and clarity: data stays on-device in this prototype except where you explicitly wire cloud services. Voice banking and health-adjacent data deserve explicit consent and clear retention policies in production.
 
-## Notes on the build
+---
 
-This repo uses `vite-plugin-pwa` with Workbox. If your CI runs in a
-sandbox that blocks Node worker threads you may need to allow
-`worker_threads` for the final SW minification step; dev builds work
-anywhere.
+## License
+
+[MIT](LICENSE)
+
+---
+
+## Documentation index
+
+| Resource | Purpose |
+|----------|---------|
+| [docs/README.md](docs/README.md) | Doc index |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers and data flow |
+| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma, mocks, integrations |

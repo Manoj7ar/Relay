@@ -1,3 +1,9 @@
+/**
+ * Session state: interpretations, history, listening/processing.
+ *
+ * Layer: state. Orchestrates inference via `modelRouter` and persists history.
+ * See docs/ARCHITECTURE.md
+ */
 import {
   createContext,
   useCallback,
@@ -11,6 +17,7 @@ import { load, save } from '@/lib/storage';
 import { directionFor } from '@/hooks/useRTL';
 import { useModelRouting } from './ModelRoutingContext';
 import { useFineTuning } from './FineTuningContext';
+import { useSettings } from './SettingsContext';
 import {
   chooseModel,
   runInference,
@@ -115,6 +122,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     ...init,
     history: load<InteractionRecord[]>(STORAGE_KEY, []),
   }));
+  const { settings } = useSettings();
   const { recordInterpretation } = useModelRouting();
   const { logInteraction } = useFineTuning();
 
@@ -138,13 +146,20 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const submit = useCallback(
     async (req: InferenceRequest) => {
+      if (
+        settings.demoMode &&
+        (req.inputType === 'speech' || req.inputType === 'vision+speech')
+      ) {
+        dispatch({ type: 'STOP_LISTEN' });
+        return;
+      }
       dispatch({ type: 'START_PROCESSING' });
       const visionOn = req.visionOn ?? state.visionOn;
       const decision = chooseModel({ ...req, visionOn });
       const interp = await runInference({ ...req, visionOn });
       setInterpretation(interp, decision.reason);
     },
-    [state.visionOn, setInterpretation],
+    [state.visionOn, setInterpretation, settings.demoMode],
   );
 
   const acceptAlternate = useCallback((alt: string) => {

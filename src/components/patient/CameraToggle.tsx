@@ -4,12 +4,14 @@ import { IconButton } from '@/components/primitives';
 interface CameraToggleProps {
   on: boolean;
   onToggle: () => void;
+  disabled?: boolean;
 }
 
-export function CameraToggle({ on, onToggle }: CameraToggleProps) {
+export function CameraToggle({ on, onToggle, disabled }: CameraToggleProps) {
   return (
     <IconButton
       onClick={onToggle}
+      disabled={disabled}
       label={on ? 'Turn camera off' : 'Turn camera on'}
       variant={on ? 'solid' : 'glass'}
       size="md"

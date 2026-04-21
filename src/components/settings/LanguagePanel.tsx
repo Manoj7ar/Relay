@@ -17,9 +17,9 @@ export function LanguagePanel() {
   const { state } = useSession();
 
   return (
-    <Card className="space-y-4">
-      <p className="text-sm font-semibold">Language</p>
-      <div className="rounded-xl2 bg-white/70 p-3 text-sm">
+    <Card padded={false} className="h-full min-h-0 space-y-2 overflow-hidden p-3">
+      <p className="text-xs font-semibold">Language</p>
+      <div className="rounded-xl2 bg-white/70 p-2 text-xs">
         <p className="text-muted">Auto-detected primary language</p>
         <p className="mt-0.5 font-medium">
           {state.detectedLanguage}
@@ -29,14 +29,14 @@ export function LanguagePanel() {
         </p>
       </div>
 
-      <label className="block text-sm">
+      <label className="block text-xs">
         <span className="mb-1 block text-muted">Primary language</span>
         <select
           value={settings.language.primaryLanguage}
           onChange={(e) =>
             dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: e.target.value })
           }
-          className="w-full rounded-full bg-white/70 px-4 py-3 text-base focus:outline-none"
+          className="w-full rounded-full bg-white/70 px-3 py-2 text-sm focus:outline-none"
         >
           {LANGS.map((l) => (
             <option key={l.code} value={l.code}>
@@ -46,14 +46,14 @@ export function LanguagePanel() {
         </select>
       </label>
 
-      <label className="block text-sm">
+      <label className="block text-xs">
         <span className="mb-1 block text-muted">Caregiver language</span>
         <select
           value={settings.language.caregiverLanguage}
           onChange={(e) =>
             dispatch({ type: 'SET_CAREGIVER_LANGUAGE', value: e.target.value })
           }
-          className="w-full rounded-full bg-white/70 px-4 py-3 text-base focus:outline-none"
+          className="w-full rounded-full bg-white/70 px-3 py-2 text-sm focus:outline-none"
         >
           {LANGS.map((l) => (
             <option key={l.code} value={l.code}>

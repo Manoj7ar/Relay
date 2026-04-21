@@ -1,18 +1,39 @@
+import { Gavel } from 'lucide-react';
 import { DemoModeToggle } from '@/components/demo/DemoModeToggle';
 import { ScenarioList } from '@/components/demo/ScenarioList';
+import { PillButton } from '@/components/primitives';
+import { useJudgeDemo } from '@/contexts/JudgeDemoContext';
 
 export function DemoPage() {
+  const { launchWalkthrough } = useJudgeDemo();
+
   return (
-    <div className="flex flex-col gap-4 px-4 pt-2">
-      <header className="safe-top">
-        <h1 className="text-xl font-semibold tracking-tight">Demo</h1>
-        <p className="text-sm text-muted">
-          Experience the full Relay flow without local models.
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-3 pt-2">
+      <header className="shrink-0 pt-[max(env(safe-area-inset-top),6px)]">
+        <h1 className="text-lg font-semibold tracking-tight">Judge Demo</h1>
+        <p className="mt-1 line-clamp-2 text-xs text-muted">
+          No API keys required. Turn on Demo mode in Settings to disable the
+          live mic, then start the walkthrough or any scenario below.
         </p>
       </header>
 
-      <DemoModeToggle />
-      <ScenarioList />
+      <PillButton
+        size="lg"
+        variant="accent"
+        fullWidth
+        className="!min-h-14 shrink-0 text-base"
+        leftIcon={<Gavel className="h-5 w-5" aria-hidden />}
+        onClick={launchWalkthrough}
+      >
+        Start Judge Demo (breakfast walkthrough)
+      </PillButton>
+
+      <div className="shrink-0">
+        <DemoModeToggle />
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <ScenarioList />
+      </div>
     </div>
   );
 }

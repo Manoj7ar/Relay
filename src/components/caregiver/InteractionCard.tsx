@@ -10,10 +10,22 @@ const URGENCY_TONE: Record<Urgency, 'ok' | 'warn' | 'danger'> = {
   HIGH: 'danger',
 };
 
-export function InteractionCard({ record }: { record: InteractionRecord }) {
+export function InteractionCard({
+  record,
+  compact,
+}: {
+  record: InteractionRecord;
+  compact?: boolean;
+}) {
   return (
-    <Card>
-      <div className="mb-2 flex items-center justify-between text-xs text-muted">
+    <Card padded={!compact} className={compact ? 'p-3' : undefined}>
+      <div
+        className={
+          compact
+            ? 'mb-1 flex items-center justify-between text-[10px] text-muted'
+            : 'mb-2 flex items-center justify-between text-xs text-muted'
+        }
+      >
         <span>{formatClock(record.ts)}</span>
         <span className="inline-flex items-center gap-1.5">
           <Cpu className="h-3.5 w-3.5" aria-hidden /> {record.model}
@@ -32,15 +44,35 @@ export function InteractionCard({ record }: { record: InteractionRecord }) {
           <span className="italic truncate">"{record.sourceFragment}"</span>
         </p>
       ) : null}
-      <p className="text-base font-medium">{record.primary}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <StatusBadge tone={URGENCY_TONE[record.urgency]} dot className="text-[11px]">
+      <p
+        className={
+          compact
+            ? 'line-clamp-2 text-sm font-medium'
+            : 'text-base font-medium'
+        }
+      >
+        {record.primary}
+      </p>
+      <div
+        className={
+          compact
+            ? 'mt-1.5 flex flex-wrap items-center gap-1'
+            : 'mt-3 flex flex-wrap items-center gap-1.5'
+        }
+      >
+        <StatusBadge
+          tone={URGENCY_TONE[record.urgency]}
+          dot
+          className={compact ? 'text-[10px]' : 'text-[11px]'}
+        >
           {record.urgency}
         </StatusBadge>
-        <StatusBadge className="text-[11px]">{record.mood}</StatusBadge>
+        <StatusBadge className={compact ? 'text-[10px]' : 'text-[11px]'}>
+          {record.mood}
+        </StatusBadge>
         <StatusBadge
           tone={record.cancelled ? 'warn' : 'neutral'}
-          className="text-[11px]"
+          className={compact ? 'text-[10px]' : 'text-[11px]'}
         >
           {record.actionTaken ?? 'Spoken only'}
         </StatusBadge>

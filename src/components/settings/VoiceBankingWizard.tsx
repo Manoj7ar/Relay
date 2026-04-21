@@ -38,12 +38,12 @@ export function VoiceBankingWizard() {
   };
 
   return (
-    <Card className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold">Voice banking</p>
-        <span className="text-xs text-muted">Step {step + 1} of 4</span>
+    <Card padded={false} className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-3">
+      <div className="flex shrink-0 items-center justify-between">
+        <p className="text-xs font-semibold">Voice banking</p>
+        <span className="text-[10px] text-muted">Step {step + 1}/4</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/10">
+      <div className="h-1 w-full shrink-0 overflow-hidden rounded-full bg-black/10">
         <div
           className="h-full rounded-full bg-[var(--accent)] transition-[width]"
           style={{ width: `${progress * 100}%` }}
@@ -51,32 +51,30 @@ export function VoiceBankingWizard() {
       </div>
 
       {step === 0 && (
-        <div className="space-y-2">
-          <h4 className="text-lg font-semibold tracking-tight">
-            Preserve your voice.
+        <div className="min-h-0 space-y-1.5">
+          <h4 className="text-sm font-semibold tracking-tight">
+            Preserve your voice
           </h4>
-          <p className="text-sm text-muted">
-            Relay can speak in your own voice, even as speech becomes harder.
-            Record a few short phrases now — we will use them to train a
-            personal voice clone on-device.
+          <p className="line-clamp-4 text-xs text-muted">
+            Relay can speak in your own voice. Record short phrases to train a
+            local voice clone.
           </p>
         </div>
       )}
 
       {step === 1 && (
-        <div className="space-y-3">
-          <h4 className="text-lg font-semibold tracking-tight">
-            Record {TARGET} phrases.
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold tracking-tight">
+            Record {TARGET} phrases
           </h4>
-          <p className="text-sm text-muted">
-            Recorded{' '}
+          <p className="text-xs text-muted">
             <span className="font-semibold">
               {voiceBanking.recordedPhrases}
             </span>{' '}
-            of {TARGET}.
+            / {TARGET}
           </p>
           <PillButton
-            size="lg"
+            size="md"
             variant={recording ? 'danger' : 'accent'}
             onClick={recordOne}
             disabled={
@@ -100,17 +98,17 @@ export function VoiceBankingWizard() {
       )}
 
       {step === 2 && (
-        <div className="space-y-3">
-          <h4 className="text-lg font-semibold tracking-tight">
-            Preview your cloned voice
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold tracking-tight">
+            Preview voice
           </h4>
-          <p className="text-sm text-muted">
+          <p className="line-clamp-2 text-xs text-muted">
             {voiceBanking.recordedPhrases >= TARGET
-              ? 'Your personal voice clone is ready.'
-              : 'Finish step 2 to unlock the preview.'}
+              ? 'Clone ready.'
+              : 'Finish recording first.'}
           </p>
           <PillButton
-            size="lg"
+            size="md"
             variant="glass"
             leftIcon={<Play className="h-5 w-5" aria-hidden />}
             disabled={voiceBanking.recordedPhrases < TARGET}
@@ -127,19 +125,18 @@ export function VoiceBankingWizard() {
       )}
 
       {step === 3 && (
-        <div className="space-y-2 text-sm text-muted">
-          <CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden />
-          <h4 className="text-lg font-semibold text-text tracking-tight">
-            You're set up.
+        <div className="space-y-1 text-xs text-muted">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden />
+          <h4 className="text-sm font-semibold text-text tracking-tight">
+            You&apos;re set up
           </h4>
-          <p>
-            Your voice clone will be used for spoken replies. You can retrain
-            or replace it any time from this screen.
+          <p className="line-clamp-3">
+            Voice clone will be used for replies. Retrain anytime here.
           </p>
         </div>
       )}
 
-      <div className="flex justify-between">
+      <div className="mt-auto flex shrink-0 justify-between gap-2 pt-1">
         <PillButton
           size="sm"
           variant="glass"

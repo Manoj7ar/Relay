@@ -36,6 +36,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         title={label}
         className={cn(
           'inline-flex items-center justify-center rounded-full transition-transform active:scale-95',
+          'disabled:pointer-events-none disabled:opacity-40',
           sizeMap[size],
           variantMap[variant],
           className,

@@ -11,9 +11,13 @@ export function InterpretationAlternates({
 }: InterpretationAlternatesProps) {
   if (!alternates.length) return null;
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1">
       {alternates.slice(0, 2).map((alt) => (
-        <Chip key={alt} onClick={() => onSelect(alt)}>
+        <Chip
+          key={alt}
+          className="max-w-[min(100%,11rem)] px-2 py-1 text-xs"
+          onClick={() => onSelect(alt)}
+        >
           {alt}
         </Chip>
       ))}
