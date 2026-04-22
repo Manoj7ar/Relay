@@ -10,6 +10,8 @@ dist-ssr
 
 # Submission / meta (optional local-only files)
 /VIDEO_SCRIPT.md
+# Local-only hackathon narrative / stats (do not push)
+/docs/IMPACT_AND_VISION.md
 docs/MEDIA_CHECKLIST.md
 /evaluation/
 /scripts/evaluate.mjs
