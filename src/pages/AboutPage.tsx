@@ -46,7 +46,7 @@ export function AboutPage() {
   |  E2B  |  E4B  |  27B        |
   | <2s   | tuned | multimodal  |
   +-----------------------------+
-      | (Ollama localhost:11434)
+      | (Ollama — URL in Settings, default localhost:11434)
       v
   InterpretationResult
       |

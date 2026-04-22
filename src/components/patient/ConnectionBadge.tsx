@@ -1,5 +1,6 @@
 import { CloudOff, Cpu } from 'lucide-react';
 import { StatusBadge } from '@/components/primitives';
+import { useSettings } from '@/contexts/SettingsContext';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 
@@ -9,7 +10,8 @@ import { useOllamaStatus } from '@/hooks/useOllamaStatus';
  */
 export function ConnectionBadge() {
   const online = useOnlineStatus();
-  const ollama = useOllamaStatus();
+  const { settings } = useSettings();
+  const ollama = useOllamaStatus(settings.ollama.baseUrl);
 
   if (!online) {
     return (

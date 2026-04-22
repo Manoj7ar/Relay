@@ -6,7 +6,7 @@
  *      based purely on the shape of the request.
  *   2. A compact prompt is built with patient context + known speech-pattern
  *      examples (dropped syllables, slurred consonants, multilingual inputs).
- *   3. We call `POST http://localhost:11434/api/generate` with
+ *   3. We call `POST {ollamaBase}/api/generate` (base URL from Settings) with
  *      `stream: true`, `format: 'json'`, and (for multimodal) the captured
  *      camera frame as a base64 entry in `images[]`.
  *   4. NDJSON chunks are accumulated. A forgiving progressive extractor
@@ -25,6 +25,7 @@
  */
 
 import { uid } from '@/lib/id';
+import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
 import { applyUrgencyGuard } from '@/lib/urgencyGuard';
 import type { ModelId, Mood, Urgency } from '@/types/model';
 import { chooseModel, type RoutingDecision } from '../modelRouter';
@@ -34,14 +35,14 @@ import type {
   InterpreterAdapter,
 } from '../interpretationService';
 
-const OLLAMA_BASE = 'http://localhost:11434';
 const REQUEST_TIMEOUT_MS = 30_000;
 
 export class GemmaNotConnectedError extends Error {
-  constructor(detail?: string) {
+  constructor(ollamaBase: string, detail?: string) {
     super(
-      `Gemma 4 is not reachable at ${OLLAMA_BASE}. Start Ollama (\`ollama serve\`) ` +
-        `and ensure the configured model is pulled. ${detail ?? ''}`.trim(),
+      `Gemma is not reachable at ${ollamaBase}. ` +
+        `Set the Ollama URL in Settings → Models (HTTPS + CORS when the app is on the web). ` +
+        `${detail ?? ''}`.trim(),
     );
     this.name = 'GemmaNotConnectedError';
   }
@@ -368,6 +369,7 @@ interface OllamaGenerateRequest {
 }
 
 async function callOllamaStreaming(
+  ollamaBase: string,
   modelName: string,
   prompt: string,
   onChunk: ((partialPrimaryText: string) => void) | undefined,
@@ -391,7 +393,7 @@ async function callOllamaStreaming(
 
   let res: Response;
   try {
-    res = await fetch(`${OLLAMA_BASE}/api/generate`, {
+    res = await fetch(`${ollamaBase}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
@@ -400,13 +402,14 @@ async function callOllamaStreaming(
   } catch (err) {
     clearTimeout(timeoutId);
     throw new GemmaNotConnectedError(
+      ollamaBase,
       err instanceof Error ? err.message : undefined,
     );
   }
 
   if (!res.ok || !res.body) {
     clearTimeout(timeoutId);
-    throw new GemmaNotConnectedError(`HTTP ${res.status}`);
+    throw new GemmaNotConnectedError(ollamaBase, `HTTP ${res.status}`);
   }
 
   const reader = res.body.getReader();
@@ -450,6 +453,7 @@ async function callOllamaStreaming(
     }
   } catch (err) {
     throw new GemmaNotConnectedError(
+      ollamaBase,
       err instanceof Error ? err.message : undefined,
     );
   } finally {
@@ -482,6 +486,7 @@ function buildInferenceRequest(input: InterpretationInput) {
 async function interpret(
   input: InterpretationInput,
 ): Promise<InterpretationResult> {
+  const ollamaBase = getResolvedOllamaBaseUrl();
   const req = buildInferenceRequest(input);
   const decision: RoutingDecision = chooseModel(req);
   const modelName = getModelName(decision.model);
@@ -489,6 +494,7 @@ async function interpret(
   const t0 = Date.now();
 
   const rawResponse = await callOllamaStreaming(
+    ollamaBase,
     modelName,
     prompt,
     input.onStreamChunk,

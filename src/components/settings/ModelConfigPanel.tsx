@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Cpu, Loader2, XCircle } from 'lucide-react';
 import { Card, PillButton } from '@/components/primitives';
+import { useSettings } from '@/contexts/SettingsContext';
+import {
+  DEFAULT_OLLAMA_BASE_URL,
+  resolveOllamaBaseUrl,
+} from '@/lib/ollamaUrl';
 
 const MODEL_KEYS = {
   fast: 'relay.model.fast',
@@ -74,6 +79,7 @@ function writeStored(key: string, value: string): void {
 }
 
 export function ModelConfigPanel() {
+  const { settings, dispatch } = useSettings();
   const [values, setValues] = useState<Record<keyof typeof MODEL_KEYS, string>>(
     { fast: '', finetuned: '', quality: '' },
   );
@@ -92,11 +98,13 @@ export function ModelConfigPanel() {
     writeStored(MODEL_KEYS[key], value);
   };
 
+  const effectiveBase = resolveOllamaBaseUrl(settings.ollama.baseUrl);
+
   const testOllama = async () => {
     setStatus({ kind: 'checking' });
     try {
-      const res = await fetch('http://localhost:11434/api/tags', {
-        signal: AbortSignal.timeout(3000),
+      const res = await fetch(`${effectiveBase}/api/tags`, {
+        signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
         setStatus({
@@ -114,7 +122,7 @@ export function ModelConfigPanel() {
         message:
           err instanceof Error
             ? err.message
-            : 'Ollama not reachable at http://localhost:11434',
+            : `Ollama not reachable at ${effectiveBase}`,
       });
     }
   };
@@ -129,12 +137,36 @@ export function ModelConfigPanel() {
       </div>
 
       <p className="text-[11px] leading-snug text-muted">
-        Relay calls your local Ollama server at
-        <code className="mx-1 rounded bg-black/5 px-1">localhost:11434</code>.
-        Names below must match installed model tags
-        (<code className="rounded bg-black/5 px-1">ollama list</code>).
-        Changes take effect on the next interpretation.
+        Set your Ollama API base URL (another computer, home server, or HTTPS
+        tunnel). Leave blank to use{' '}
+        <code className="rounded bg-black/5 px-1">{DEFAULT_OLLAMA_BASE_URL}</code>
+        . Model names must match tags on that server (
+        <code className="rounded bg-black/5 px-1">ollama list</code>). Hosted
+        apps need <span className="font-medium text-text">HTTPS</span> on the
+        Ollama side and{' '}
+        <span className="font-medium text-text">CORS</span> allowing this
+        origin.
       </p>
+
+      <label className="block text-xs">
+        <span className="mb-1 block font-medium">Ollama base URL</span>
+        <input
+          type="text"
+          inputMode="url"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="https://ollama.example.com or http://192.168.1.10:11434"
+          value={settings.ollama.baseUrl}
+          onChange={(e) =>
+            dispatch({ type: 'SET_OLLAMA_BASE_URL', value: e.target.value })
+          }
+          className="control-input font-mono text-sm"
+        />
+        <p className="mt-1 text-[10px] leading-snug text-muted">
+          Using:{' '}
+          <span className="break-all font-mono text-text">{effectiveBase}</span>
+        </p>
+      </label>
 
       {FIELDS.map((field) => (
         <div key={field.key} className="space-y-1">

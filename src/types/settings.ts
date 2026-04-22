@@ -19,6 +19,11 @@ export interface LanguageSettings {
   caregiverLanguage: string;
 }
 
+/** Ollama HTTP API root (no trailing slash). Empty baseUrl → localhost default at resolve time. */
+export interface OllamaSettings {
+  baseUrl: string;
+}
+
 export type SetupRole = 'patient' | 'caregiver' | 'unknown';
 
 export type ConditionId =
@@ -59,6 +64,7 @@ export interface SettingsState {
   accessibility: AccessibilitySettings;
   integrations: IntegrationsSettings;
   language: LanguageSettings;
+  ollama: OllamaSettings;
   profile: ProfileSettings;
   onboardingCompletedAt: number | null;
 }
@@ -94,6 +100,9 @@ export const DEFAULT_SETTINGS: SettingsState = {
   language: {
     primaryLanguage: 'en-US',
     caregiverLanguage: 'en-US',
+  },
+  ollama: {
+    baseUrl: '',
   },
   profile: DEFAULT_PROFILE,
   onboardingCompletedAt: null,

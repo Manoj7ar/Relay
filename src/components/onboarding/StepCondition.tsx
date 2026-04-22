@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react';
+import { useId } from 'react';
 import { cn } from '@/lib/cn';
 import type { ConditionId, SetupRole } from '@/types/settings';
 
@@ -29,6 +30,7 @@ export function StepCondition({
   onCondition,
   onDetail,
 }: StepConditionProps) {
+  const detailId = useId();
   const isSelf = setupRole === 'patient';
   const pronoun = isSelf ? 'your' : 'their';
 
@@ -68,27 +70,41 @@ export function StepCondition({
         })}
       </div>
 
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">
+      <label htmlFor={detailId} className="block">
+        <span className="mb-1.5 block text-sm font-medium leading-snug">
           Anything we should know?
         </span>
+        <span className="mb-2 block text-[12px] leading-snug text-muted">
+          {isSelf
+            ? 'Rhythm of the day, volume, AAC or gestures — anything that helps Relay read you fairly.'
+            : 'Daily patterns, devices, or cues that help Relay understand them better.'}
+        </span>
         <textarea
+          id={detailId}
           value={detail}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
             onDetail(e.target.value)
           }
-          rows={3}
+          rows={4}
+          autoComplete="off"
+          spellCheck
           placeholder={
             isSelf
-              ? 'e.g. I speak softly in the mornings; I use an iPad to point.'
-              : 'e.g. She speaks softly in the mornings; points to an iPad.'
+              ? 'Example: My voice is quiet before noon · I spell on a tablet when I\'m tired · afternoons are harder than mornings.'
+              : 'Example: Quiet voice before lunch · spells on a tablet when fatigued · more alert mid-morning.'
           }
           maxLength={280}
-          className="control-textarea text-sm"
+          className={cn(
+            'control-textarea',
+            'min-h-[clamp(7rem,26dvh,10rem)] text-[15px] leading-relaxed',
+            'shadow-sm ring-1 ring-black/[0.04]',
+          )}
         />
-        <span className="mt-1 flex justify-between text-[11px] text-muted">
-          <span>This stays on this device.</span>
-          <span>{detail.length}/280</span>
+        <span className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-[11px] leading-snug text-muted">
+          <span className="min-w-0 flex-1">
+            Private to this device — never sent to a server.
+          </span>
+          <span className="tabular-nums text-text/70">{detail.length}/280</span>
         </span>
       </label>
     </div>

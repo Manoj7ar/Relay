@@ -41,6 +41,7 @@ type Action =
   | { type: 'CLEAR_VOICE_SAMPLES' }
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'RESET_ONBOARDING' }
+  | { type: 'SET_OLLAMA_BASE_URL'; value: string }
   | { type: 'RESET' };
 
 function reducer(state: SettingsState, action: Action): SettingsState {
@@ -168,6 +169,11 @@ function reducer(state: SettingsState, action: Action): SettingsState {
         ...state,
         onboardingCompletedAt: null,
       };
+    case 'SET_OLLAMA_BASE_URL':
+      return {
+        ...state,
+        ollama: { baseUrl: action.value.trim() },
+      };
     case 'RESET':
       return DEFAULT_SETTINGS;
   }
@@ -204,6 +210,14 @@ function hydrate(fallback: SettingsState): SettingsState {
       },
     },
     language: { ...fallback.language, ...(stored.language ?? {}) },
+    ollama: {
+      ...fallback.ollama,
+      ...(stored.ollama ?? {}),
+      baseUrl:
+        typeof stored.ollama?.baseUrl === 'string'
+          ? stored.ollama.baseUrl
+          : fallback.ollama.baseUrl,
+    },
     profile: {
       ...DEFAULT_PROFILE,
       ...(stored.profile ?? {}),

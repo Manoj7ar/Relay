@@ -285,12 +285,18 @@ body {
 
   /** Multiline fields — card-style radius, same motion language as inputs. */
   .control-textarea {
+    display: block;
     width: 100%;
-    border-radius: 28px;
+    min-height: clamp(6.5rem, 22dvh, 9rem);
+    padding: 0.875rem 1.125rem;
+    border-radius: 1.375rem;
     border: 1px solid rgba(0, 0, 0, 0.1);
     background-color: rgba(255, 255, 255, 0.78);
     color: var(--text);
+    font-size: 0.9375rem;
+    line-height: 1.55;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    resize: vertical;
     transition:
       border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
       background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
@@ -299,7 +305,8 @@ body {
 
   .control-textarea::placeholder {
     color: var(--muted);
-    opacity: 0.85;
+    opacity: 0.88;
+    line-height: 1.5;
   }
 
   .control-textarea:hover:not(:disabled):not(:read-only) {
