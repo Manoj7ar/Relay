@@ -18,6 +18,17 @@
   --radius-xl: 28px;
   --touch: 80px;
   --font-scale: 1;
+  --keyboard-inset: 0px;
+  --main-pad-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+:root[data-vp-narrow='true'] {
+  --touch: 72px;
+  --radius-xl: 24px;
+}
+
+:root[data-vp-short='true'] {
+  --main-pad-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 :root[data-contrast='high'] {
@@ -123,8 +134,243 @@ body {
     padding-bottom: max(env(safe-area-inset-bottom), 16px);
   }
   .safe-x {
-    padding-left: max(env(safe-area-inset-left), 16px);
-    padding-right: max(env(safe-area-inset-right), 16px);
+    padding-left: max(
+      env(safe-area-inset-left, 0px),
+      clamp(12px, 3.6vw, 20px)
+    );
+    padding-right: max(
+      env(safe-area-inset-right, 0px),
+      clamp(12px, 3.6vw, 20px)
+    );
+  }
+
+  .main-scroll-pad {
+    padding-bottom: calc(
+      var(--main-pad-bottom) + var(--keyboard-inset)
+    );
+  }
+
+  /* Beats Tailwind min-h on PillButton for short viewports (landscape / small phones). */
+  button.primary-mic {
+    min-height: 68px !important;
+  }
+
+  :root[data-vp-short='true'] button.primary-mic {
+    min-height: 58px !important;
+  }
+
+  /**
+   * Native selects: custom chevron, 44px touch height, smooth focus.
+   */
+  .control-select {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.82);
+    color: var(--text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 1.15rem;
+    transition:
+      border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .control-select:hover:not(:disabled) {
+    border-color: rgba(0, 0, 0, 0.14);
+    background-color: rgba(255, 255, 255, 0.94);
+  }
+
+  .control-select:active:not(:disabled) {
+    transform: scale(0.992);
+  }
+
+  .control-select:focus {
+    outline: none;
+  }
+
+  .control-select:focus-visible {
+    outline: none;
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow:
+      0 0 0 3px rgba(58, 58, 56, 0.28),
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .control-select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  [dir='rtl'] .control-select {
+    background-position: left 0.65rem center;
+    padding-left: 2.5rem;
+    padding-right: 1rem;
+  }
+
+  :root[data-contrast='high'] .control-select {
+    background-color: #fff;
+    border-color: #000;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  :root[data-contrast='high'] .control-select:focus-visible {
+    box-shadow:
+      0 0 0 3px #000,
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /** Rounded text fields (settings, integrations, model tags). */
+  .control-input {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.82);
+    color: var(--text);
+    font-size: 0.875rem;
+    line-height: 1.25;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition:
+      border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .control-input::placeholder {
+    color: var(--muted);
+    opacity: 0.85;
+  }
+
+  .control-input:hover:not(:disabled):not(:read-only) {
+    border-color: rgba(0, 0, 0, 0.14);
+    background-color: rgba(255, 255, 255, 0.94);
+  }
+
+  .control-input:focus {
+    outline: none;
+  }
+
+  .control-input:focus-visible {
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow:
+      0 0 0 3px rgba(58, 58, 56, 0.28),
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  :root[data-contrast='high'] .control-input {
+    background: #fff;
+    border-color: #000;
+  }
+
+  :root[data-contrast='high'] .control-input:focus-visible {
+    box-shadow:
+      0 0 0 3px #000,
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /** Multiline fields — card-style radius, same motion language as inputs. */
+  .control-textarea {
+    width: 100%;
+    border-radius: 28px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.78);
+    color: var(--text);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition:
+      border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .control-textarea::placeholder {
+    color: var(--muted);
+    opacity: 0.85;
+  }
+
+  .control-textarea:hover:not(:disabled):not(:read-only) {
+    border-color: rgba(0, 0, 0, 0.14);
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  .control-textarea:focus {
+    outline: none;
+  }
+
+  .control-textarea:focus-visible {
+    border-color: rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 0 0 3px rgba(58, 58, 56, 0.22),
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  :root[data-contrast='high'] .control-textarea {
+    background: #fff;
+    border-color: #000;
+  }
+
+  :root[data-contrast='high'] .control-textarea:focus-visible {
+    box-shadow:
+      0 0 0 3px #000,
+      inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /** Secondary pill control (e.g. “Type instead” trigger). */
+  .control-ghost {
+    min-height: 44px;
+    border-radius: 9999px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.62);
+    color: var(--muted);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition:
+      background-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      border-color 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+      transform 0.18s cubic-bezier(0.34, 1.35, 0.64, 1);
+  }
+
+  .control-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+    color: var(--text);
+  }
+
+  .control-ghost:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+
+  .control-ghost:focus {
+    outline: none;
+  }
+
+  .control-ghost:focus-visible {
+    box-shadow:
+      0 0 0 3px rgba(58, 58, 56, 0.28),
+      0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  :root[data-contrast='high'] .control-ghost {
+    background: #fff;
+    border-color: #000;
+    color: #000;
   }
 
   .scrollbar-none::-webkit-scrollbar {

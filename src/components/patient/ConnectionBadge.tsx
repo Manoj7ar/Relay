@@ -1,11 +1,28 @@
-import { Cloud, CloudOff, Cpu } from 'lucide-react';
+import { CloudOff, Cpu } from 'lucide-react';
 import { StatusBadge } from '@/components/primitives';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 
+/**
+ * Network + local Gemma (Ollama) status for the patient header.
+ * Tier labels (E2B / E4B / 27B) stay in the caregiver routing log only.
+ */
 export function ConnectionBadge() {
   const online = useOnlineStatus();
   const ollama = useOllamaStatus();
+
+  if (!online) {
+    return (
+      <StatusBadge
+        tone="warn"
+        dot
+        icon={<CloudOff className="h-3.5 w-3.5" aria-hidden />}
+        className="text-[11px]"
+      >
+        Offline
+      </StatusBadge>
+    );
+  }
 
   if (ollama === 'running') {
     return (
@@ -15,38 +32,32 @@ export function ConnectionBadge() {
         icon={<Cpu className="h-3.5 w-3.5" aria-hidden />}
         className="text-[11px]"
       >
-        Gemma local
+        Gemma online
       </StatusBadge>
     );
   }
 
-  if (ollama === 'unreachable' && online) {
+  if (ollama === 'checking') {
     return (
       <StatusBadge
-        tone="warn"
+        tone="neutral"
         dot
         icon={<Cpu className="h-3.5 w-3.5" aria-hidden />}
         className="text-[11px]"
       >
-        Gemma offline
+        Gemma…
       </StatusBadge>
     );
   }
 
   return (
     <StatusBadge
-      tone={online ? 'ok' : 'warn'}
+      tone="warn"
       dot
-      icon={
-        online ? (
-          <Cloud className="h-3.5 w-3.5" aria-hidden />
-        ) : (
-          <CloudOff className="h-3.5 w-3.5" aria-hidden />
-        )
-      }
+      icon={<Cpu className="h-3.5 w-3.5" aria-hidden />}
       className="text-[11px]"
     >
-      {online ? 'Online' : 'Offline'}
+      Gemma offline
     </StatusBadge>
   );
 }

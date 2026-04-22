@@ -68,7 +68,7 @@ export function TranscriptionCard() {
             <button
               type="button"
               onClick={tts.cancel}
-              className="inline-flex items-center gap-1 rounded-full bg-[var(--danger)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white"
+              className="inline-flex min-h-[36px] items-center gap-1 rounded-full bg-[var(--danger)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm transition-[background-color,box-shadow,transform] duration-200 ease-smooth hover:brightness-110 hover:shadow-md active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
               aria-label="Stop speaking"
             >
               <Square className="h-3 w-3 fill-current" /> Stop
@@ -145,7 +145,7 @@ export function TranscriptionCard() {
             <button
               type="button"
               onClick={clearError}
-              className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium"
+              className="shrink-0 rounded-full bg-black/5 px-3 py-1 text-[10px] font-medium transition-[background-color,transform] duration-200 ease-smooth hover:bg-black/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
             >
               Dismiss
             </button>
@@ -167,7 +167,7 @@ export function TranscriptionCard() {
               <span className="inline-flex min-w-0 items-center gap-1 truncate">
                 <Cpu className="h-3 w-3 shrink-0" aria-hidden />
                 <span className="truncate">
-                  {currentInterpretation.model}
+                  Gemma
                   {currentInterpretation.visionUsed ? ' · vision' : ''}
                 </span>
               </span>

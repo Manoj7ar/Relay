@@ -57,7 +57,7 @@ export function RoutingLog({ compact }: RoutingLogProps) {
         <button
           type="button"
           onClick={clearLog}
-          className="rounded-full px-2 py-0.5 text-[11px] hover:bg-black/5"
+          className="rounded-full px-3 py-1.5 text-[11px] font-medium text-text transition-[background-color,transform,box-shadow] duration-200 ease-smooth hover:bg-black/5 active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
         >
           Clear
         </button>
@@ -71,10 +71,12 @@ export function RoutingLog({ compact }: RoutingLogProps) {
             onClick={() => setFilter(f.value)}
             aria-pressed={filter === f.value}
             className={cn(
-              'rounded-full px-3 py-1 text-[11px] font-medium transition',
+              'min-h-[36px] rounded-full px-3 py-1.5 text-[11px] font-medium',
+              'transition-[color,background-color,box-shadow,transform] duration-200 ease-smooth',
+              'active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100',
               filter === f.value
-                ? 'bg-[var(--accent)] text-white'
-                : 'glass text-text hover:bg-black/5',
+                ? 'bg-[var(--accent)] text-white shadow-sm'
+                : 'glass text-text hover:bg-black/5 hover:shadow-sm',
             )}
           >
             {f.label}

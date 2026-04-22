@@ -38,6 +38,10 @@ export default {
       maxWidth: {
         mobile: '430px',
       },
+      transitionTimingFunction: {
+        smooth: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        spring: 'cubic-bezier(0.34, 1.35, 0.64, 1)',
+      },
       animation: {
         'fade-in': 'fadeIn 240ms ease-out',
         'scale-in': 'scaleIn 200ms ease-out',

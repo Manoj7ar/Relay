@@ -27,7 +27,7 @@ const FIELDS: FieldSpec[] = [
     label: 'Fast model (E2B tier)',
     tier: 'E2B',
     description:
-      'Used for real-time speech shortcuts, under ~2s latency. Shown in ModelChip as E2B.',
+      'Used for real-time speech shortcuts, under ~2s latency.',
   },
   {
     key: 'finetuned',
@@ -146,7 +146,7 @@ export function ModelConfigPanel() {
               onChange={(e) => updateField(field.key, e.target.value)}
               placeholder={DEFAULTS[field.key]}
               spellCheck={false}
-              className="w-full rounded-full bg-white/70 px-3 py-2 font-mono text-sm placeholder:text-muted focus:outline-none"
+              className="control-input font-mono text-sm"
             />
           </label>
           <p className="text-[10px] leading-snug text-muted">

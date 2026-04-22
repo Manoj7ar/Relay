@@ -48,8 +48,8 @@ export function SymbolBoardOverlay({ open, onClose }: SymbolBoardOverlayProps) {
               role="gridcell"
               onClick={() => handlePick(tile)}
               className={cn(
-                'glass aspect-square rounded-[22px] flex flex-col items-center justify-center gap-2 p-2',
-                'transition-transform active:scale-95 hover:bg-white/70',
+                'glass flex aspect-square flex-col items-center justify-center gap-2 rounded-[22px] p-2 shadow-sm',
+                'transition-[transform,background-color,box-shadow] duration-200 ease-smooth hover:bg-white/70 hover:shadow-md active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100',
                 isUrgent && 'ring-2 ring-[var(--danger)]/40',
               )}
             >

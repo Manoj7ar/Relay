@@ -35,7 +35,7 @@ export function CaregiverPage() {
   const restToday = Math.max(0, today.length - MAX_VISIBLE);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-3 pt-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden pt-2">
       <header className="shrink-0 pt-[max(env(safe-area-inset-top),6px)]">
         <h1 className="text-lg font-semibold tracking-tight">Caregiver</h1>
         <p className="line-clamp-1 text-xs text-muted">

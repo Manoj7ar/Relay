@@ -17,7 +17,7 @@ export function SegmentedTabs<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className="glass flex gap-1 rounded-full p-1 overflow-x-auto"
+      className="glass flex gap-1 overflow-x-auto rounded-full p-1 shadow-sm"
     >
       {options.map((opt) => (
         <button
@@ -26,10 +26,12 @@ export function SegmentedTabs<T extends string>({
           aria-selected={opt.value === value}
           onClick={() => onChange(opt.value)}
           className={cn(
-            'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            'flex min-h-[44px] shrink-0 items-center rounded-full px-4 py-2.5 text-sm font-medium',
+            'transition-[color,background-color,box-shadow,transform] duration-200 ease-smooth',
+            'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
             opt.value === value
-              ? 'bg-[var(--accent)] text-white'
-              : 'text-text hover:bg-black/5',
+              ? 'bg-[var(--accent)] text-white shadow-sm'
+              : 'text-text hover:bg-black/5 hover:shadow-sm',
           )}
         >
           {opt.label}

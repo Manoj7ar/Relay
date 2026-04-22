@@ -128,7 +128,7 @@ export function PrimaryMicButton() {
         )
       }
       className={cn(
-        '!min-h-[68px] text-lg',
+        'primary-mic text-lg',
         state.isListening &&
           'shadow-[0_0_0_4px_rgba(255,107,107,0.18)] transition-shadow',
       )}

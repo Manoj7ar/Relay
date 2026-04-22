@@ -149,8 +149,8 @@ export function HandoverNote({
         rows={compact ? 5 : 10}
         className={
           compact
-            ? 'w-full rounded-xl2 bg-white/70 p-2 text-xs font-mono text-text placeholder:text-muted focus:outline-none'
-            : 'w-full rounded-xl2 bg-white/70 p-3 text-sm font-mono text-text placeholder:text-muted focus:outline-none'
+            ? 'control-textarea p-2 text-xs font-mono'
+            : 'control-textarea p-3 text-sm font-mono'
         }
       />
       <div className="no-print flex flex-wrap justify-end gap-1.5">

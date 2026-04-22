@@ -36,7 +36,7 @@ export function LanguagePanel() {
           onChange={(e) =>
             dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: e.target.value })
           }
-          className="w-full rounded-full bg-white/70 px-3 py-2 text-sm focus:outline-none"
+          className="control-select"
         >
           {LANGS.map((l) => (
             <option key={l.code} value={l.code}>
@@ -53,7 +53,7 @@ export function LanguagePanel() {
           onChange={(e) =>
             dispatch({ type: 'SET_CAREGIVER_LANGUAGE', value: e.target.value })
           }
-          className="w-full rounded-full bg-white/70 px-3 py-2 text-sm focus:outline-none"
+          className="control-select"
         >
           {LANGS.map((l) => (
             <option key={l.code} value={l.code}>

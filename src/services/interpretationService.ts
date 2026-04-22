@@ -44,7 +44,7 @@ export interface InterpretationResult {
   /** E2B / E4B / 27B — populated by the real adapter. */
   sourceModel: string;
   sourceType: InterpretationSourceType;
-  /** For the routing log / ModelChip. */
+  /** For the routing log (tier codes E2B / E4B / 27B). */
   routingReason: string;
   latencyMs: number;
   visionUsed: boolean;

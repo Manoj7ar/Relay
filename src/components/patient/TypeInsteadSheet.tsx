@@ -1,27 +1,44 @@
-import { useState } from 'react';
-import { Keyboard, Send } from 'lucide-react';
-import { Modal, PillButton } from '@/components/primitives';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronUp, Keyboard, Send } from 'lucide-react';
+import { Card, PillButton } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { cn } from '@/lib/cn';
 
 /**
- * Manual text fallback for when SpeechRecognition is unsupported or the
- * user prefers to type. Always available beneath the mic button. Uses the
- * exact same `submit()` path as speech input so the
- * interpretation -> confirm -> TTS -> log loop behaves identically.
+ * Manual text fallback when SpeechRecognition is unsupported or the user
+ * prefers to type. Expands **inline** under the mic (no modal) so the rest
+ * of the home screen stays visible while composing.
  */
 export function TypeInsteadSheet() {
-  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const [expanded, setExpanded] = useState(false);
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { submit } = useSession();
   const { settings } = useSettings();
 
-  const close = () => {
-    setOpen(false);
+  const collapse = () => {
+    setExpanded(false);
     setValue('');
     setSubmitting(false);
   };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const t = window.setTimeout(() => textareaRef.current?.focus(), 50);
+    return () => window.clearTimeout(t);
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') collapse();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [expanded]);
 
   const handleSubmit = async () => {
     const trimmed = value.trim();
@@ -33,68 +50,101 @@ export function TypeInsteadSheet() {
         transcript: trimmed,
         language: settings.language.primaryLanguage,
       });
-      close();
+      collapse();
     } catch {
       setSubmitting(false);
     }
   };
 
   return (
-    <>
+    <div className="w-full max-w-[min(100%,22rem)] mx-auto">
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="mx-auto flex items-center gap-1.5 rounded-full bg-white/60 px-3 py-1 text-xs font-medium text-muted shadow-sm backdrop-blur-sm transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-        aria-label="Type a message instead of speaking"
+        id={`${panelId}-trigger`}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        onClick={() => setExpanded((v) => !v)}
+        className="control-ghost mx-auto flex w-full max-w-xs items-center justify-center gap-1.5 px-4 text-xs font-medium"
+        aria-label={
+          expanded
+            ? 'Hide typing area'
+            : 'Type a message instead of speaking'
+        }
       >
-        <Keyboard className="h-3.5 w-3.5" aria-hidden />
-        Type instead
+        {expanded ? (
+          <>
+            <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+            Hide typing
+          </>
+        ) : (
+          <>
+            <Keyboard className="h-3.5 w-3.5" aria-hidden />
+            Type instead
+          </>
+        )}
       </button>
 
-      <Modal
-        open={open}
-        onClose={close}
-        title="Type a message"
-        fullScreen={false}
-        className="px-4 pb-4"
-        labelledBy="type-instead-title"
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
       >
-        <div className="px-2">
-          <p className="mb-3 text-sm text-muted">
-            Works even when speech input is blocked or unsupported. Uses the
-            same interpretation pipeline as voice.
-          </p>
-          <textarea
-            autoFocus
-            rows={3}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="What would you like to say?"
-            className="w-full resize-none rounded-xl2 border border-black/10 bg-white/90 p-3 text-base text-text focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
-            aria-label="Your message"
-            onKeyDown={(e) => {
-              if (
-                (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) ||
-                (e.key === 'Enter' && !e.shiftKey)
-              ) {
+        <div className="min-h-0 overflow-hidden">
+          <Card
+            id={panelId}
+            role="region"
+            aria-labelledby={`${panelId}-trigger`}
+            variant="glass-strong"
+            padded={false}
+            className="mt-2 border border-white/50 p-2.5 shadow-sm"
+          >
+            <p className="mb-2 text-[11px] leading-snug text-muted">
+              Same interpretation path as voice. Press{' '}
+              <kbd className="rounded bg-black/5 px-1 font-mono text-[10px]">
+                Enter
+              </kbd>{' '}
+              to send,{' '}
+              <kbd className="rounded bg-black/5 px-1 font-mono text-[10px]">
+                Esc
+              </kbd>{' '}
+              to hide.
+            </p>
+            <textarea
+              ref={textareaRef}
+              rows={2}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="What would you like to say?"
+              className="control-textarea max-h-[min(28vh,200px)] resize-y p-2.5 text-[15px] leading-snug backdrop-blur-sm placeholder:text-muted/80"
+              aria-label="Your message"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  collapse();
+                  return;
+                }
+                if (e.key !== 'Enter') return;
+                // Shift+Enter = new line; Enter alone sends
+                if (e.shiftKey) return;
                 e.preventDefault();
                 void handleSubmit();
-              }
-            }}
-          />
-          <div className="mt-3 flex justify-end">
-            <PillButton
-              size="md"
-              variant="accent"
-              disabled={!value.trim() || submitting}
-              onClick={handleSubmit}
-              leftIcon={<Send className="h-4 w-4" aria-hidden />}
-            >
-              {submitting ? 'Sending…' : 'Send'}
-            </PillButton>
-          </div>
+              }}
+            />
+            <div className="mt-2 flex justify-end">
+              <PillButton
+                size="sm"
+                variant="accent"
+                disabled={!value.trim() || submitting}
+                onClick={handleSubmit}
+                leftIcon={<Send className="h-3.5 w-3.5" aria-hidden />}
+              >
+                {submitting ? 'Sending…' : 'Send'}
+              </PillButton>
+            </div>
+          </Card>
         </div>
-      </Modal>
-    </>
+      </div>
+    </div>
   );
 }

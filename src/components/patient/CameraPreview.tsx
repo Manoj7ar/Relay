@@ -95,7 +95,7 @@ export function CameraPreview({ active, onToggleOff, compact }: CameraPreviewPro
         <button
           type="button"
           onClick={onToggleOff}
-          className="ms-auto inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium"
+          className="ms-auto inline-flex min-h-[36px] items-center gap-1 rounded-full bg-black/5 px-3 py-1 text-[10px] font-medium transition-[background-color,transform] duration-200 ease-smooth hover:bg-black/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
         >
           <CircleOff className="h-3 w-3" aria-hidden /> Turn off
         </button>
@@ -140,7 +140,7 @@ export function CameraPreview({ active, onToggleOff, compact }: CameraPreviewPro
         type="button"
         onClick={handleCapture}
         disabled={!camera.active}
-        className="flex items-center gap-1 rounded-full bg-[var(--accent)] px-2.5 py-1 text-[10px] font-semibold text-white disabled:opacity-60"
+        className="flex min-h-[36px] items-center gap-1 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-200 ease-smooth hover:bg-[var(--accent-strong)] hover:shadow-md active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100"
         aria-label="Capture context frame"
       >
         <Aperture className="h-3.5 w-3.5" aria-hidden />

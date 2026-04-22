@@ -94,7 +94,7 @@ export function IntegrationsPanel() {
               })
             }
             placeholder="st-xxxxxxxx"
-            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
+            className="control-input text-sm"
           />
         </label>
         <label className="block text-xs">
@@ -108,7 +108,7 @@ export function IntegrationsPanel() {
                 value: e.target.value,
               })
             }
-            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
+            className="control-input text-sm"
           />
         </label>
         <div className="flex flex-col gap-1">
@@ -134,7 +134,7 @@ export function IntegrationsPanel() {
             value={proxyUrl}
             onChange={(e) => updateProxyUrl(e.target.value)}
             placeholder="https://your-proxy.example/emergency"
-            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
+            className="control-input text-sm"
           />
           <span className="mt-1 block text-[10px] leading-snug text-muted">
             Small HTTPS endpoint that forwards to Twilio Voice / SMS. Leave
@@ -150,7 +150,7 @@ export function IntegrationsPanel() {
               dispatch({ type: 'SET_CAREGIVER_PHONE', value: e.target.value })
             }
             placeholder="+1 555 555 5555"
-            className="w-full rounded-full bg-white/70 px-3 py-2 text-sm placeholder:text-muted focus:outline-none"
+            className="control-input text-sm"
           />
         </label>
         <div className="flex flex-col gap-1">

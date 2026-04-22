@@ -23,12 +23,13 @@ const sizeMap: Record<Size, string> = {
 
 const variantMap: Record<Variant, string> = {
   accent:
-    'bg-[var(--accent)] text-white border border-black/10 shadow-glass hover:bg-[var(--accent-strong)]',
+    'bg-[var(--accent)] text-white border border-black/10 shadow-sm hover:bg-[var(--accent-strong)] hover:shadow-md',
   glass:
-    'glass text-text hover:bg-white/70 transition-colors',
+    'glass text-text hover:bg-white/70 hover:shadow-sm',
   danger:
-    'bg-[var(--danger)] text-white border border-black/10 shadow-glass hover:brightness-110',
-  ghost: 'bg-transparent text-text hover:bg-black/5',
+    'bg-[var(--danger)] text-white border border-black/10 shadow-sm hover:brightness-110 hover:shadow-md',
+  ghost:
+    'bg-transparent text-text hover:bg-black/5 hover:shadow-sm',
 };
 
 export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
@@ -50,7 +51,9 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
         ref={ref}
         className={cn(
           'inline-flex items-center justify-center gap-3 rounded-full font-semibold',
-          'transition-transform active:scale-[0.98] select-none',
+          'select-none transition-[color,background-color,border-color,box-shadow,transform,filter] duration-200 ease-smooth',
+          'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
+          'disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none disabled:active:scale-100',
           sizeMap[size],
           variantMap[variant],
           fullWidth && 'w-full',
