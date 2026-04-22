@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { PillButton } from '@/components/primitives';
+import { IconButton, PillButton } from '@/components/primitives';
 import { cn } from '@/lib/cn';
 import { useHaptics } from '@/hooks/useHaptics';
 
@@ -85,27 +85,30 @@ export function OnboardingShell({
             </button>
           </div>
         ) : null}
-        <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            'flex w-full items-center',
+            onBack ? 'gap-2' : 'justify-center',
+          )}
+        >
           {onBack ? (
-            <PillButton
+            <IconButton
+              type="button"
               variant="glass"
               size="md"
+              label="Back"
+              icon={<ArrowLeft className="h-5 w-5" aria-hidden />}
               onClick={() => {
                 haptics('tap');
                 onBack();
               }}
-              leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden />}
-              className="min-w-[5.5rem]"
-            >
-              Back
-            </PillButton>
-          ) : (
-            <div className="min-w-[5.5rem]" aria-hidden />
-          )}
+              className="shrink-0"
+            />
+          ) : null}
           <PillButton
             variant="accent"
             size="md"
-            fullWidth
+            fullWidth={!onBack}
             disabled={continueDisabled}
             onClick={() => {
               haptics('tap');
@@ -118,6 +121,7 @@ export function OnboardingShell({
                 <ArrowRight className="h-4 w-4" aria-hidden />
               )
             }
+            className={onBack ? 'min-w-0 flex-1' : undefined}
           >
             {continueLabel ?? (isFinalStep ? 'Finish' : 'Continue')}
           </PillButton>
