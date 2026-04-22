@@ -2,7 +2,26 @@
 
 **Relay** is a mobile-first PWA for people whose speech is hard to understand — including ALS, stroke-related aphasia, dysarthria, and Parkinson's. It turns fragmented or unclear speech into a clear phrase the user can confirm, speak back via browser TTS, and optionally capture multimodal context from the camera.
 
-This repository ships a **real browser-capability foundation** — permissions, microphone capture, speech-to-text, text-to-speech, and camera preview all run on real browser APIs — with a **single swap point** (`GemmaInterpreterAdapter`) that takes the app from "input pipeline wired" to "Gemma 4 answering" without any UI rewrite. No scripted scenarios, no fake answers, no demo mode.
+This repository ships a **real browser-capability foundation** (mic, Web Speech STT where supported, `speechSynthesis` TTS, camera preview + frame capture, permissions) and a **real local interpretation path** via **Ollama** at `http://localhost:11434` (`GemmaInterpreterAdapter`). If Ollama is down or models are missing, the app raises `GemmaNotConnectedError` and shows that in the UI — it does not fabricate model output. No scripted scenarios, no demo mode, no fake answer dictionary.
+
+---
+
+## Implementation status (canonical — use this wording everywhere)
+
+| Area | Status | Notes |
+|------|--------|--------|
+| Mic + RMS level | **Real** | `audioCaptureService`, `useMicrophone` |
+| Speech-to-text | **Real** (browser Web Speech API) | Unsupported browsers → Type-instead sheet; browser caveats in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Text-to-speech | **Real** | `speechSynthesis` with language-matched voice |
+| Camera preview + frame | **Real** | Frame passed as `imageDataUrl` into `interpret()` |
+| Permissions UX | **Real** | Query + prompt + denied recovery |
+| Routing policy | **Real** | `chooseModel` only — no LLM inside the router |
+| Gemma / interpretation | **Real when Ollama is up** | `GemmaInterpreterAdapter` → `POST /api/generate`, streaming + JSON parse + client `urgencyGuard`; **fails honestly** if Ollama unreachable |
+| Emergency dispatch | **Real when configured** | `POST` to `relay.emergency.proxyUrl` + caregiver phone; otherwise `EmergencyNotConnectedError` |
+| Twilio test SMS | **Stub** | `twilio.ts` throws until wired |
+| SmartThings | **Stub** | `smartthings.ts` throws until wired |
+
+Same table is reflected in [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md). If any other markdown (e.g. a local write-up) disagrees with this, treat **this README + `docs/`** as authoritative.
 
 ---
 
@@ -12,22 +31,14 @@ When words do not come out reliably, communication fatigue is real. Relay is des
 
 ---
 
-## What's wired today
+## Key source files (quick map)
 
-| Capability | Status | Where |
-|------------|--------|-------|
-| Microphone permission + capture | Real | `src/services/audioCaptureService.ts`, `src/hooks/useMicrophone.ts` |
-| Speech-to-text (interim + final) | Real (browser-native) | `src/services/speechRecognitionService.ts`, `src/hooks/useSpeechRecognition.ts` |
-| Text-to-speech (replay, cancel, language-matched voice) | Real | `src/services/speechSynthesisService.ts`, `src/hooks/useSpeechSynthesis.ts` |
-| Camera permission + preview + frame capture | Real | `src/services/cameraService.ts`, `src/hooks/useCamera.ts` |
-| Permissions query + prompt + denied-recovery copy | Real | `src/services/permissionsService.ts`, `src/hooks/usePermissions.ts` |
-| Routing policy (`chooseModel`) | Real | `src/services/modelRouter.ts` |
-| Gemma 4 interpretation | **Stub** (throws until wired) | `src/services/interpretation/GemmaInterpreterAdapter.ts` |
-| Emergency dispatch (Twilio) | **Stub** (throws until wired) | `src/services/emergency.ts` |
-| Twilio SMS | **Stub** (throws until wired) | `src/services/twilio.ts` |
-| SmartThings smart-home | **Stub** (throws until wired) | `src/services/smartthings.ts` |
-
-The app surfaces stub errors honestly: tap the mic, speak, and you'll see a real transcript → a real "Gemma not connected" status — not a fake answer.
+| Capability | Where |
+|------------|-------|
+| Mic / STT / TTS / camera / permissions | `src/services/*Service.ts`, `src/hooks/use*.ts` |
+| Interpretation + Ollama | `src/services/interpretation/GemmaInterpreterAdapter.ts`, `src/services/interpretationService.ts` |
+| Model names (Settings → Models) | `localStorage` keys `relay.model.*`; see `ModelConfigPanel.tsx` |
+| Emergency proxy | `src/services/emergency.ts` + Settings → Integrations → Emergency proxy URL |
 
 ---
 
@@ -36,8 +47,8 @@ The app surfaces stub errors honestly: tap the mic, speak, and you'll see a real
 | Route | What it does |
 |-------|--------------|
 | `/` (Home) | Real mic, live transcript, quick phrases, symbol board, camera toggle, typed fallback sheet, TTS replay |
-| `/caregiver` | History + routing log (populated once interpretation is wired) |
-| `/settings` | Accessibility, Integrations (real config fields), Language, Connectivity, Routing log, **Developer** (capability status dashboard) |
+| `/caregiver` | History + routing log (entries appear after successful Ollama interpretations) |
+| `/settings` | Accessibility, **Models** (Ollama model names + connection test), Integrations (proxy URL, caregiver phone, SmartThings fields), Language, Connectivity, Routing log, **Developer** |
 | `/about` | Architecture overview + Gemma wiring notes |
 
 ---
@@ -50,24 +61,21 @@ UI (React)
   → hooks: usePermissions, useMicrophone, useSpeechRecognition, useSpeechSynthesis, useCamera
   → services: permissions, audioCapture, speechRecognition, speechSynthesis, camera
   → single entry: interpretationService.interpret(input)
-      → GemmaInterpreterAdapter   ← implement this to light everything up
+      → GemmaInterpreterAdapter   ← Ollama client (edit for prompts / base URL)
 ```
 
-Every user input (mic+STT, typed, quick phrases, symbols, camera frame) is funneled into one `interpret(input)` call. Implement the adapter body and the entire app starts producing real responses.
+Every user input (mic+STT, typed, quick phrases, symbols, camera frame) is funneled into one `interpret(input)` call → `GemmaInterpreterAdapter` → local Ollama. Customize prompt, timeouts, or endpoint in that adapter file if you need a non-default setup.
 
-**Details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · **Gemma wiring plan:** [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)
+**Details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · **Gemma + integrations:** [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)
 
 ---
 
-## Plugging Gemma 4 in
+## Running Gemma locally (Ollama)
 
-1. Open `src/services/interpretation/GemmaInterpreterAdapter.ts`.
-2. Replace the `throw new GemmaNotConnectedError()` body with:
-   - Build an `InferenceRequest` from `InterpretationInput`.
-   - Call `chooseModel(req)` from `src/services/modelRouter.ts` (or swap in your own router).
-   - POST to your local Ollama (or hosted) Gemma 4 endpoint.
-   - Return an `InterpretationResult` (primaryText, alternates, confidence, urgency, mood, detectedLanguage, sourceModel, routingReason, latencyMs, …).
-3. That's it. Every input surface — mic, typed, quick phrases, symbols, camera-attached frame — now produces real answers. The routing log + ModelChip populate automatically.
+1. Install [Ollama](https://ollama.com) and run `ollama serve` (default `http://localhost:11434`).
+2. Pull the tags you configured under **Settings → Models** (defaults: `gemma4:e2b`, `gemma4:e4b`, `gemma4:27b` — adjust to whatever you actually have installed).
+3. Open the app from a context that can reach that host (same machine, or LAN with CORS/network access as your browser allows).
+4. If Ollama is unreachable, the UI shows the `GemmaNotConnectedError` message — not a fake transcript of model output.
 
 ---
 
@@ -89,33 +97,32 @@ npm run preview
 
 ---
 
-## Integrations (real config, stub bodies)
+## Integrations
 
-| Topic | File |
-|-------|------|
-| Gemma adapter swap | [src/services/interpretation/GemmaInterpreterAdapter.ts](src/services/interpretation/GemmaInterpreterAdapter.ts) |
-| Routing policy | [src/services/modelRouter.ts](src/services/modelRouter.ts) |
-| SmartThings | [src/services/smartthings.ts](src/services/smartthings.ts) |
-| Twilio | [src/services/twilio.ts](src/services/twilio.ts) |
-| Emergency dispatch | [src/services/emergency.ts](src/services/emergency.ts) |
+| Topic | File | Today |
+|-------|------|--------|
+| Ollama / Gemma | [GemmaInterpreterAdapter.ts](src/services/interpretation/GemmaInterpreterAdapter.ts) | Local HTTP; prompts leave the browser to `localhost:11434` |
+| Routing policy | [modelRouter.ts](src/services/modelRouter.ts) | Pure `chooseModel` — no network |
+| Emergency | [emergency.ts](src/services/emergency.ts) | `POST` to user-set proxy URL when configured |
+| Twilio test SMS | [twilio.ts](src/services/twilio.ts) | Stub — throws `TwilioNotConnectedError` |
+| SmartThings | [smartthings.ts](src/services/smartthings.ts) | Stub — throws `SmartThingsNotConnectedError` |
 
-The Settings → Integrations panel stores real API keys / phone numbers in `localStorage`; wiring the services above makes the test buttons actually work.
+Settings persists integration fields in `localStorage`. Only enable a proxy URL you trust; it receives emergency payloads from the PWA.
 
 ---
 
 ## Roadmap
 
-- Implement `GemmaInterpreterAdapter` against a local Ollama endpoint (E2B / E4B / 26B / 31B).
-- Wire Twilio Voice/SMS proxy for emergency + caregiver pings.
-- Wire SmartThings OAuth + scene runner.
-- Add a learned router (Cactus-style) behind `chooseModel`.
-- Add on-device voice banking / personalization (once TTS target model is picked).
+- Wire `twilio.ts` test SMS against a real server proxy (secrets off-device).
+- Wire SmartThings OAuth + scene runner via proxy.
+- Optional learned router (Cactus-style) behind `chooseModel`.
+- Voice banking / personalization (future; not in this repo).
 
 ---
 
 ## Ethics & privacy
 
-Relay is built for dignity and clarity: nothing leaves the device until a service is explicitly wired. Voice banking and health-adjacent data deserve explicit consent and clear retention policies in production.
+Browser audio, STT, and TTS run on-device in the browser. Interpretation text is sent to **your** Ollama instance (default: same machine). Emergency flow POSTs to **your** configured HTTPS proxy only when you set it. Twilio/SmartThings remain explicit stubs until you add backends. Health-adjacent deployments need consent, retention policy, and security review beyond this hackathon codebase.
 
 ---
 
@@ -131,4 +138,7 @@ Relay is built for dignity and clarity: nothing leaves the device until a servic
 |----------|---------|
 | [docs/README.md](docs/README.md) | Doc index |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers and data flow |
-| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma wiring plan + integration seams |
+| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Ollama/Gemma behavior + integration seams (aligned with README “canonical” table) |
+| [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md) | Deeper technical narrative (if present in your clone) |
+| [SUBMISSION_SUMMARY.md](SUBMISSION_SUMMARY.md) | Short form blurb for hackathon portals |
+| [DELIVER.md](DELIVER.md) | Delivery checklist + file tree |

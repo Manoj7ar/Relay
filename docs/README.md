@@ -5,4 +5,4 @@
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | UI, hooks, contexts, services, capability layer |
 | [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) | Gemma 4 wiring plan, integration stubs |
 
-See the repository [README.md](../README.md) for setup and a summary of what's wired vs. stubbed.
+See the repository [README.md](../README.md) for setup and the **canonical “Implementation status”** table (same story as [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) and [ARCHITECTURE.md](./ARCHITECTURE.md)).

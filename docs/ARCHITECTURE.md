@@ -6,7 +6,7 @@ Relay is a mobile-first PWA with a clean separation between:
 2. **Thin routing policy** — `chooseModel(req)` picks E2B / E4B / 27B.
 3. **Single interpretation entry point** — `interpret(input)` delegated to one adapter.
 
-There is no demo mode, no scripted scenarios, no fake answer dictionary. Everything that looks like AI output is produced by the adapter; the adapter is the one file you implement.
+There is no demo mode, no scripted scenarios, no fake answer dictionary. Model output is produced only by **`GemmaInterpreterAdapter`** calling **Ollama** when `http://localhost:11434` is reachable; otherwise the UI shows **`GemmaNotConnectedError`**.
 
 ## Layer diagram
 
@@ -45,10 +45,10 @@ flowchart TB
   subgraph routing [Routing policy]
     Router[modelRouter.chooseModel]
   end
-  subgraph integrations [Integration stubs]
-    Emergency[emergency]
-    ST[smartthings]
-    Twilio[twilio]
+  subgraph integrations [Integrations]
+    Emergency[emergency optional proxy]
+    ST[smartthings stub]
+    Twilio[twilio stub]
   end
 
   Pages --> Session
@@ -95,12 +95,10 @@ All browser API access lives inside these services; UI consumes typed state only
 
 ## Interpretation layer (`src/services/interpretationService.ts`)
 
-Single entry point: `interpret(input)`. Internally it calls exactly one adapter — `GemmaInterpreterAdapter` — whose body is the one thing you implement.
-
-The returned `InterpretationResult` shape is aligned to Gemma's eventual output:
+Single entry point: `interpret(input)`. It calls **`GemmaInterpreterAdapter`**, which performs streaming **`POST /api/generate`** to local Ollama and maps JSON into `InterpretationResult`:
 `primaryText`, `alternates`, `confidence`, `urgency`, `detectedLanguage`, `mood`, `sourceModel`, `sourceType`, `routingReason`, `latencyMs`, `visionUsed`, `sourceFragment`.
 
-Until wired, `GemmaInterpreterAdapter.interpret` throws `GemmaNotConnectedError`; `SessionContext` surfaces that as `state.lastError` and the `TranscriptionCard` renders a dismissible notice. No fake answers ever reach the UI.
+If Ollama is down or returns an error, `interpret` throws **`GemmaNotConnectedError`**; `SessionContext` sets `state.lastError` and `TranscriptionCard` shows a dismissible notice. No fabricated model text is injected on failure.
 
 ## Routing policy (`src/services/modelRouter.ts`)
 
@@ -118,13 +116,11 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 | `speechSynthesisService` | `window.speechSynthesis` |
 | `cameraService` | `getUserMedia({ video })`, `<video>` + `<canvas>` for frame capture |
 
-## Integration stubs (`src/services`)
+## Integrations (`src/services`)
 
-Typed boundaries that currently throw `*NotConnectedError` so the UI shows an honest "not configured" state:
-
-- `emergency.ts` — Twilio Voice/SMS emergency dispatch.
-- `twilio.ts` — Test SMS from Settings → Integrations.
-- `smartthings.ts` — Smart-home scene runner.
+- **`emergency.ts`** — When `relay.emergency.proxyUrl` and caregiver phone are set, posts to your HTTPS proxy; otherwise throws `EmergencyNotConnectedError`.
+- **`twilio.ts`** — Test SMS path still **stubbed** (`TwilioNotConnectedError`).
+- **`smartthings.ts`** — **Stubbed** (`SmartThingsNotConnectedError`).
 
 ## Persistence
 
@@ -146,8 +142,8 @@ Typed boundaries that currently throw `*NotConnectedError` so the UI shows an ho
 | Text-to-speech | Real `speechSynthesis` | — |
 | Camera preview + frame capture | Real `getUserMedia({ video })`; frame stored on session | Fed into `interpret()` as `imageDataUrl` |
 | Routing decision | Real `chooseModel` | Swap to Cactus if desired |
-| Interpretation | Stub — throws `GemmaNotConnectedError` | `GemmaInterpreterAdapter.interpret` |
-| Emergency escalation | In-app countdown + stub service | `services/emergency.ts` |
+| Interpretation | **Ollama** via `GemmaInterpreterAdapter`; **error** if unreachable | `GemmaInterpreterAdapter.ts` |
+| Emergency escalation | In-app countdown + **POST to configured proxy** when set | `services/emergency.ts` |
 | Twilio SMS | Stub | `services/twilio.ts` |
 | SmartThings | Stub | `services/smartthings.ts` |
 

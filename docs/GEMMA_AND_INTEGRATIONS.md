@@ -1,33 +1,52 @@
 # Gemma 4 and integrations — wiring plan
 
-This file is the single source of truth for what's wired, what's stubbed, and exactly how to go live with Gemma 4.
+This document matches the **canonical implementation-status table** in the repository [README.md](../README.md). If any other write-up disagrees, **README + this file + [ARCHITECTURE.md](./ARCHITECTURE.md)** win.
 
-## What is real today (browser capability layer)
+---
+
+## What is real today
+
+### Browser capability layer (no Ollama required)
 
 | Capability | How it works |
 |------------|--------------|
-| **Microphone** | `audioCaptureService` — `getUserMedia({ audio })` + `AnalyserNode` RMS level meter for the listening pulse. |
-| **Speech-to-text** | `speechRecognitionService` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Detects unsupported browsers and falls back to the **Type instead** sheet. |
-| **Text-to-speech** | `speechSynthesisService` — `window.speechSynthesis` with async voice loading and best-match language selection. |
+| **Microphone** | `audioCaptureService` — `getUserMedia({ audio })` + `AnalyserNode` RMS level. |
+| **Speech-to-text** | `speechRecognitionService` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Unsupported browsers → **Type instead** sheet. |
+| **Text-to-speech** | `speechSynthesisService` — `window.speechSynthesis` with language-matched voice selection. |
 | **Camera** | `cameraService` — `getUserMedia({ video })` preview + frame capture into `SessionContext.pendingImage` as a data URL. |
-| **Permissions** | `permissionsService` — `navigator.permissions` query + `getUserMedia` request + graceful `unavailable` fallback. |
+| **Permissions** | `permissionsService` — `navigator.permissions` + `getUserMedia` with clear denied / unavailable handling. |
 
-Everything above runs end-to-end without Gemma. Tap the mic, speak, watch the interim transcript stream, and see an honest "Gemma not connected" notice instead of a fabricated answer.
+You can verify mic → interim transcript → typed fallback without running Ollama. Full “clear phrase + TTS readback + routing log line” requires Ollama (below).
 
-## What is still stubbed (awaiting implementation)
+### Interpretation (requires local Ollama)
+
+| Capability | File | Behavior |
+|------------|------|----------|
+| **Gemma via Ollama** | `src/services/interpretation/GemmaInterpreterAdapter.ts` | `POST http://localhost:11434/api/generate` with `stream: true`, optional `images[]` from camera, JSON response mapping to `InterpretationResult`, client-side `applyUrgencyGuard`. On failure / non-OK / network error → **`GemmaNotConnectedError`** (honest; no fake text). |
+| **Model tag names** | Settings → **Models** | `localStorage` keys `relay.model.fast`, `relay.model.finetuned`, `relay.model.quality` (defaults `gemma4:e2b`, `gemma4:e4b`, `gemma4:27b`). |
+
+### Emergency (optional proxy)
+
+| Capability | File | Behavior |
+|------------|------|----------|
+| **Emergency dispatch** | `src/services/emergency.ts` | When `relay.emergency.proxyUrl` and caregiver phone are set, `POST`s JSON to your proxy. Otherwise **`EmergencyNotConnectedError`**. |
+
+---
+
+## What is still stubbed
 
 | Capability | File | Current behavior |
 |------------|------|------------------|
-| **Gemma 4 interpretation** | `src/services/interpretation/GemmaInterpreterAdapter.ts` | Throws `GemmaNotConnectedError`. |
-| **Twilio emergency** | `src/services/emergency.ts` | Throws `EmergencyNotConnectedError`. UI surfaces the message in the banner. |
-| **Twilio SMS** | `src/services/twilio.ts` | Throws `TwilioNotConnectedError`. Settings test button surfaces the message. |
-| **SmartThings** | `src/services/smartthings.ts` | Throws `SmartThingsNotConnectedError`. Settings test button surfaces the message. |
+| **Twilio test SMS** | `src/services/twilio.ts` | Throws `TwilioNotConnectedError`. |
+| **SmartThings** | `src/services/smartthings.ts` | Throws `SmartThingsNotConnectedError`. |
 
-None of these return fake successes. That way the UI is honest about what's real vs. what needs to be connected.
+No stub returns a fake “success” — the UI shows the error string from these throws.
+
+---
 
 ## The single interpretation entry point
 
-Every input surface (mic → STT, typed, quick phrases, symbols, camera-attached frame) calls the same function:
+Every input surface (mic → STT, typed, quick phrases, symbols, camera-attached frame) calls:
 
 ```ts
 import { interpret } from '@/services/interpretationService';
@@ -36,78 +55,74 @@ const result = await interpret({
   sourceType: 'speech' | 'text' | 'symbols',
   transcript?: string,
   symbols?: string[],
-  imageDataUrl?: string,      // optional multimodal context
+  imageDataUrl?: string,
   language?: string,
   urgencyHint?: 'LOW' | 'NORMAL' | 'HIGH',
+  onStreamChunk?: (partialPrimaryText: string) => void,
 });
 ```
 
-`interpret` delegates to the single adapter (`GemmaInterpreterAdapter`). Implementing that adapter's body is what takes the app from "wired plumbing" to "real Gemma answers."
+`interpret` delegates to **`GemmaInterpreterAdapter`** only. There is no parallel “mock inference” path in the app.
+
+---
 
 ## Model tiers (routing narrative)
 
-Relay labels three Gemma-family slots for product narrative and routing:
-
 | Id | Role | Typical use |
 |----|------|-------------|
-| **E2B** | Fast / real-time | Short utterances, low-latency path |
-| **E4B** | Personalized | Symbol and phrase expansion after user-specific tuning |
-| **26B / 31B (or 27B)** | Reasoning / multimodal | Vision+audio, high-urgency, longer reasoning |
+| **E2B** | Fast / real-time | Short speech, typed shortcuts |
+| **E4B** | Fine-tuned slot | Symbol board expansion |
+| **27B** | Reasoning / multimodal | Camera + speech, HIGH `urgencyHint` |
 
-`chooseModel(req)` in `src/services/modelRouter.ts` returns `{ model, reason }` as a pure function of input shape (text vs speech vs symbols, visionOn, urgencyHint). Swap it for a Cactus-style learned router without touching UI.
+`chooseModel(req)` in `src/services/modelRouter.ts` returns `{ model, reason }` from input shape only. Swap for a learned router (e.g. Cactus) without UI changes.
 
-## Plugging Gemma in (step-by-step)
+---
 
-Open `src/services/interpretation/GemmaInterpreterAdapter.ts` and replace the stub body:
+## Customizing Ollama integration
 
-1. **Build the request.** Convert `InterpretationInput` → your model request payload (include `imageDataUrl` for multimodal).
-2. **Pick a tier.** Call `chooseModel(req)` from `../modelRouter` (or swap in Cactus).
-3. **Call Gemma 4.** POST to your local Ollama (`POST /api/generate` or the OpenAI-compatible `POST /v1/chat/completions`) or your hosted gateway. Respect `input.language` and the user's `primaryLanguage`.
-4. **Map the response.** Return an `InterpretationResult`:
-   ```ts
-   {
-     id, ts,
-     primaryText,
-     alternates: [...],
-     confidence,
-     urgency,                // 'LOW' | 'NORMAL' | 'HIGH'
-     mood,
-     detectedLanguage,
-     translation?,           // optional bilingual line
-     sourceModel: 'E2B' | 'E4B' | '27B',
-     sourceType,
-     routingReason,          // shown in the routing log
-     latencyMs,
-     visionUsed,
-     sourceFragment,
-   }
-   ```
-5. **Done.** The routing log, ModelChip, history, TTS playback, alternates, and emergency banner all fire from this single return value.
+The adapter already:
 
-## Emergency + integrations wiring
+1. Builds a structured prompt from `InterpretationInput` (including symbol list and vision context).
+2. Calls `chooseModel` for tier + routing reason.
+3. Resolves the Ollama model name from `localStorage` per tier.
+4. Streams NDJSON, extracts progressive `primaryText` for UI, parses final JSON, applies `applyUrgencyGuard`.
 
-The UI already calls these — they just throw today:
+To change behavior, edit **`GemmaInterpreterAdapter.ts`** (prompt, timeout, base URL, or switch to `/v1/chat/completions`). Keep throwing **`GemmaNotConnectedError`** when the backend is unreachable — do not silently invent answers.
+
+---
+
+## Emergency + other integrations
+
+**Emergency (live when configured):**
 
 ```ts
-await triggerEmergency({ message, caregiverPhone, ts });  // src/services/emergency.ts
-await sendTestSms(phone);                                 // src/services/twilio.ts
-await testConnection(apiKey);                             // src/services/smartthings.ts
-await runScene(scene);                                    // src/services/smartthings.ts
+await triggerEmergency({ message, caregiverPhone, ts });
 ```
 
-Implement these against a tiny server proxy (keep secrets out of the PWA bundle) and the existing UI (EmergencyBanner countdown, Integrations test buttons) starts working untouched.
+**Still stubs (implement behind a server you control):**
+
+```ts
+await sendTestSms(phone);
+await testConnection(apiKey);
+await runScene(scene);
+```
+
+Keep Twilio credentials and SmartThings tokens out of the PWA bundle; use small HTTPS proxies.
+
+---
 
 ## Offline vs cloud
 
-- **Offline (today):** The service worker precaches the app shell.
-- **Target architecture:** Run Gemma via **Ollama** on the same LAN or on-device; `GemmaInterpreterAdapter` becomes the local HTTP client. Pair with a hosted fallback only when needed.
+- **PWA shell:** Workbox precaches the app; the UI loads offline.
+- **Interpretation:** Requires a reachable Ollama (typically same host or LAN). No offline LLM is bundled in this repo.
+
+---
 
 ## Remaining work before full production
 
-- Implement `GemmaInterpreterAdapter` against Ollama.
-- Wire Twilio + SmartThings via server proxies.
-- STT language picker UI (language currently comes from Settings).
-- Background-noise mitigation / VAD for mobile STT.
-- Streaming tokens from Ollama into `StreamingText` instead of post-result reveal.
+- Wire **Twilio** test SMS + any server-side voice path you need.
+- Wire **SmartThings** OAuth + REST via proxy.
+- STT language picker / noise handling improvements.
+- Security, consent, and retention policies for any hosted proxy.
 
-For architecture layers, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For layer diagrams, see [ARCHITECTURE.md](./ARCHITECTURE.md).
