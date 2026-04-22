@@ -4,10 +4,12 @@ import { IntegrationsPanel } from '@/components/settings/IntegrationsPanel';
 import { LanguagePanel } from '@/components/settings/LanguagePanel';
 import { ModelConfigPanel } from '@/components/settings/ModelConfigPanel';
 import { OfflineStatusPanel } from '@/components/settings/OfflineStatusPanel';
+import { ProfilePanel } from '@/components/settings/ProfilePanel';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { DeveloperPanel } from '@/components/settings/DeveloperPanel';
 
 type SettingsSection =
+  | 'profile'
   | 'a11y'
   | 'models'
   | 'integrations'
@@ -17,6 +19,7 @@ type SettingsSection =
   | 'developer';
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
+  { id: 'profile', label: 'Profile' },
   { id: 'a11y', label: 'Accessibility' },
   { id: 'models', label: 'Models' },
   { id: 'integrations', label: 'Integrations' },
@@ -27,7 +30,7 @@ const SECTIONS: { id: SettingsSection; label: string }[] = [
 ];
 
 export function SettingsPage() {
-  const [section, setSection] = useState<SettingsSection>('a11y');
+  const [section, setSection] = useState<SettingsSection>('profile');
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-2">
@@ -50,6 +53,7 @@ export function SettingsPage() {
       </header>
 
       <div className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {section === 'profile' && <ProfilePanel />}
         {section === 'a11y' && <AccessibilityPanel />}
         {section === 'models' && <ModelConfigPanel />}
         {section === 'integrations' && <IntegrationsPanel />}

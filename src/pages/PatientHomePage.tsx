@@ -16,7 +16,9 @@ export function PatientHomePage() {
       <div className="shrink-0">
         <TopStatusBar />
       </div>
-      <TranscriptionCard />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <TranscriptionCard />
+      </div>
       <EmergencyBanner />
       <div className="shrink-0">
         <QuickPhrases />

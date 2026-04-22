@@ -1,5 +1,6 @@
-import { PillButton } from '@/components/primitives';
+import { useId, useState } from 'react';
 import { useSession } from '@/contexts/SessionContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { hourOfDay } from '@/lib/time';
 
 interface Phrase {
@@ -43,31 +44,70 @@ function phrasesFor(hour: number): Phrase[] {
   return EVENING;
 }
 
+const PERSONAL_PREFIX = 'personal:';
+
 export function QuickPhrases() {
+  const selectId = useId();
+  const [value, setValue] = useState('');
   const { submit, state } = useSession();
+  const { settings } = useSettings();
   const phrases = phrasesFor(hourOfDay());
+  const personal = settings.profile.personalPhrases.filter((p) => p.trim());
+
+  const labelFor = (raw: string) => (raw.length > 32 ? raw.slice(0, 30) + '…' : raw);
 
   return (
-    <section aria-label="Quick phrases">
-      <h3 className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
-        Quick phrases
-      </h3>
-      <div className="grid grid-cols-2 gap-1.5">
-        {phrases.map((p) => (
-          <PillButton
-            key={p.id}
-            size="sm"
-            variant="glass"
-            className="!min-h-11 text-sm font-medium"
-            disabled={state.isProcessing}
-            onClick={() =>
-              submit({ inputType: 'text', transcript: p.text })
+    <section aria-label="Quick phrases" className="shrink-0">
+      <label
+        htmlFor={selectId}
+        className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted"
+      >
+        Quick phrase
+      </label>
+      <select
+        id={selectId}
+        className="control-select"
+        value={value}
+        disabled={state.isProcessing}
+        aria-busy={state.isProcessing}
+        onChange={(e) => {
+          const id = e.target.value;
+          setValue('');
+          if (!id || state.isProcessing) return;
+
+          if (id.startsWith(PERSONAL_PREFIX)) {
+            const idx = Number(id.slice(PERSONAL_PREFIX.length));
+            const text = personal[idx];
+            if (text) {
+              void submit({ inputType: 'text', transcript: text });
             }
-          >
-            {p.label}
-          </PillButton>
-        ))}
-      </div>
+            return;
+          }
+
+          const phrase = phrases.find((p) => p.id === id);
+          if (phrase) {
+            void submit({ inputType: 'text', transcript: phrase.text });
+          }
+        }}
+      >
+        <option value="">Choose a phrase…</option>
+        {personal.length > 0 ? (
+          <optgroup label="Your phrases">
+            {personal.map((p, i) => (
+              <option key={`${PERSONAL_PREFIX}${i}`} value={`${PERSONAL_PREFIX}${i}`}>
+                {labelFor(p)}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
+        <optgroup label="Suggested">
+          {phrases.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </optgroup>
+      </select>
     </section>
   );
 }

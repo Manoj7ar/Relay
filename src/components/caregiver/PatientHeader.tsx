@@ -3,6 +3,7 @@ import { Card } from '@/components/primitives';
 import { formatRelative } from '@/lib/time';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/contexts/SessionContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { ConfidenceTrend } from './ConfidenceTrend';
 import type { InteractionRecord } from '@/types/session';
 
@@ -31,14 +32,18 @@ interface PatientHeaderProps {
   compact?: boolean;
 }
 
-export function PatientHeader({
-  name = 'Maya Singh',
-  compact,
-}: PatientHeaderProps) {
+export function PatientHeader({ name, compact }: PatientHeaderProps) {
   const online = useOnlineStatus();
   const { state } = useSession();
+  const { settings } = useSettings();
   const last = state.history[0]?.ts;
   const sessionDuration = useSessionDuration(state.history);
+
+  const resolvedName =
+    name ??
+    (settings.profile.fullName.trim() ||
+      settings.profile.displayName.trim() ||
+      'Patient');
 
   return (
     <Card
@@ -55,11 +60,12 @@ export function PatientHeader({
             : 'flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-xl font-semibold text-white'
         }
       >
-        {name
+        {resolvedName
           .split(' ')
-          .map((n) => n[0])
+          .filter(Boolean)
+          .map((n) => n[0]?.toUpperCase() ?? '')
           .join('')
-          .slice(0, 2)}
+          .slice(0, 2) || '•'}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -70,7 +76,7 @@ export function PatientHeader({
                 : 'text-lg font-semibold tracking-tight'
             }
           >
-            {name}
+            {resolvedName}
           </p>
           <span className="text-[11px] font-medium text-muted">
             {sessionDuration}

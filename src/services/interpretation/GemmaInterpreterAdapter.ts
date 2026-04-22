@@ -71,6 +71,98 @@ function getModelName(tier: ModelId): string {
   }
 }
 
+interface StoredProfile {
+  displayName?: string;
+  fullName?: string;
+  pronouns?: string;
+  condition?: string;
+  conditionDetail?: string;
+  personalPhrases?: unknown;
+  voiceSamples?: unknown;
+}
+
+interface StoredVoiceSample {
+  prompt?: string;
+  transcript?: string;
+}
+
+const CONDITION_LABELS: Record<string, string> = {
+  als: 'ALS / motor neurone disease',
+  aphasia: 'aphasia (post-stroke word finding)',
+  dysarthria: 'dysarthria',
+  parkinson: "Parkinson's disease",
+  other: 'custom (see detail)',
+};
+
+function loadStoredProfile(): StoredProfile | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem('relay.settings');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { profile?: StoredProfile };
+    return parsed.profile ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function buildProfileBlock(): string {
+  const profile = loadStoredProfile();
+  if (!profile) return '';
+
+  const lines: string[] = [];
+  const displayName = (profile.displayName ?? '').toString().trim();
+  const pronouns = (profile.pronouns ?? '').toString().trim();
+  const condition = (profile.condition ?? '').toString().trim();
+  const conditionDetail = (profile.conditionDetail ?? '').toString().trim();
+  const phrases = Array.isArray(profile.personalPhrases)
+    ? (profile.personalPhrases.filter(
+        (p) => typeof p === 'string' && p.trim().length > 0,
+      ) as string[])
+    : [];
+  const samples = Array.isArray(profile.voiceSamples)
+    ? (profile.voiceSamples as StoredVoiceSample[]).filter(
+        (s) =>
+          typeof s?.prompt === 'string' &&
+          typeof s?.transcript === 'string' &&
+          s.transcript.trim().length > 0,
+      )
+    : [];
+
+  if (displayName) {
+    lines.push(
+      `- Name: ${displayName}${pronouns ? ` (pronouns ${pronouns})` : ''}`,
+    );
+  }
+  if (condition) {
+    const label = CONDITION_LABELS[condition] ?? condition;
+    lines.push(
+      `- Known condition: ${label}${conditionDetail ? ` — "${conditionDetail}"` : ''}`,
+    );
+  }
+  if (phrases.length > 0) {
+    lines.push(`- Personal shortcuts: ${phrases.map((p) => `"${p}"`).join(', ')}`);
+  }
+
+  let block = '';
+  if (lines.length > 0) {
+    block += `\nPatient profile:\n${lines.join('\n')}`;
+  }
+
+  if (samples.length > 0) {
+    const rendered = samples
+      .slice(0, 6)
+      .map(
+        (s) =>
+          `- "${(s.prompt ?? '').toString().trim()}" → heard as: "${(s.transcript ?? '').toString().trim()}"`,
+      )
+      .join('\n');
+    block += `\nVoice calibration examples (how this patient tends to say common phrases):\n${rendered}`;
+  }
+
+  return block;
+}
+
 function buildPrompt(input: InterpretationInput): string {
   const visionLine = input.imageDataUrl
     ? '\nA camera frame is included with this request. The patient may be pointing at an object, showing their environment, or indicating something visual. Use this context to better understand their intent.'
@@ -85,11 +177,13 @@ function buildPrompt(input: InterpretationInput): string {
     ? `Patient said (may be fragmented or unclear): "${input.transcript}"`
     : 'Patient communicated via symbols only — no spoken input.';
 
+  const profileBlock = buildProfileBlock();
+
   return `You are Relay, a speech accessibility assistant for people with ALS, stroke aphasia, dysarthria, or Parkinson's disease.
 
 Patient context:
 - Language: ${input.language ?? 'en-US'}
-- Input modality: ${input.sourceType}${visionLine}${symbolLine}
+- Input modality: ${input.sourceType}${visionLine}${symbolLine}${profileBlock}
 
 ${inputLine}
 

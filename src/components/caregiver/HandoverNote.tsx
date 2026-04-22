@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ClipboardCheck, Download, FileJson, FileText } from 'lucide-react';
 import { Card, PillButton } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { formatClock } from '@/lib/time';
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -60,16 +61,20 @@ interface HandoverNoteProps {
   compact?: boolean;
 }
 
-export function HandoverNote({
-  patientName = 'Maya Singh',
-  compact,
-}: HandoverNoteProps) {
+export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
   const { state } = useSession();
+  const { settings } = useSettings();
   const [summary, setSummary] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const resolvedName =
+    patientName ??
+    (settings.profile.fullName.trim() ||
+      settings.profile.displayName.trim() ||
+      'Patient');
+
   const generate = () => {
-    setSummary(buildSummary(patientName, state.history));
+    setSummary(buildSummary(resolvedName, state.history));
     setCopied(false);
   };
 
@@ -97,7 +102,7 @@ export function HandoverNote({
   const exportJson = () => {
     const data = {
       exportedAt: new Date().toISOString(),
-      patient: patientName,
+      patient: resolvedName,
       summary: summary || null,
       interactions: state.history.map((r) => ({
         time: new Date(r.ts).toISOString(),

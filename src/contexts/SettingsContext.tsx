@@ -7,7 +7,22 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { load, save } from '@/lib/storage';
-import { DEFAULT_SETTINGS, type SettingsState } from '@/types/settings';
+import {
+  DEFAULT_PROFILE,
+  DEFAULT_SETTINGS,
+  type ProfileSettings,
+  type SettingsState,
+  type VoiceSampleRecord,
+} from '@/types/settings';
+
+type ProfileStringField =
+  | 'displayName'
+  | 'fullName'
+  | 'pronouns'
+  | 'condition'
+  | 'conditionDetail'
+  | 'caregiverName'
+  | 'caregiverRelationship';
 
 type Action =
   | { type: 'SET_HIGH_CONTRAST'; value: boolean }
@@ -18,6 +33,14 @@ type Action =
   | { type: 'SET_CAREGIVER_PHONE'; value: string }
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
+  | { type: 'SET_SETUP_ROLE'; value: ProfileSettings['setupRole'] }
+  | { type: 'SET_PROFILE_FIELD'; field: ProfileStringField; value: string }
+  | { type: 'SET_PERSONAL_PHRASES'; value: string[] }
+  | { type: 'ADD_VOICE_SAMPLE'; value: VoiceSampleRecord }
+  | { type: 'REMOVE_VOICE_SAMPLE'; id: string }
+  | { type: 'CLEAR_VOICE_SAMPLES' }
+  | { type: 'COMPLETE_ONBOARDING' }
+  | { type: 'RESET_ONBOARDING' }
   | { type: 'RESET' };
 
 function reducer(state: SettingsState, action: Action): SettingsState {
@@ -83,6 +106,68 @@ function reducer(state: SettingsState, action: Action): SettingsState {
         ...state,
         language: { ...state.language, caregiverLanguage: action.value },
       };
+    case 'SET_SETUP_ROLE':
+      return {
+        ...state,
+        profile: { ...state.profile, setupRole: action.value },
+      };
+    case 'SET_PROFILE_FIELD': {
+      if (action.field === 'condition') {
+        return {
+          ...state,
+          profile: {
+            ...state.profile,
+            condition: action.value as ProfileSettings['condition'],
+          },
+        };
+      }
+      return {
+        ...state,
+        profile: { ...state.profile, [action.field]: action.value },
+      };
+    }
+    case 'SET_PERSONAL_PHRASES':
+      return {
+        ...state,
+        profile: { ...state.profile, personalPhrases: action.value },
+      };
+    case 'ADD_VOICE_SAMPLE': {
+      const without = state.profile.voiceSamples.filter(
+        (s) => s.id !== action.value.id,
+      );
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          voiceSamples: [...without, action.value],
+        },
+      };
+    }
+    case 'REMOVE_VOICE_SAMPLE':
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          voiceSamples: state.profile.voiceSamples.filter(
+            (s) => s.id !== action.id,
+          ),
+        },
+      };
+    case 'CLEAR_VOICE_SAMPLES':
+      return {
+        ...state,
+        profile: { ...state.profile, voiceSamples: [] },
+      };
+    case 'COMPLETE_ONBOARDING':
+      return {
+        ...state,
+        onboardingCompletedAt: Date.now(),
+      };
+    case 'RESET_ONBOARDING':
+      return {
+        ...state,
+        onboardingCompletedAt: null,
+      };
     case 'RESET':
       return DEFAULT_SETTINGS;
   }
@@ -97,28 +182,47 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 const STORAGE_KEY = 'relay.settings';
 
-export function SettingsProvider({ children }: PropsWithChildren) {
-  const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, (fallback) => {
-    const stored = load<Partial<SettingsState>>(STORAGE_KEY, fallback);
-    return {
-      ...fallback,
-      ...stored,
-      accessibility: { ...fallback.accessibility, ...stored.accessibility },
-      integrations: {
-        ...fallback.integrations,
-        ...stored.integrations,
-        smartThings: {
-          ...fallback.integrations.smartThings,
-          ...(stored.integrations?.smartThings ?? {}),
-        },
-        twilio: {
-          ...fallback.integrations.twilio,
-          ...(stored.integrations?.twilio ?? {}),
-        },
+function hydrate(fallback: SettingsState): SettingsState {
+  const stored = load<Partial<SettingsState>>(STORAGE_KEY, fallback);
+  return {
+    ...fallback,
+    ...stored,
+    accessibility: {
+      ...fallback.accessibility,
+      ...(stored.accessibility ?? {}),
+    },
+    integrations: {
+      ...fallback.integrations,
+      ...(stored.integrations ?? {}),
+      smartThings: {
+        ...fallback.integrations.smartThings,
+        ...(stored.integrations?.smartThings ?? {}),
       },
-      language: { ...fallback.language, ...stored.language },
-    } as SettingsState;
-  });
+      twilio: {
+        ...fallback.integrations.twilio,
+        ...(stored.integrations?.twilio ?? {}),
+      },
+    },
+    language: { ...fallback.language, ...(stored.language ?? {}) },
+    profile: {
+      ...DEFAULT_PROFILE,
+      ...(stored.profile ?? {}),
+      personalPhrases: Array.isArray(stored.profile?.personalPhrases)
+        ? stored.profile.personalPhrases
+        : DEFAULT_PROFILE.personalPhrases,
+      voiceSamples: Array.isArray(stored.profile?.voiceSamples)
+        ? stored.profile.voiceSamples
+        : DEFAULT_PROFILE.voiceSamples,
+    },
+    onboardingCompletedAt:
+      typeof stored.onboardingCompletedAt === 'number'
+        ? stored.onboardingCompletedAt
+        : null,
+  } as SettingsState;
+}
+
+export function SettingsProvider({ children }: PropsWithChildren) {
+  const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, hydrate);
 
   useEffect(() => {
     save(STORAGE_KEY, settings);
