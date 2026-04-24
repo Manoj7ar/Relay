@@ -79,14 +79,22 @@ export function QuickPhrases() {
             const idx = Number(id.slice(PERSONAL_PREFIX.length));
             const text = personal[idx];
             if (text) {
-              void submit({ inputType: 'text', transcript: text });
+              void submit({
+                inputType: 'text',
+                transcript: text,
+                language: settings.language.primaryLanguage,
+              });
             }
             return;
           }
 
           const phrase = phrases.find((p) => p.id === id);
           if (phrase) {
-            void submit({ inputType: 'text', transcript: phrase.text });
+            void submit({
+              inputType: 'text',
+              transcript: phrase.text,
+              language: settings.language.primaryLanguage,
+            });
           }
         }}
       >

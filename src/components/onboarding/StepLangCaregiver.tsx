@@ -1,20 +1,13 @@
 import type { ChangeEvent } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useSession } from '@/contexts/SessionContext';
+import { directionFor } from '@/hooks/useRTL';
+import { PRIMARY_LANGUAGE_OPTIONS } from '@/lib/relayLanguages';
 import type { SetupRole } from '@/types/settings';
 
 interface StepLangCaregiverProps {
   setupRole: SetupRole;
 }
-
-const LANGS = [
-  { code: 'en-US', label: 'English (US)' },
-  { code: 'en-GB', label: 'English (UK)' },
-  { code: 'es-ES', label: 'Español' },
-  { code: 'fr-FR', label: 'Français' },
-  { code: 'de-DE', label: 'Deutsch' },
-  { code: 'ar-EG', label: 'العربية' },
-  { code: 'hi-IN', label: 'हिन्दी' },
-];
 
 const RELATIONSHIPS = [
   'Family',
@@ -28,6 +21,7 @@ const RELATIONSHIPS = [
 
 export function StepLangCaregiver({ setupRole }: StepLangCaregiverProps) {
   const { settings, dispatch } = useSettings();
+  const { dispatch: sessionDispatch } = useSession();
   const isSelf = setupRole === 'patient';
 
   const setProfile = (
@@ -50,12 +44,18 @@ export function StepLangCaregiver({ setupRole }: StepLangCaregiverProps) {
           </span>
           <select
             value={settings.language.primaryLanguage}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: e.target.value })
-            }
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+              const v = e.target.value;
+              dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: v });
+              sessionDispatch({
+                type: 'SET_LANGUAGE',
+                language: v,
+                direction: directionFor(v),
+              });
+            }}
             className="control-select"
           >
-            {LANGS.map((l) => (
+            {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.label}
               </option>
@@ -77,7 +77,7 @@ export function StepLangCaregiver({ setupRole }: StepLangCaregiverProps) {
             }
             className="control-select"
           >
-            {LANGS.map((l) => (
+            {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.label}
               </option>

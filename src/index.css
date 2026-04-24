@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Motion vocabulary: use Tailwind `animate-*` for one-shot entrances and
+ * looping state hints; use `transition-*` for hover, press, and layout.
+ * `prefers-reduced-motion` collapses durations globally below.
+ */
 :root {
   --bg: #f5f5f4;
   --surface: #e7e7e5;
@@ -20,6 +25,13 @@
   --font-scale: 1;
   --keyboard-inset: 0px;
   --main-pad-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --ring-subtle: rgba(0, 0, 0, 0.07);
 }
 
 :root[data-vp-narrow='true'] {
@@ -43,6 +55,10 @@
   --glass-bg: #ffffff;
   --glass-bg-strong: #ffffff;
   --glass-border: #000000;
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --ring-subtle: rgba(0, 0, 0, 0.2);
 }
 
 html {
@@ -66,14 +82,19 @@ body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text);
   background: radial-gradient(
-      1000px 600px at 50% -10%,
-      rgba(255, 255, 255, 0.9),
-      transparent 60%
+      1100px 680px at 50% -12%,
+      rgba(255, 255, 255, 0.92),
+      transparent 58%
     ),
     radial-gradient(
-      800px 500px at 100% 110%,
-      rgba(214, 214, 211, 0.6),
-      transparent 60%
+      900px 560px at 100% 108%,
+      rgba(214, 214, 211, 0.55),
+      transparent 55%
+    ),
+    radial-gradient(
+      600px 400px at 0% 85%,
+      rgba(231, 231, 229, 0.45),
+      transparent 50%
     ),
     var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -116,7 +137,7 @@ body {
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-md);
   }
 
   .glass-strong {
@@ -124,7 +145,7 @@ body {
     backdrop-filter: blur(28px) saturate(150%);
     -webkit-backdrop-filter: blur(28px) saturate(150%);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
   }
 
   .safe-top {

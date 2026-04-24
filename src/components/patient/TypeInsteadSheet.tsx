@@ -86,7 +86,7 @@ export function TypeInsteadSheet() {
 
       <div
         className={cn(
-          'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+          'grid transition-[grid-template-rows] duration-base ease-out motion-reduce:transition-none',
           expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
         )}
       >
@@ -97,7 +97,11 @@ export function TypeInsteadSheet() {
             aria-labelledby={`${panelId}-trigger`}
             variant="glass-strong"
             padded={false}
-            className="mt-2 border border-white/50 p-2.5 shadow-sm"
+            className={cn(
+              'mt-2 border border-white/50 p-2.5 shadow-sm',
+              expanded &&
+                'motion-safe:animate-sheet-in motion-reduce:animate-none',
+            )}
           >
             <p className="mb-2 text-[11px] leading-snug text-muted">
               Same interpretation path as voice. Press{' '}

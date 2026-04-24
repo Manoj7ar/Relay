@@ -1,4 +1,12 @@
-import { NavLink } from 'react-router-dom';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Activity, Home, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useSession } from '@/contexts/SessionContext';
@@ -39,6 +47,58 @@ export function AppLayout({ children }: PropsWithChildren) {
 }
 
 function BottomNav() {
+  const location = useLocation();
+  const listRef = useRef<HTMLUListElement>(null);
+  const linkRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [pill, setPill] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    visible: false,
+  });
+
+  const activeIndex = useMemo(() => {
+    const p = location.pathname;
+    return NAV.findIndex((n) => (n.to === '/' ? p === '/' : p === n.to));
+  }, [location.pathname]);
+
+  const measure = useCallback(() => {
+    const list = listRef.current;
+    if (!list) return;
+    if (activeIndex < 0) {
+      setPill((s) => ({ ...s, width: 0, visible: false }));
+      return;
+    }
+    const link = linkRefs.current[activeIndex];
+    if (!link) return;
+    const lr = list.getBoundingClientRect();
+    const ar = link.getBoundingClientRect();
+    setPill({
+      left: ar.left - lr.left,
+      top: ar.top - lr.top,
+      width: ar.width,
+      height: ar.height,
+      visible: true,
+    });
+  }, [activeIndex]);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(list);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [measure]);
+
   return (
     <nav
       aria-label="Primary"
@@ -47,20 +107,40 @@ function BottomNav() {
         'px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2',
       )}
     >
-      <ul className="glass-strong mx-auto flex items-stretch justify-between gap-0.5 rounded-full p-1 sm:gap-1 sm:p-1.5">
-        {NAV.map((item) => {
+      <ul
+        ref={listRef}
+        className="glass-strong relative mx-auto flex items-stretch justify-between gap-0.5 rounded-full p-1 sm:gap-1 sm:p-1.5"
+      >
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute z-0 rounded-full bg-[var(--accent)]',
+            'transition-[left,top,width,height,opacity] duration-300 ease-spring motion-reduce:transition-none',
+          )}
+          style={{
+            left: pill.left,
+            top: pill.top,
+            width: pill.width,
+            height: pill.height,
+            opacity: pill.visible && pill.width > 0 ? 1 : 0,
+          }}
+        />
+        {NAV.map((item, i) => {
           const Icon = item.icon;
           return (
             <li key={item.to} className="flex min-w-0 flex-1">
               <NavLink
+                ref={(el) => {
+                  linkRefs.current[i] = el;
+                }}
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
                   cn(
-                    'flex w-full min-h-[48px] flex-col items-center justify-center gap-1 rounded-full px-1 py-2 text-[clamp(10px,2.6vw,11px)] font-medium leading-none transition-transform active:scale-[0.98] sm:px-2',
+                    'relative z-10 flex w-full min-h-[48px] flex-col items-center justify-center gap-1 rounded-full px-1 py-2 text-[clamp(10px,2.6vw,11px)] font-medium leading-none transition-[color,transform] duration-fast ease-smooth active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-2',
                     isActive
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'text-text hover:bg-black/5',
+                      ? 'text-white'
+                      : 'text-text hover:bg-black/5 motion-reduce:hover:bg-transparent',
                   )
                 }
               >

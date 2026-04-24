@@ -16,10 +16,12 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   type PropsWithChildren,
 } from 'react';
 import { load, save } from '@/lib/storage';
 import { directionFor } from '@/hooks/useRTL';
+import { useSettings } from '@/contexts/SettingsContext';
 import { useModelRouting } from './ModelRoutingContext';
 import {
   interpret as runInterpret,
@@ -198,6 +200,20 @@ export function SessionProvider({ children }: PropsWithChildren) {
     history: load<InteractionRecord[]>(STORAGE_KEY, []),
   }));
   const { recordInterpretation } = useModelRouting();
+  const { settings } = useSettings();
+  const syncedPrimaryRef = useRef(false);
+
+  /** Align session language / RTL with saved primary language on first load. */
+  useEffect(() => {
+    if (syncedPrimaryRef.current) return;
+    syncedPrimaryRef.current = true;
+    const lang = settings.language.primaryLanguage;
+    dispatch({
+      type: 'SET_LANGUAGE',
+      language: lang,
+      direction: directionFor(lang),
+    });
+  }, [settings.language.primaryLanguage]);
 
   useEffect(() => {
     save(STORAGE_KEY, state.history);

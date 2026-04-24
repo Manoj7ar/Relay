@@ -62,7 +62,12 @@ export function OnboardingShell({
           ) : null}
         </header>
 
-        <div className="min-h-0 flex-1 animate-slide-up">{children}</div>
+        <div
+          key={stepIndex}
+          className="min-h-0 flex-1 motion-safe:animate-slide-up motion-reduce:animate-none"
+        >
+          {children}
+        </div>
       </main>
 
       <footer
@@ -153,11 +158,11 @@ function ProgressDots({ count, current }: ProgressDotsProps) {
             key={i}
             aria-hidden
             className={cn(
-              'h-1.5 flex-1 rounded-full transition-[background-color,transform] duration-300 ease-smooth',
+              'h-1.5 flex-1 rounded-full motion-safe:transition-[background-color,transform] motion-safe:duration-500 motion-safe:ease-smooth',
               done
                 ? 'bg-[var(--accent)]'
                 : active
-                  ? 'bg-[var(--accent)]/70 scale-y-[1.4]'
+                  ? 'motion-safe:scale-y-[1.45] bg-[var(--accent)]/70'
                   : 'bg-black/10',
             )}
           />

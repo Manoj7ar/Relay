@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Cpu, Layers, WifiOff } from 'lucide-react';
-import { Card } from '@/components/primitives';
+import { Card, PageHeader } from '@/components/primitives';
 
 export function AboutPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-6 pt-2">
-      <header className="shrink-0 pt-[max(env(safe-area-inset-top),6px)]">
-        <h1 className="text-lg font-semibold tracking-tight">Gemma &amp; architecture</h1>
+      <PageHeader title="Gemma & architecture" />
+      <div className="shrink-0">
         <p className="mt-1 text-xs leading-relaxed text-muted">
           Relay is a real mobile-web AAC shell — permissions, microphone,
           speech-to-text, text-to-speech, and camera all run on real browser
@@ -14,7 +14,7 @@ export function AboutPage() {
           (<code className="rounded bg-black/5 px-1">GemmaInterpreterAdapter</code>)
           that calls your Gemma 4 / Ollama endpoint.
         </p>
-      </header>
+      </div>
 
       <Card variant="glass-strong" className="p-3">
         <div className="flex items-center gap-2 text-sm font-semibold">

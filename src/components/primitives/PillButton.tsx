@@ -51,7 +51,7 @@ export const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
         ref={ref}
         className={cn(
           'inline-flex items-center justify-center gap-3 rounded-full font-semibold',
-          'select-none transition-[color,background-color,border-color,box-shadow,transform,filter] duration-200 ease-smooth',
+          'select-none transition-[color,background-color,border-color,box-shadow,transform,filter] duration-fast ease-smooth',
           'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
           'disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none disabled:active:scale-100',
           sizeMap[size],

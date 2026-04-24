@@ -12,11 +12,11 @@ export function PatientHomePage() {
   const [boardOpen, setBoardOpen] = useState(false);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-1.5 pt-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
       <div className="shrink-0">
         <TopStatusBar />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col px-2 min-[380px]:px-2.5">
         <TranscriptionCard />
       </div>
       <EmergencyBanner />

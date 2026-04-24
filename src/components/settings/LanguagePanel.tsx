@@ -1,20 +1,12 @@
 import { Card } from '@/components/primitives';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useSession } from '@/contexts/SessionContext';
-
-const LANGS = [
-  { code: 'en-US', label: 'English (US)' },
-  { code: 'en-GB', label: 'English (UK)' },
-  { code: 'es-ES', label: 'Español' },
-  { code: 'fr-FR', label: 'Français' },
-  { code: 'de-DE', label: 'Deutsch' },
-  { code: 'ar-EG', label: 'العربية' },
-  { code: 'hi-IN', label: 'हिन्दी' },
-];
+import { directionFor } from '@/hooks/useRTL';
+import { PRIMARY_LANGUAGE_OPTIONS } from '@/lib/relayLanguages';
 
 export function LanguagePanel() {
   const { settings, dispatch } = useSettings();
-  const { state } = useSession();
+  const { state, dispatch: sessionDispatch } = useSession();
 
   return (
     <Card padded={false} className="h-full min-h-0 space-y-2 overflow-hidden p-3">
@@ -33,12 +25,18 @@ export function LanguagePanel() {
         <span className="mb-1 block text-muted">Primary language</span>
         <select
           value={settings.language.primaryLanguage}
-          onChange={(e) =>
-            dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: e.target.value })
-          }
+          onChange={(e) => {
+            const v = e.target.value;
+            dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: v });
+            sessionDispatch({
+              type: 'SET_LANGUAGE',
+              language: v,
+              direction: directionFor(v),
+            });
+          }}
           className="control-select"
         >
-          {LANGS.map((l) => (
+          {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
             <option key={l.code} value={l.code}>
               {l.label}
             </option>
@@ -55,7 +53,7 @@ export function LanguagePanel() {
           }
           className="control-select"
         >
-          {LANGS.map((l) => (
+          {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
             <option key={l.code} value={l.code}>
               {l.label}
             </option>

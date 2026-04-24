@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
+import { RoutedViews } from '@/components/layout/RoutedViews';
 import { PatientHomePage } from '@/pages/PatientHomePage';
 import { CaregiverPage } from '@/pages/CaregiverPage';
 import { SettingsPage } from '@/pages/SettingsPage';
@@ -44,13 +45,15 @@ export default function App() {
         path="*"
         element={
           <AppLayout>
-            <Routes>
-              <Route path="/" element={<PatientHomePage />} />
-              <Route path="/caregiver" element={<CaregiverPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="*" element={<PatientHomePage />} />
-            </Routes>
+            <RoutedViews>
+              <Routes>
+                <Route path="/" element={<PatientHomePage />} />
+                <Route path="/caregiver" element={<CaregiverPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="*" element={<PatientHomePage />} />
+              </Routes>
+            </RoutedViews>
           </AppLayout>
         }
       />

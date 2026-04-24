@@ -6,7 +6,7 @@ import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { EmergencyTimeline } from '@/components/caregiver/EmergencyTimeline';
 import { HandoverNote } from '@/components/caregiver/HandoverNote';
 import { AlertTriangle, MessageCircle } from 'lucide-react';
-import { Card } from '@/components/primitives';
+import { Card, PageHeader } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
 import { detectDistressPattern } from '@/lib/distressDetector';
 
@@ -36,12 +36,10 @@ export function CaregiverPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden pt-2">
-      <header className="shrink-0 pt-[max(env(safe-area-inset-top),6px)]">
-        <h1 className="text-lg font-semibold tracking-tight">Caregiver</h1>
-        <p className="line-clamp-1 text-xs text-muted">
-          Today&apos;s interactions and routing.
-        </p>
-      </header>
+      <PageHeader
+        title="Caregiver"
+        subtitle="Today's interactions and routing."
+      />
       <div className="shrink-0">
         <PatientHeader compact />
       </div>
@@ -75,8 +73,13 @@ export function CaregiverPage() {
           <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
             {visibleToday.length ? (
               <>
-                {visibleToday.map((r) => (
-                  <InteractionCard key={r.id} record={r} compact />
+                {visibleToday.map((r, i) => (
+                  <InteractionCard
+                    key={r.id}
+                    record={r}
+                    compact
+                    listIndex={i}
+                  />
                 ))}
                 {restToday > 0 ? (
                   <p className="text-center text-xs text-muted">

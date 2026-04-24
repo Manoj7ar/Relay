@@ -130,7 +130,10 @@ export function PrimaryMicButton() {
       className={cn(
         'primary-mic text-lg',
         state.isListening &&
-          'shadow-[0_0_0_4px_rgba(255,107,107,0.18)] transition-shadow',
+          'motion-safe:animate-listen-glow motion-reduce:animate-none',
+        uiState === 'processing' &&
+          !state.isListening &&
+          'motion-safe:animate-process-glow motion-reduce:animate-none',
       )}
       aria-pressed={state.isListening}
       aria-label={copy.ariaLabel}

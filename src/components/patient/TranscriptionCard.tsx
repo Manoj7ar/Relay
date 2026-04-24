@@ -55,12 +55,18 @@ export function TranscriptionCard() {
       padded={false}
       className={cn(
         'relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden',
-        'px-3 pb-2 pt-2',
+        'px-4 pb-3 pt-3 sm:px-5 sm:pb-4 sm:pt-3.5',
+        'ring-1 ring-[color:var(--ring-subtle)] shadow-elevate-lg',
+        isListening &&
+          'motion-safe:animate-card-listen motion-reduce:animate-none',
+        isProcessing &&
+          !isListening &&
+          'ring-2 ring-[var(--accent)]/15 motion-safe:transition-[box-shadow] motion-safe:duration-base',
       )}
     >
       <div className="flex shrink-0 items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted">
-          <Sparkles className="h-3 w-3" aria-hidden />
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+          <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
           Interpretation
         </div>
         <div className="flex items-center gap-2">
@@ -99,7 +105,7 @@ export function TranscriptionCard() {
         </div>
       ) : null}
 
-      <div className="my-1 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-1">
+      <div className="my-2 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-2">
         {liveText ? (
           <p
             aria-live="polite"
@@ -119,7 +125,7 @@ export function TranscriptionCard() {
             />
           </div>
         ) : (
-          <p className="line-clamp-2 text-center text-[clamp(0.95rem,3.5vw,1.15rem)] font-medium text-muted">
+          <p className="line-clamp-3 text-center text-[clamp(1rem,3.8vw,1.2rem)] font-medium leading-snug text-muted">
             {placeholderTitle}
           </p>
         )}
@@ -196,7 +202,7 @@ export function TranscriptionCard() {
             </div>
           </>
         ) : !lastError ? (
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-[13px] leading-relaxed text-muted/90">
             Your words appear here.
           </p>
         ) : null}

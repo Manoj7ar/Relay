@@ -53,14 +53,14 @@ export function Modal({
     >
       <div
         className={cn(
-          'relative w-full mx-auto flex flex-col animate-slide-up',
+          'relative mx-auto flex w-full flex-col motion-safe:animate-scale-in motion-reduce:animate-none',
           fullScreen
             ? 'max-w-mobile h-[100dvh] safe-top safe-bottom safe-x'
             : 'max-w-mobile my-8 rounded-xl2 glass-strong',
           className,
         )}
       >
-        <div className="flex items-center justify-between pt-2 pb-4 px-1">
+        <div className="flex items-center justify-between px-1 pb-4 pt-2 motion-safe:animate-slide-up motion-reduce:animate-none">
           <h2
             id={labelledBy}
             className="text-xl font-semibold tracking-tight"
@@ -75,7 +75,11 @@ export function Modal({
             onClick={onClose}
           />
         </div>
-        <div className="flex-1 overflow-y-auto pb-4">{children}</div>
+        <div
+          className="flex-1 overflow-y-auto pb-4 motion-safe:animate-fade-in motion-reduce:animate-none [animation-delay:70ms] [animation-fill-mode:both]"
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

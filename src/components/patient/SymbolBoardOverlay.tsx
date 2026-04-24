@@ -1,6 +1,7 @@
 import { Modal } from '@/components/primitives';
 import { SYMBOL_BOARD, type SymbolTile } from '@/types/symbol';
 import { useSession } from '@/contexts/SessionContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { useHaptics } from '@/hooks/useHaptics';
 import { cn } from '@/lib/cn';
 
@@ -11,6 +12,7 @@ interface SymbolBoardOverlayProps {
 
 export function SymbolBoardOverlay({ open, onClose }: SymbolBoardOverlayProps) {
   const { submit } = useSession();
+  const { settings } = useSettings();
   const haptics = useHaptics();
 
   const handlePick = async (tile: SymbolTile) => {
@@ -21,6 +23,7 @@ export function SymbolBoardOverlay({ open, onClose }: SymbolBoardOverlayProps) {
       symbols: [tile.label],
       transcript: tile.impliedPhrase,
       urgencyHint: tile.urgencyHint,
+      language: settings.language.primaryLanguage,
     });
   };
 

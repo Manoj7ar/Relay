@@ -1,5 +1,6 @@
 import { Camera, Cpu, MessageSquareText } from 'lucide-react';
 import { Card, StatusBadge } from '@/components/primitives';
+import { cn } from '@/lib/cn';
 import { formatClock } from '@/lib/time';
 import type { InteractionRecord } from '@/types/session';
 import type { Urgency } from '@/types/model';
@@ -13,12 +14,27 @@ const URGENCY_TONE: Record<Urgency, 'ok' | 'warn' | 'danger'> = {
 export function InteractionCard({
   record,
   compact,
+  listIndex,
 }: {
   record: InteractionRecord;
   compact?: boolean;
+  /** When set, plays a short staggered entrance (list order). */
+  listIndex?: number;
 }) {
   return (
-    <Card padded={!compact} className={compact ? 'p-3' : undefined}>
+    <Card
+      padded={!compact}
+      className={cn(
+        compact ? 'p-3' : undefined,
+        listIndex != null &&
+          'motion-safe:animate-slide-up motion-reduce:animate-none',
+      )}
+      style={
+        listIndex != null
+          ? { animationDelay: `${listIndex * 55}ms` }
+          : undefined
+      }
+    >
       <div
         className={
           compact
