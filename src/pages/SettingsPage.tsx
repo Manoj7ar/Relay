@@ -14,7 +14,7 @@ type SettingsSection =
   | 'profile'
   | 'a11y'
   | 'models'
-  | 'integrations'
+  | 'emergency'
   | 'language'
   | 'offline'
   | 'routing'
@@ -24,7 +24,7 @@ const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'a11y', label: 'Accessibility' },
   { id: 'models', label: 'Models' },
-  { id: 'integrations', label: 'Integrations' },
+  { id: 'emergency', label: 'Emergency' },
   { id: 'language', label: 'Language' },
   { id: 'offline', label: 'Connectivity' },
   { id: 'routing', label: 'Routing log' },
@@ -74,7 +74,7 @@ export function SettingsPage() {
         {section === 'profile' && <ProfilePanel />}
         {section === 'a11y' && <AccessibilityPanel />}
         {section === 'models' && <ModelConfigPanel />}
-        {section === 'integrations' && <IntegrationsPanel />}
+        {section === 'emergency' && <IntegrationsPanel />}
         {section === 'language' && <LanguagePanel />}
         {section === 'offline' && <OfflineStatusPanel />}
         {section === 'routing' && (

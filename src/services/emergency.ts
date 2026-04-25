@@ -1,13 +1,13 @@
 /**
  * Emergency dispatch proxy.
  *
- * Posts to a user-configured HTTP endpoint (typically a small Twilio /
- * hospital-hotline proxy) when the patient's interpretation crosses the
- * emergency threshold. The proxy URL and fallback caregiver phone are
- * stored in `localStorage` so the device remains device-local / installable.
+ * Posts to a user-configured HTTPS endpoint when the patient's interpretation
+ * crosses the emergency threshold. The proxy URL is stored under
+ * `relay.emergency.proxyUrl` in `localStorage`; the caregiver phone is passed
+ * in the payload (from settings) so the PWA never hard-codes secrets.
  *
  * If either the proxy URL or the phone number is missing we throw
- * `EmergencyNotConnectedError` instead of pretending to dial — the UI
+ * `EmergencyNotConnectedError` instead of pretending to dispatch — the UI
  * surfaces the message in the emergency banner.
  */
 
@@ -28,7 +28,7 @@ export class EmergencyNotConnectedError extends Error {
     super(
       [
         'Emergency dispatch is not configured.',
-        'Set Settings → Integrations → Emergency proxy URL and Caregiver phone.',
+        'Set Settings → Integrations → Emergency proxy URL and caregiver phone.',
         detail,
       ]
         .filter(Boolean)
@@ -40,7 +40,6 @@ export class EmergencyNotConnectedError extends Error {
 }
 
 const PROXY_URL_KEY = 'relay.emergency.proxyUrl';
-const FALLBACK_PHONE_KEY = 'relay.twilio.phone';
 const REQUEST_TIMEOUT_MS = 15_000;
 
 function readStored(key: string): string | null {
@@ -56,8 +55,7 @@ export async function triggerEmergency(
   payload: EmergencyPayload,
 ): Promise<EmergencyResult> {
   const proxyUrl = readStored(PROXY_URL_KEY);
-  const caregiverPhone =
-    payload.caregiverPhone ?? readStored(FALLBACK_PHONE_KEY) ?? '';
+  const caregiverPhone = payload.caregiverPhone?.trim() ?? '';
 
   if (!proxyUrl || !caregiverPhone) {
     throw new EmergencyNotConnectedError();

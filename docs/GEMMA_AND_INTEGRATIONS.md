@@ -33,17 +33,6 @@ You can verify mic → interim transcript → typed fallback without running Oll
 
 ---
 
-## What is still stubbed
-
-| Capability | File | Current behavior |
-|------------|------|------------------|
-| **Twilio test SMS** | `src/services/twilio.ts` | Throws `TwilioNotConnectedError`. |
-| **SmartThings** | `src/services/smartthings.ts` | Throws `SmartThingsNotConnectedError`. |
-
-No stub returns a fake “success” — the UI shows the error string from these throws.
-
----
-
 ## The single interpretation entry point
 
 Every input surface (mic → STT, typed, quick phrases, symbols, camera-attached frame) calls:
@@ -91,23 +80,15 @@ To change behavior, edit **`GemmaInterpreterAdapter.ts`** (prompt, timeout, base
 
 ---
 
-## Emergency + other integrations
+## Emergency
 
-**Emergency (live when configured):**
+**When proxy URL + caregiver phone are set:**
 
 ```ts
 await triggerEmergency({ message, caregiverPhone, ts });
 ```
 
-**Still stubs (implement behind a server you control):**
-
-```ts
-await sendTestSms(phone);
-await testConnection(apiKey);
-await runScene(scene);
-```
-
-Keep Twilio credentials and SmartThings tokens out of the PWA bundle; use small HTTPS proxies.
+The proxy URL is read from `localStorage` (`relay.emergency.proxyUrl`). The phone comes from **Settings → Integrations** (persisted with the rest of settings). Implement SMS, voice, or paging **on your server**; Relay only sends JSON from the browser.
 
 ---
 
@@ -120,9 +101,7 @@ Keep Twilio credentials and SmartThings tokens out of the PWA bundle; use small 
 
 ## Remaining work before full production
 
-- Wire **Twilio** test SMS + any server-side voice path you need.
-- Wire **SmartThings** OAuth + REST via proxy.
 - STT language picker / noise handling improvements.
-- Security, consent, and retention policies for any hosted proxy.
+- Security, consent, and retention policies for any hosted emergency proxy.
 
 For layer diagrams, see [ARCHITECTURE.md](./ARCHITECTURE.md).

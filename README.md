@@ -1,144 +1,143 @@
 # Relay
 
-**Relay** is a mobile-first PWA for people whose speech is hard to understand — including ALS, stroke-related aphasia, dysarthria, and Parkinson's. It turns fragmented or unclear speech into a clear phrase the user can confirm, speak back via browser TTS, and optionally capture multimodal context from the camera.
+Relay is a **mobile-first progressive web app (PWA)** for people whose speech is hard to understand—whether from ALS, stroke-related aphasia, dysarthria, Parkinson’s, or similar conditions. It captures voice (and optional camera context), runs speech-to-text in the browser where supported, sends text to a **local Gemma model via Ollama**, and shows a clear interpretation the user can hear again with **browser text-to-speech**, confirm, and route to caregivers when configured.
 
-This repository ships a **real browser-capability foundation** (mic, Web Speech STT where supported, `speechSynthesis` TTS, camera preview + frame capture, permissions) and a **real local interpretation path** via **Ollama** at `http://localhost:11434` (`GemmaInterpreterAdapter`). If Ollama is down or models are missing, the app raises `GemmaNotConnectedError` and shows that in the UI — it does not fabricate model output. No scripted scenarios, no demo mode, no fake answer dictionary.
-
----
-
-## Implementation status (canonical — use this wording everywhere)
-
-| Area | Status | Notes |
-|------|--------|--------|
-| Mic + RMS level | **Real** | `audioCaptureService`, `useMicrophone` |
-| Speech-to-text | **Real** (browser Web Speech API) | Unsupported browsers → Type-instead sheet; browser caveats in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Text-to-speech | **Real** | `speechSynthesis` with language-matched voice |
-| Camera preview + frame | **Real** | Frame passed as `imageDataUrl` into `interpret()` |
-| Permissions UX | **Real** | Query + prompt + denied recovery |
-| Routing policy | **Real** | `chooseModel` only — no LLM inside the router |
-| Gemma / interpretation | **Real when Ollama is up** | `GemmaInterpreterAdapter` → `POST /api/generate`, streaming + JSON parse + client `urgencyGuard`; **fails honestly** if Ollama unreachable |
-| Emergency dispatch | **Real when configured** | `POST` to `relay.emergency.proxyUrl` + caregiver phone; otherwise `EmergencyNotConnectedError` |
-| Twilio test SMS | **Stub** | `twilio.ts` throws until wired |
-| SmartThings | **Stub** | `smartthings.ts` throws until wired |
-
-Same table is reflected in [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md). If any other markdown (e.g. a local write-up) disagrees with this, treat **this README + `docs/`** as authoritative.
+The codebase prioritizes **real browser APIs** and **honest failure modes**: if Ollama is unreachable or misconfigured, the app surfaces that error instead of inventing model output.
 
 ---
 
-## Why this problem
+## What you can do in the app
 
-When words do not come out reliably, communication fatigue is real. Relay is designed to reduce the gap between intent and clarity for both the speaker and caregivers, with explicit confirmation, bilingual support, RTL, and safety-aware urgency.
+| Area | Description |
+|------|-------------|
+| **Onboarding** | First-run flow for role, identity, condition, voice samples (stored locally), language, caregiver details, quick phrases, and accessibility preferences. Skippable steps where marked. |
+| **Home (`/`)** | Large mic control, live transcript, interpretation card, quick phrases, symbol board, optional camera, “type instead” inline composer, language switcher, and connection status. |
+| **Caregiver (`/caregiver`)** | Today’s interactions, routing log, alerts timeline, and handover note—fed from session history after successful interpretations. |
+| **Settings (`/settings`)** | Profile, accessibility (contrast, text size), **Ollama base URL** and model names, **emergency** (HTTPS proxy URL + caregiver phone), language, connectivity, routing log, developer tools. |
+| **About (`/about`)** | High-level architecture and how Gemma fits in. |
 
----
-
-## Key source files (quick map)
-
-| Capability | Where |
-|------------|-------|
-| Mic / STT / TTS / camera / permissions | `src/services/*Service.ts`, `src/hooks/use*.ts` |
-| Interpretation + Ollama | `src/services/interpretation/GemmaInterpreterAdapter.ts`, `src/services/interpretationService.ts` |
-| Model names (Settings → Models) | `localStorage` keys `relay.model.*`; see `ModelConfigPanel.tsx` |
-| Emergency proxy | `src/services/emergency.ts` + Settings → Integrations → Emergency proxy URL |
+**Developer / QA:** append `?reset-onboarding=1` once to clear onboarding and voice sample metadata (see `App.tsx`).
 
 ---
 
-## Screens
+## Tech stack
 
-| Route | What it does |
-|-------|--------------|
-| `/` (Home) | Real mic, live transcript, quick phrases, symbol board, camera toggle, typed fallback sheet, TTS replay |
-| `/caregiver` | History + routing log (entries appear after successful Ollama interpretations) |
-| `/settings` | Accessibility, **Models** (Ollama model names + connection test), Integrations (proxy URL, caregiver phone, SmartThings fields), Language, Connectivity, Routing log, **Developer** |
-| `/about` | Architecture overview + Gemma wiring notes |
-
----
-
-## Architecture (one page)
-
-```
-UI (React)
-  → contexts: Session, ModelRouting, Settings
-  → hooks: usePermissions, useMicrophone, useSpeechRecognition, useSpeechSynthesis, useCamera
-  → services: permissions, audioCapture, speechRecognition, speechSynthesis, camera
-  → single entry: interpretationService.interpret(input)
-      → GemmaInterpreterAdapter   ← Ollama client (edit for prompts / base URL)
-```
-
-Every user input (mic+STT, typed, quick phrases, symbols, camera frame) is funneled into one `interpret(input)` call → `GemmaInterpreterAdapter` → local Ollama. Customize prompt, timeouts, or endpoint in that adapter file if you need a non-default setup.
-
-**Details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · **Gemma + integrations:** [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)
+| Layer | Choice |
+|-------|--------|
+| UI | React 18, TypeScript (strict), Tailwind CSS |
+| Build | Vite 5, `@vitejs/plugin-react` |
+| Routing | React Router 6 |
+| Offline install | `vite-plugin-pwa` (Workbox-generated service worker) |
+| Icons | Lucide React |
 
 ---
 
-## Running Gemma locally (Ollama)
+## Prerequisites
 
-1. Install [Ollama](https://ollama.com) and run `ollama serve` (default `http://localhost:11434`).
-2. Pull the tags you configured under **Settings → Models** (defaults: `gemma4:e2b`, `gemma4:e4b`, `gemma4:27b` — adjust to whatever you actually have installed).
-3. Open the app from a context that can reach that host (same machine, or LAN with CORS/network access as your browser allows).
-4. If Ollama is unreachable, the UI shows the `GemmaNotConnectedError` message — not a fake transcript of model output.
+- **Node.js 20+** (recommended)
+- **npm** (or compatible client) for installs
+- **Ollama** running somewhere your **browser** can reach (same machine, LAN, or tunneled host), with models pulled that match **Settings → Models** tags
 
 ---
 
-## Setup & development
-
-**Stack:** Vite, React 18, TypeScript (strict), Tailwind CSS, React Router, `vite-plugin-pwa` (Workbox).
+## Setup and scripts
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
-npm run typecheck
-npm run build        # tsc + production build + service worker
-npm run preview
+npm run dev          # Vite dev server → http://localhost:5173
+npm run typecheck    # tsc --noEmit
+npm run build        # typecheck + production bundle + PWA assets
+npm run preview      # serve the production build locally
 ```
 
-**Node:** 20+ recommended.
-
-**Phone install:** `npm run build && npm run preview -- --host`, open the URL on the same LAN, then Add to Home Screen (iOS) or install prompt (Android).
+**Trying on a phone:** run `npm run build && npm run preview -- --host`, open the printed URL on the same network, then use **Add to Home Screen** (iOS) or the install prompt (Android).
 
 ---
 
-## Integrations
+## Ollama and Gemma
 
-| Topic | File | Today |
-|-------|------|--------|
-| Ollama / Gemma | [GemmaInterpreterAdapter.ts](src/services/interpretation/GemmaInterpreterAdapter.ts) | Local HTTP; prompts leave the browser to `localhost:11434` |
-| Routing policy | [modelRouter.ts](src/services/modelRouter.ts) | Pure `chooseModel` — no network |
-| Emergency | [emergency.ts](src/services/emergency.ts) | `POST` to user-set proxy URL when configured |
-| Twilio test SMS | [twilio.ts](src/services/twilio.ts) | Stub — throws `TwilioNotConnectedError` |
-| SmartThings | [smartthings.ts](src/services/smartthings.ts) | Stub — throws `SmartThingsNotConnectedError` |
+1. Install [Ollama](https://ollama.com) and start the daemon (`ollama serve`). The default API root is `http://127.0.0.1:11434` (often shown as `localhost:11434`).
+2. Pull model tags on the Ollama host, then enter the **same tags** under **Settings → Models** so routing and `interpret()` calls match what is installed.
+3. In **Settings → Models** (or the Ollama section), set **base URL** if Ollama is not on the default host—Relay resolves an empty base URL to the local default at runtime (`src/lib/ollamaUrl.ts`).
+4. Open Relay from a context where **fetch** to that URL is allowed (same-origin, LAN, or CORS as applicable). If the server is down, you will see **`GemmaNotConnectedError`** (or related HTTP errors) in the UI—not fake transcripts.
 
-Settings persists integration fields in `localStorage`. Only enable a proxy URL you trust; it receives emergency payloads from the PWA.
+Implementation detail: all interpretation goes through **`interpretationService.interpret()`** → **`GemmaInterpreterAdapter`** → `POST {baseUrl}/api/generate`. Prompts, timeouts, and multimodal fields live in that adapter.
 
 ---
 
-## Roadmap
+## Architecture (short)
 
-- Wire `twilio.ts` test SMS against a real server proxy (secrets off-device).
-- Wire SmartThings OAuth + scene runner via proxy.
-- Optional learned router (Cactus-style) behind `chooseModel`.
-- Voice banking / personalization (future; not in this repo).
+```
+React UI
+  └─ contexts: Settings, Session, ModelRouting
+  └─ hooks: permissions, microphone, speech recognition / synthesis, camera, Ollama status
+  └─ services: audio, STT, TTS, camera, emergency, routing
+  └─ interpretationService.interpret(input)
+        └─ GemmaInterpreterAdapter  →  Ollama HTTP API
+```
+
+Deeper diagrams, file-level notes, and browser caveats: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. Ollama behavior and integration seams: **[docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)**.
 
 ---
 
-## Ethics & privacy
+## Implementation status (canonical)
 
-Browser audio, STT, and TTS run on-device in the browser. Interpretation text is sent to **your** Ollama instance (default: same machine). Emergency flow POSTs to **your** configured HTTPS proxy only when you set it. Twilio/SmartThings remain explicit stubs until you add backends. Health-adjacent deployments need consent, retention policy, and security review beyond this hackathon codebase.
+Use this table as the source of truth for what is “real” versus stubbed. If another document disagrees, prefer **this README** and **`docs/`**.
+
+| Area | Status | Notes |
+|------|--------|--------|
+| Microphone + RMS level | **Real** | `audioCaptureService`, `useMicrophone` |
+| Speech-to-text | **Real** (Web Speech API where supported) | Unsupported browsers → type-instead UI; see architecture doc |
+| Text-to-speech | **Real** | `speechSynthesis` with language-aware voice selection |
+| Camera preview + frame | **Real** | Frame passed into `interpret()` as image data |
+| Permissions UX | **Real** | Query, prompt, denied paths |
+| Model routing policy | **Real** | `chooseModel` in `modelRouter.ts`—no LLM inside the router |
+| Gemma / interpretation | **Real when Ollama is reachable** | Streaming + JSON parse + client-side checks; fails honestly otherwise |
+| Emergency dispatch | **Real when configured** | `POST` to user-set HTTPS proxy URL + caregiver phone in settings |
+
+---
+
+## Key files (orientation)
+
+| Topic | Location |
+|-------|----------|
+| Ollama client + prompts | `src/services/interpretation/GemmaInterpreterAdapter.ts` |
+| Interpretation entry | `src/services/interpretationService.ts` |
+| Ollama URL resolution | `src/lib/ollamaUrl.ts` |
+| Session + history | `src/contexts/SessionContext.tsx` |
+| Persisted settings | `src/contexts/SettingsContext.tsx` (localStorage) |
+| Emergency | `src/services/emergency.ts` |
+| Voice sample blobs | `src/lib/voiceSamples.ts` (IndexedDB) |
+
+---
+
+## Integrations and safety
+
+- **Ollama:** interpretation text and optional image payload leave the browser for **your** server.
+- **Emergency proxy:** only used when you set a URL you trust; payloads are health-adjacent—treat production like any HIPAA-sensitive integration (consent, retention, TLS, review).
+
+---
+
+## Roadmap (ideas)
+
+- Optional learned routing on top of `chooseModel`.
+- Stronger voice personalization and exports (beyond current local profile + samples).
+
+---
+
+## Documentation index
+
+| Document | Purpose |
+|----------|---------|
+| [docs/README.md](docs/README.md) | Index of `docs/` |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, flows, browser limits |
+| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma/Ollama + integration table (aligned with README) |
+| [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md) | Longer technical narrative |
+| [SUBMISSION_SUMMARY.md](SUBMISSION_SUMMARY.md) | Short blurb for portals |
+| [DELIVER.md](DELIVER.md) | Delivery checklist and tree |
 
 ---
 
 ## License
 
 [MIT](LICENSE)
-
----
-
-## Documentation index
-
-| Resource | Purpose |
-|----------|---------|
-| [docs/README.md](docs/README.md) | Doc index |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers and data flow |
-| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Ollama/Gemma behavior + integration seams (aligned with README “canonical” table) |
-| [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md) | Deeper technical narrative (if present in your clone) |
-| [SUBMISSION_SUMMARY.md](SUBMISSION_SUMMARY.md) | Short form blurb for hackathon portals |
-| [DELIVER.md](DELIVER.md) | Delivery checklist + file tree |

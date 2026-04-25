@@ -51,17 +51,11 @@ export function TranscriptionCard() {
 
   return (
     <Card
-      variant="glass-strong"
+      variant="solid"
       padded={false}
       className={cn(
         'relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden',
         'px-4 pb-3 pt-3 sm:px-5 sm:pb-4 sm:pt-3.5',
-        'ring-1 ring-[color:var(--ring-subtle)] shadow-elevate-lg',
-        isListening &&
-          'motion-safe:animate-card-listen motion-reduce:animate-none',
-        isProcessing &&
-          !isListening &&
-          'ring-2 ring-[var(--accent)]/15 motion-safe:transition-[box-shadow] motion-safe:duration-base',
       )}
     >
       <div className="flex shrink-0 items-start justify-between gap-2">

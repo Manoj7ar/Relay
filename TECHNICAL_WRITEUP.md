@@ -11,7 +11,7 @@ Relay is a **Vite + React 18 + TypeScript** PWA (strict mode, `vite-plugin-pwa` 
 3. **Session pipeline** — `SessionContext.submit` builds `InterpretationInput` (including optional `imageDataUrl` and `onStreamChunk`) and calls `interpret()` from `interpretationService.ts`.
 4. **Interpretation** — Single adapter **`GemmaInterpreterAdapter`**: calls **`http://localhost:11434/api/generate`** (Ollama), streams NDJSON, maps JSON to `InterpretationResult`, applies **`applyUrgencyGuard`** on transcript + model urgency. Throws **`GemmaNotConnectedError`** if Ollama is unreachable (no mock answers).
 5. **Routing policy** — `modelRouter.chooseModel` is **pure** (no network); picks E2B / E4B / 27B from input shape.
-6. **Integrations** — **Emergency**: `fetch` to user-configured `relay.emergency.proxyUrl` when set; else throws. **Twilio SMS** and **SmartThings** remain **stub throws** until implemented.
+6. **Integrations** — **Emergency**: `fetch` to user-configured `relay.emergency.proxyUrl` when URL and caregiver phone are set; otherwise throws `EmergencyNotConnectedError`.
 
 See **docs/ARCHITECTURE.md** and **docs/GEMMA_AND_INTEGRATIONS.md** for diagrams and the same “real vs stub” table as **README.md**.
 
@@ -35,7 +35,7 @@ Large tap targets, `aria-live` on streaming interpretation text, reduced-motion 
 
 - **STT** depends on the **Web Speech API**; not all browsers implement it (e.g. Firefox desktop → typed fallback).
 - **Ollama** must be running with pulled model tags matching **Settings → Models** defaults or your overrides.
-- **Twilio test SMS** and **SmartThings** are **not** implemented in-process — they throw until you add proxies.
+- **Emergency** does not bundle a carrier; you implement SMS/voice on the proxy you host.
 - **Clinical / HIPAA** deployment is out of scope for this hackathon repo.
 
 ## Evaluation

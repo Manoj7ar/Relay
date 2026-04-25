@@ -81,22 +81,7 @@ body {
   position: relative;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text);
-  background: radial-gradient(
-      1100px 680px at 50% -12%,
-      rgba(255, 255, 255, 0.92),
-      transparent 58%
-    ),
-    radial-gradient(
-      900px 560px at 100% 108%,
-      rgba(214, 214, 211, 0.55),
-      transparent 55%
-    ),
-    radial-gradient(
-      600px 400px at 0% 85%,
-      rgba(231, 231, 229, 0.45),
-      transparent 50%
-    ),
-    var(--bg);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

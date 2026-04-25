@@ -35,7 +35,7 @@ export function EmergencyBanner() {
     try {
       await triggerEmergency({
         message: current.primary,
-        caregiverPhone: settings.integrations.twilio.caregiverPhone,
+        caregiverPhone: settings.integrations.caregiverPhone,
         ts: Date.now(),
       });
       applyActionTaken(current.id, 'Emergency call triggered');

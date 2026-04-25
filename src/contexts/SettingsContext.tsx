@@ -25,11 +25,9 @@ type ProfileStringField =
   | 'caregiverRelationship';
 
 type Action =
+  | { type: 'SET_RELAY_POWER_ON'; value: boolean }
   | { type: 'SET_HIGH_CONTRAST'; value: boolean }
   | { type: 'SET_LARGE_TEXT'; value: boolean }
-  | { type: 'SET_SMARTTHINGS_ENABLED'; value: boolean }
-  | { type: 'SET_SMARTTHINGS_APIKEY'; value: string }
-  | { type: 'SET_SMARTTHINGS_HUB'; value: string }
   | { type: 'SET_CAREGIVER_PHONE'; value: string }
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
@@ -46,6 +44,8 @@ type Action =
 
 function reducer(state: SettingsState, action: Action): SettingsState {
   switch (action.type) {
+    case 'SET_RELAY_POWER_ON':
+      return { ...state, relayPowerOn: action.value };
     case 'SET_HIGH_CONTRAST':
       return {
         ...state,
@@ -56,45 +56,12 @@ function reducer(state: SettingsState, action: Action): SettingsState {
         ...state,
         accessibility: { ...state.accessibility, largeText: action.value },
       };
-    case 'SET_SMARTTHINGS_ENABLED':
-      return {
-        ...state,
-        integrations: {
-          ...state.integrations,
-          smartThings: {
-            ...state.integrations.smartThings,
-            enabled: action.value,
-          },
-        },
-      };
-    case 'SET_SMARTTHINGS_APIKEY':
-      return {
-        ...state,
-        integrations: {
-          ...state.integrations,
-          smartThings: {
-            ...state.integrations.smartThings,
-            apiKey: action.value,
-          },
-        },
-      };
-    case 'SET_SMARTTHINGS_HUB':
-      return {
-        ...state,
-        integrations: {
-          ...state.integrations,
-          smartThings: {
-            ...state.integrations.smartThings,
-            hubName: action.value,
-          },
-        },
-      };
     case 'SET_CAREGIVER_PHONE':
       return {
         ...state,
         integrations: {
           ...state.integrations,
-          twilio: { caregiverPhone: action.value },
+          caregiverPhone: action.value,
         },
       };
     case 'SET_PRIMARY_LANGUAGE':
@@ -193,21 +160,27 @@ function hydrate(fallback: SettingsState): SettingsState {
   return {
     ...fallback,
     ...stored,
+    relayPowerOn:
+      typeof stored.relayPowerOn === 'boolean'
+        ? stored.relayPowerOn
+        : fallback.relayPowerOn,
     accessibility: {
       ...fallback.accessibility,
       ...(stored.accessibility ?? {}),
     },
     integrations: {
-      ...fallback.integrations,
-      ...(stored.integrations ?? {}),
-      smartThings: {
-        ...fallback.integrations.smartThings,
-        ...(stored.integrations?.smartThings ?? {}),
-      },
-      twilio: {
-        ...fallback.integrations.twilio,
-        ...(stored.integrations?.twilio ?? {}),
-      },
+      caregiverPhone: (() => {
+        const raw = stored.integrations as unknown;
+        if (raw && typeof raw === 'object' && 'caregiverPhone' in raw) {
+          const v = (raw as { caregiverPhone?: unknown }).caregiverPhone;
+          if (typeof v === 'string') return v;
+        }
+        if (raw && typeof raw === 'object' && 'twilio' in raw) {
+          const tw = (raw as { twilio?: { caregiverPhone?: unknown } }).twilio;
+          if (tw && typeof tw.caregiverPhone === 'string') return tw.caregiverPhone;
+        }
+        return fallback.integrations.caregiverPhone;
+      })(),
     },
     language: { ...fallback.language, ...(stored.language ?? {}) },
     ollama: {

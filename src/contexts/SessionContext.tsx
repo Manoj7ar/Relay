@@ -36,6 +36,7 @@ import type {
 } from '@/types/session';
 
 type Action =
+  | { type: 'SUSPEND_RELAY' }
   | { type: 'START_LISTEN' }
   | { type: 'STOP_LISTEN' }
   | { type: 'SET_INTERIM'; text: string }
@@ -69,6 +70,14 @@ const INITIAL: SessionState = {
 
 function reducer(state: SessionState, action: Action): SessionState {
   switch (action.type) {
+    case 'SUSPEND_RELAY':
+      return {
+        ...state,
+        isListening: false,
+        isProcessing: false,
+        interimTranscript: '',
+        pendingImage: null,
+      };
     case 'START_LISTEN':
       return {
         ...state,
@@ -203,6 +212,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const { settings } = useSettings();
   const syncedPrimaryRef = useRef(false);
 
+  /** Stop capture and processing when Relay master power is turned off. */
+  useEffect(() => {
+    if (settings.relayPowerOn) return;
+    dispatch({ type: 'SUSPEND_RELAY' });
+  }, [settings.relayPowerOn]);
+
   /** Align session language / RTL with saved primary language on first load. */
   useEffect(() => {
     if (syncedPrimaryRef.current) return;
@@ -221,6 +236,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const submit = useCallback(
     async (req: InferenceRequest): Promise<InterpretationResult | null> => {
+      if (!settings.relayPowerOn) {
+        return null;
+      }
       const visionOn = req.visionOn ?? state.visionOn;
       const input: InterpretationInput = {
         sourceType:
@@ -275,12 +293,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
         return null;
       }
     },
-    [state.visionOn, state.pendingImage, recordInterpretation],
+    [settings.relayPowerOn, state.visionOn, state.pendingImage, recordInterpretation],
   );
 
-  const acceptAlternate = useCallback((alt: string) => {
-    dispatch({ type: 'APPLY_ALTERNATE', alternate: alt });
-  }, []);
+  const acceptAlternate = useCallback(
+    (alt: string) => {
+      if (!settings.relayPowerOn) return;
+      dispatch({ type: 'APPLY_ALTERNATE', alternate: alt });
+    },
+    [settings.relayPowerOn],
+  );
 
   const applyActionTaken = useCallback(
     (id: string, actionTaken: string, cancelled?: boolean) => {

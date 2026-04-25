@@ -8,7 +8,7 @@
 
 **Gemma / Ollama.** Relay uses a **single adapter** (`GemmaInterpreterAdapter`) calling **`http://localhost:11434`**, tier names from **Settings → Models**, and deterministic **`chooseModel`** routing (E2B / E4B / 27B narrative). This is **real HTTP inference** when Ollama is running — not in-browser mock text.
 
-**Integrations.** **Emergency** can **POST** to a user-configured HTTPS proxy when URL + caregiver phone are set. **Twilio test SMS** and **SmartThings** remain **explicit stubs** (typed errors) until wired behind your own backend.
+**Integrations.** **Emergency** can **POST** JSON to a user-configured HTTPS proxy when the proxy URL and caregiver phone are set; your server handles SMS, voice, or paging.
 
 **Differentiation.** Accessibility-first UI (touch, RTL, contrast), honest error surfaces, streaming interpretation UX, caregiver exports and routing filters, and documentation that **matches** the runtime (see README “Implementation status”).
 

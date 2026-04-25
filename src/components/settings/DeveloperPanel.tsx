@@ -36,24 +36,15 @@ export function DeveloperPanel() {
     },
     {
       label: 'Gemma 4 interpretation',
-      status: 'stub',
+      status: 'real',
       detail:
-        'src/services/interpretation/GemmaInterpreterAdapter.ts — throws until wired.',
+        'src/services/interpretation/GemmaInterpreterAdapter.ts — Ollama POST /api/generate; surfaces GemmaNotConnectedError when unreachable.',
     },
     {
       label: 'Emergency dispatch',
-      status: 'stub',
-      detail: 'src/services/emergency.ts — throws until Twilio proxy is wired.',
-    },
-    {
-      label: 'Twilio SMS',
-      status: 'stub',
-      detail: 'src/services/twilio.ts — throws until messaging proxy is wired.',
-    },
-    {
-      label: 'SmartThings',
-      status: 'stub',
-      detail: 'src/services/smartthings.ts — throws until OAuth + scenes are wired.',
+      status: 'real',
+      detail:
+        'src/services/emergency.ts — POST to user-set HTTPS proxy when URL and caregiver phone are configured; otherwise EmergencyNotConnectedError.',
     },
   ];
 
@@ -62,8 +53,8 @@ export function DeveloperPanel() {
       <Card padded={false} className="p-3">
         <h2 className="text-sm font-semibold text-text">Capability status</h2>
         <p className="mt-0.5 text-[11px] text-muted">
-          What's currently backed by real browser APIs vs. what's waiting on a
-          service implementation.
+          What is backed by real browser APIs and local Ollama vs. what still
+          needs configuration.
         </p>
         <ul className="mt-2 space-y-1.5">
           {rows.map((row) => (
@@ -91,12 +82,11 @@ export function DeveloperPanel() {
       <Card padded={false} className="p-3">
         <h2 className="text-sm font-semibold text-text">Connect Gemma 4</h2>
         <p className="mt-0.5 text-[11px] leading-snug text-muted">
-          Implement <code>interpret()</code> in{' '}
-          <code>src/services/interpretation/GemmaInterpreterAdapter.ts</code> (call
-          your Ollama / hosted endpoint, map the output to{' '}
-          <code>InterpretationResult</code>). Every input surface (mic, typed,
-          quick phrases, symbols, camera-attached) immediately starts producing
-          real responses — no UI change required.
+          Customize <code>interpret()</code> in{' '}
+          <code>src/services/interpretation/GemmaInterpreterAdapter.ts</code>{' '}
+          (Ollama base URL in Settings, prompts, timeouts). Map the output to{' '}
+          <code>InterpretationResult</code>. Every input surface (mic, typed,
+          quick phrases, symbols, camera-attached) flows through the same path.
         </p>
         <Link
           to="/about"

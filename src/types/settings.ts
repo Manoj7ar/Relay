@@ -3,15 +3,9 @@ export interface AccessibilitySettings {
   largeText: boolean;
 }
 
+/** Optional emergency POST: proxy URL lives in localStorage; phone is persisted here. */
 export interface IntegrationsSettings {
-  smartThings: {
-    enabled: boolean;
-    apiKey: string;
-    hubName: string;
-  };
-  twilio: {
-    caregiverPhone: string;
-  };
+  caregiverPhone: string;
 }
 
 export interface LanguageSettings {
@@ -61,6 +55,8 @@ export interface ProfileSettings {
 }
 
 export interface SettingsState {
+  /** When false, interpretation and patient inputs are suspended (master switch). */
+  relayPowerOn: boolean;
   accessibility: AccessibilitySettings;
   integrations: IntegrationsSettings;
   language: LanguageSettings;
@@ -83,19 +79,13 @@ export const DEFAULT_PROFILE: ProfileSettings = {
 };
 
 export const DEFAULT_SETTINGS: SettingsState = {
+  relayPowerOn: true,
   accessibility: {
     highContrast: false,
     largeText: false,
   },
   integrations: {
-    smartThings: {
-      enabled: false,
-      apiKey: '',
-      hubName: 'Home',
-    },
-    twilio: {
-      caregiverPhone: '',
-    },
+    caregiverPhone: '',
   },
   language: {
     primaryLanguage: 'en-US',

@@ -47,8 +47,6 @@ flowchart TB
   end
   subgraph integrations [Integrations]
     Emergency[emergency optional proxy]
-    ST[smartthings stub]
-    Twilio[twilio stub]
   end
 
   Pages --> Session
@@ -118,9 +116,7 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 
 ## Integrations (`src/services`)
 
-- **`emergency.ts`** — When `relay.emergency.proxyUrl` and caregiver phone are set, posts to your HTTPS proxy; otherwise throws `EmergencyNotConnectedError`.
-- **`twilio.ts`** — Test SMS path still **stubbed** (`TwilioNotConnectedError`).
-- **`smartthings.ts`** — **Stubbed** (`SmartThingsNotConnectedError`).
+- **`emergency.ts`** — When `relay.emergency.proxyUrl` (localStorage) and caregiver phone (settings) are set, posts JSON to your HTTPS proxy; otherwise throws `EmergencyNotConnectedError`.
 
 ## Persistence
 
@@ -144,7 +140,5 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 | Routing decision | Real `chooseModel` | Swap to Cactus if desired |
 | Interpretation | **Ollama** via `GemmaInterpreterAdapter`; **error** if unreachable | `GemmaInterpreterAdapter.ts` |
 | Emergency escalation | In-app countdown + **POST to configured proxy** when set | `services/emergency.ts` |
-| Twilio SMS | Stub | `services/twilio.ts` |
-| SmartThings | Stub | `services/smartthings.ts` |
 
 For the Gemma wiring checklist, see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md).
