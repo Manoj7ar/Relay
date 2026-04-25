@@ -156,12 +156,12 @@ body {
     );
   }
 
-  /* Beats Tailwind min-h on PillButton for short viewports (landscape / small phones). */
-  button.primary-mic {
+  /* Home row: Symbol / Mic / Type — same min-height; tighter on short viewports. */
+  button.relay-home-pill {
     min-height: 68px !important;
   }
 
-  :root[data-vp-short='true'] button.primary-mic {
+  :root[data-vp-short='true'] button.relay-home-pill {
     min-height: 58px !important;
   }
 

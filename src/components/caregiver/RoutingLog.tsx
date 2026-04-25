@@ -43,7 +43,7 @@ export function RoutingLog({ compact }: RoutingLogProps) {
         </span>
         <p className="text-xs font-medium text-text">No routing decisions yet</p>
         <p className="max-w-[280px] text-[11px] leading-snug text-muted">
-          Send input from Home (mic, quick phrases, symbols, or type) — each
+          Send input from Home (mic, symbols, or type) — each
           interpretation will log its model tier and routing reason here.
         </p>
       </Card>

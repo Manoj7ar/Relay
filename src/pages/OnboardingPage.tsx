@@ -120,7 +120,7 @@ export function OnboardingPage() {
       case 'lang-caregiver':
         return 'Pick primary + caregiver language and who gets emergency alerts.';
       case 'phrases':
-        return 'Shortcuts show up at the top of the Quick phrase picker.';
+        return 'Common phrases help Gemma understand how you usually speak.';
       case 'a11y-done':
         return 'Two quick display toggles, then you are all set.';
     }

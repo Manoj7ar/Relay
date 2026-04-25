@@ -10,8 +10,8 @@ The codebase prioritizes **real browser APIs** and **honest failure modes**: if 
 
 | Area | Description |
 |------|-------------|
-| **Onboarding** | First-run flow for role, identity, condition, voice samples (stored locally), language, caregiver details, quick phrases, and accessibility preferences. Skippable steps where marked. |
-| **Home (`/`)** | Large mic control, live transcript, interpretation card, quick phrases, symbol board, optional camera, “type instead” inline composer, language switcher, and connection status. |
+| **Onboarding** | First-run flow for role, identity, condition, voice samples (stored locally), language, caregiver details, personal phrases (for Gemma context), and accessibility preferences. Skippable steps where marked. |
+| **Home (`/`)** | Large mic control, live transcript, interpretation card, symbol board, optional camera, “type instead” inline composer, language switcher, and connection status. |
 | **Caregiver (`/caregiver`)** | Today’s interactions, routing log, alerts timeline, and handover note—fed from session history after successful interpretations. |
 | **Settings (`/settings`)** | Profile, accessibility (contrast, text size), **Ollama base URL** and model names, **emergency** (HTTPS proxy URL + caregiver phone), language, connectivity, routing log, developer tools. |
 | **About (`/about`)** | High-level architecture and how Gemma fits in. |

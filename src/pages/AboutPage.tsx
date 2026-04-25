@@ -90,7 +90,7 @@ Patient hears their words, clearly`}
           Interpretation adapter
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted">
-          Every input surface (mic + STT, typed fallback, quick phrases,
+          Every input surface (mic + STT, typed fallback,
           symbols, camera frame) routes through a single{' '}
           <code className="rounded bg-black/5 px-1">interpret(input)</code>{' '}
           call. The adapter body is the only thing to swap — the UI never

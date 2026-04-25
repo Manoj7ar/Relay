@@ -67,7 +67,7 @@ flowchart TB
 - **Primitives**: reusable glass-style controls (`Card`, `PillButton`, `Modal`, etc.).
 - **Domain components**: `patient/`, `caregiver/`, `settings/`.
 
-Every input surface (mic + STT, `TypeInsteadSheet`, `QuickPhrases`, `SymbolBoardOverlay`, `CameraPreview` frame capture) funnels into `SessionContext.submit` → `interpret()`.
+Every input surface (mic + STT, `TypeInsteadSheet`, `SymbolBoardOverlay`, `CameraPreview` frame capture) funnels into `SessionContext.submit` → `interpret()`.
 
 ## Hooks (`src/hooks`)
 

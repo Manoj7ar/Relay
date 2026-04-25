@@ -35,7 +35,7 @@ You can verify mic → interim transcript → typed fallback without running Oll
 
 ## The single interpretation entry point
 
-Every input surface (mic → STT, typed, quick phrases, symbols, camera-attached frame) calls:
+Every input surface (mic → STT, typed, symbols, camera-attached frame) calls:
 
 ```ts
 import { interpret } from '@/services/interpretationService';

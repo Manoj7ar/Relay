@@ -57,32 +57,32 @@ export function TypeInsteadSheet() {
   };
 
   return (
-    <div className="w-full max-w-[min(100%,22rem)] mx-auto">
-      <button
+    <div className="w-full">
+      <PillButton
         type="button"
         id={`${panelId}-trigger`}
         aria-expanded={expanded}
         aria-controls={panelId}
+        size="lg"
+        variant="glass"
+        fullWidth
+        className={cn('relay-home-pill')}
         onClick={() => setExpanded((v) => !v)}
-        className="control-ghost mx-auto flex w-full max-w-xs items-center justify-center gap-1.5 px-4 text-xs font-medium"
+        leftIcon={
+          expanded ? (
+            <ChevronUp className="h-5 w-5" aria-hidden />
+          ) : (
+            <Keyboard className="h-5 w-5" aria-hidden />
+          )
+        }
         aria-label={
           expanded
             ? 'Hide typing area'
             : 'Type a message instead of speaking'
         }
       >
-        {expanded ? (
-          <>
-            <ChevronUp className="h-3.5 w-3.5" aria-hidden />
-            Hide typing
-          </>
-        ) : (
-          <>
-            <Keyboard className="h-3.5 w-3.5" aria-hidden />
-            Type instead
-          </>
-        )}
-      </button>
+        {expanded ? 'Hide typing' : 'Type instead'}
+      </PillButton>
 
       <div
         className={cn(

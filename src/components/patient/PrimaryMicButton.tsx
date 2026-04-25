@@ -128,7 +128,7 @@ export function PrimaryMicButton() {
         )
       }
       className={cn(
-        'primary-mic text-lg',
+        'relay-home-pill text-lg',
         state.isListening &&
           'motion-safe:animate-listen-glow motion-reduce:animate-none',
         uiState === 'processing' &&

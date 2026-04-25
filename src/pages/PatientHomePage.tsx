@@ -4,7 +4,6 @@ import { cn } from '@/lib/cn';
 import { TopStatusBar } from '@/components/patient/TopStatusBar';
 import { TranscriptionCard } from '@/components/patient/TranscriptionCard';
 import { PrimaryMicButton } from '@/components/patient/PrimaryMicButton';
-import { QuickPhrases } from '@/components/patient/QuickPhrases';
 import { SymbolBoardButton } from '@/components/patient/SymbolBoardButton';
 import { SymbolBoardOverlay } from '@/components/patient/SymbolBoardOverlay';
 import { EmergencyBanner } from '@/components/patient/EmergencyBanner';
@@ -33,17 +32,10 @@ export function PatientHomePage() {
         <div className="flex min-h-0 flex-1 flex-col px-2 min-[380px]:px-2.5">
           <TranscriptionCard />
         </div>
-        <div className="shrink-0">
-          <QuickPhrases />
-        </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex flex-col gap-1.5 pb-1">
           <SymbolBoardButton onOpen={() => setBoardOpen(true)} />
-        </div>
-        <div className="shrink-0 pb-1">
           <PrimaryMicButton />
-          <div className="mt-1.5 flex justify-center">
-            <TypeInsteadSheet />
-          </div>
+          <TypeInsteadSheet />
         </div>
       </div>
 

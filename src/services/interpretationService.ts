@@ -60,7 +60,7 @@ export interface InterpreterAdapter {
 /**
  * The one and only adapter. Replace the body of
  * `GemmaInterpreterAdapter.interpret` with a real Gemma 4 call and every
- * input source (mic → STT, typed, quick phrases, symbols, camera frame)
+ * input source (mic → STT, typed, symbols, camera frame)
  * starts producing real results without any UI change.
  */
 const adapter: InterpreterAdapter = GemmaInterpreterAdapter;

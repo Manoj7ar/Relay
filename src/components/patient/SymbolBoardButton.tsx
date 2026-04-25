@@ -1,5 +1,6 @@
 import { LayoutGrid } from 'lucide-react';
 import { PillButton } from '@/components/primitives';
+import { cn } from '@/lib/cn';
 
 interface SymbolBoardButtonProps {
   onOpen: () => void;
@@ -8,12 +9,12 @@ interface SymbolBoardButtonProps {
 export function SymbolBoardButton({ onOpen }: SymbolBoardButtonProps) {
   return (
     <PillButton
-      size="sm"
+      size="lg"
       variant="glass"
       onClick={onOpen}
-      leftIcon={<LayoutGrid className="h-4 w-4" aria-hidden />}
-      className="!min-h-11 justify-start text-sm"
       fullWidth
+      className={cn('relay-home-pill')}
+      leftIcon={<LayoutGrid className="h-5 w-5" aria-hidden />}
     >
       Symbol board
     </PillButton>

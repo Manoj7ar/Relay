@@ -86,7 +86,7 @@ export function DeveloperPanel() {
           <code>src/services/interpretation/GemmaInterpreterAdapter.ts</code>{' '}
           (Ollama base URL in Settings, prompts, timeouts). Map the output to{' '}
           <code>InterpretationResult</code>. Every input surface (mic, typed,
-          quick phrases, symbols, camera-attached) flows through the same path.
+          symbols, camera-attached) flows through the same path.
         </p>
         <Link
           to="/about"
