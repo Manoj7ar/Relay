@@ -24,9 +24,16 @@
  * See docs/GEMMA_AND_INTEGRATIONS.md for the deployment checklist.
  */
 
+import { resolveBilingualHero } from '@/lib/bilingualHero';
+import {
+  inferSpeakerFromDetectedLanguage,
+  inferSpeakerFromTranscript,
+} from '@/lib/transcriptSpeakerHint';
 import { uid } from '@/lib/id';
 import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
+import { incrementConfirmation, listEntries } from '@/lib/patientDictionary';
 import { applyUrgencyGuard } from '@/lib/urgencyGuard';
+import type { DictionaryEntry, SignalModality } from '@/types/dictionary';
 import type { ModelId, Mood, Urgency } from '@/types/model';
 import { chooseModel, type RoutingDecision } from '../modelRouter';
 import type {
@@ -36,6 +43,7 @@ import type {
 } from '../interpretationService';
 
 const REQUEST_TIMEOUT_MS = 30_000;
+const DICTIONARY_CONTEXT_LIMIT = 30;
 
 export class GemmaNotConnectedError extends Error {
   constructor(ollamaBase: string, detail?: string) {
@@ -164,29 +172,147 @@ function buildProfileBlock(): string {
   return block;
 }
 
-function buildPrompt(input: InterpretationInput): string {
-  const visionLine = input.imageDataUrl
-    ? '\nA camera frame is included with this request. The patient may be pointing at an object, showing their environment, or indicating something visual. Use this context to better understand their intent.'
-    : '';
+function inferSignalModality(input: InterpretationInput): SignalModality {
+  const channels = [
+    input.transcript ? 'transcript' : null,
+    input.imageDataUrl ? 'image' : null,
+    input.symbolIds?.length || input.symbols?.length ? 'symbols' : null,
+    input.gestureHints?.length ? 'gestures' : null,
+  ].filter(Boolean);
+
+  if (channels.length > 1) return 'compound';
+  if (input.symbolIds?.length || input.symbols?.length) return 'symbol';
+  if (input.imageDataUrl || input.gestureHints?.length) return 'gesture';
+
+  const transcript = input.transcript?.trim() ?? '';
+  const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+  return wordCount > 0 && (wordCount <= 2 || transcript.length <= 14)
+    ? 'partial_word'
+    : 'vocalization';
+}
+
+function compactDictionaryEntries(entries: DictionaryEntry[]) {
+  return entries.map((entry) => ({
+    id: entry.id,
+    modality: entry.modality,
+    rawTranscript: entry.rawTranscript,
+    hasImage: Boolean(entry.imageDataUrl),
+    symbolIds: entry.symbolIds,
+    meaning: entry.meaning,
+    contextTags: entry.contextTags,
+    confirmations: entry.confirmations,
+    lastSeenAt: entry.lastSeenAt,
+  }));
+}
+
+async function loadRelevantDictionaryEntries(
+  input: InterpretationInput,
+): Promise<DictionaryEntry[]> {
+  if (input.recentEntries) {
+    return input.recentEntries.slice(0, DICTIONARY_CONTEXT_LIMIT);
+  }
+
+  const modality = inferSignalModality(input);
+  const primary = await listEntries({
+    modality,
+    limit: DICTIONARY_CONTEXT_LIMIT,
+    recent: true,
+  });
+
+  if (primary.length >= DICTIONARY_CONTEXT_LIMIT || modality !== 'compound') {
+    return primary;
+  }
+
+  const fallback = await listEntries({
+    limit: DICTIONARY_CONTEXT_LIMIT,
+    recent: true,
+  });
+  const merged = new Map<string, DictionaryEntry>();
+  [...primary, ...fallback].forEach((entry) => merged.set(entry.id, entry));
+  return [...merged.values()].slice(0, DICTIONARY_CONTEXT_LIMIT);
+}
+
+function buildPatientSignalBlock(entries: DictionaryEntry[]): string {
+  if (!entries.length) return '';
+  return `\nPatient's known signals (compact JSON; only use ids that truly influenced the answer):\n${JSON.stringify(compactDictionaryEntries(entries))}`;
+}
+
+function normalizeInferredSpeaker(
+  value: unknown,
+): 'patient' | 'caregiver' | undefined {
+  if (typeof value !== 'string') return undefined;
+  const s = value.trim().toLowerCase();
+  if (s === 'caregiver') return 'caregiver';
+  if (s === 'patient') return 'patient';
+  return undefined;
+}
+
+function buildChannelSummary(input: InterpretationInput): string[] {
+  const channels: string[] = [];
+  if (input.transcript) channels.push(`speech transcript: "${input.transcript}"`);
+  if (input.symbols?.length || input.symbolIds?.length) {
+    channels.push(
+      `symbols: ${JSON.stringify({
+        labels: input.symbols ?? [],
+        ids: input.symbolIds ?? [],
+      })}`,
+    );
+  }
+  if (input.imageDataUrl) {
+    channels.push('camera frame: included with this request');
+  }
+  if (input.gestureHints?.length) {
+    channels.push(`gesture hints: ${input.gestureHints.join(', ')}`);
+  }
+  if (input.timeOfDay) channels.push(`time of day: ${input.timeOfDay}`);
+  return channels;
+}
+
+function getContributingChannels(input: InterpretationInput): string[] {
+  const channels: string[] = [];
+  if (input.transcript) channels.push('speech');
+  if (input.symbols?.length || input.symbolIds?.length) channels.push('symbols');
+  if (input.imageDataUrl) channels.push('camera');
+  if (input.gestureHints?.length) channels.push('gesture');
+  if (input.timeOfDay) channels.push('time');
+  return channels;
+}
+
+function buildPrompt(
+  input: InterpretationInput,
+  dictionaryEntries: DictionaryEntry[],
+): string {
+  const channels = buildChannelSummary(input);
+  const symbolOnly = input.sourceType === 'symbols';
+
+  const speakerBlock = symbolOnly
+    ? '\nINPUT IS SYMBOL BOARD ONLY: the speaker is always the PATIENT. Set inferredSpeaker to "patient".'
+    : `\n${input.conversationTail?.trim() ? `${input.conversationTail.trim()}\n` : ''}Speaker inference (no manual speaker toggle in the app):
+- Decide whether the current spoken or typed input is from the PATIENT (AAC user) or the CAREGIVER/companion, using transcript language, who is being addressed, clinical vs everyday phrasing, and continuity with recent exchanges.
+- You MUST output inferredSpeaker as exactly "patient" or "caregiver".`;
 
   const symbolLine =
-    input.sourceType === 'symbols' && input.symbols?.length
+    (input.sourceType === 'symbols' || input.symbols?.length) && input.symbols?.length
       ? `\nThe patient tapped these symbols: ${input.symbols.join(', ')}`
       : '';
 
   const inputLine = input.transcript
-    ? `Patient said (may be fragmented or unclear): "${input.transcript}"`
+    ? `Current transcript (may be fragmented; speaker may be patient OR caregiver): "${input.transcript}"`
     : 'Patient communicated via symbols only — no spoken input.';
 
   const profileBlock = buildProfileBlock();
+  const patientSignalBlock = buildPatientSignalBlock(dictionaryEntries);
 
   return `You are Relay, a speech accessibility assistant for people with ALS, stroke aphasia, dysarthria, or Parkinson's disease.
 
 Patient context:
-- Language: ${input.language ?? 'en-US'}
-- Input modality: ${input.sourceType}${visionLine}${symbolLine}${profileBlock}
+- Patient language (BCP-47): ${input.patientLanguage}
+- Caregiver language (BCP-47): ${input.caregiverLanguage}
+- Legacy locale hint: ${input.language ?? input.patientLanguage}
+- Input modality: ${input.sourceType}${symbolLine}${profileBlock}${patientSignalBlock}${speakerBlock}
 
-${inputLine}
+Concurrent signal channels captured at ${new Date().toISOString()}:
+${channels.length > 0 ? channels.map((channel) => `- ${channel}`).join('\n') : `- ${inputLine}`}
 
 Common speech patterns to understand:
 - Dropped syllables: "wan" = "want", "coff" = "coffee", "wah" = "water"
@@ -196,17 +322,27 @@ Common speech patterns to understand:
 - Polish examples: "zimno" = "I am cold", "woda" = "water please"
 - Arabic examples: "ماء" = "I need water", "ألم" = "I am in pain"
 
-Reconstruct the most likely full intended sentence. Be warm and natural, not robotic.
+Given these concurrent signals and this patient's known local dictionary, infer the most likely single intent. Prefer patient-specific dictionary meanings over generic AAC assumptions when the current input is similar. Be warm and natural, not robotic.
+
+You MUST output the clarified intent in BOTH configured languages:
+- patientLanguageText: full sentence in patient language (${input.patientLanguage})
+- caregiverLanguageText: same meaning in caregiver language (${input.caregiverLanguage})
+- primaryText: MUST be an exact duplicate of patientLanguageText (used for streaming previews)
+- detectedLanguage: BCP-47 code for the language of the SOURCE utterance after clarification (patient or caregiver, not the translation)
+- inferredSpeaker: "patient" or "caregiver" — who produced the current input (see speaker rules above)
 
 Respond ONLY with valid JSON, no markdown, no explanation:
 {
-  "primaryText": "the most likely full intended sentence in the patient's language",
+  "primaryText": "duplicate of patientLanguageText",
+  "patientLanguageText": "full clarified sentence in patient language",
+  "caregiverLanguageText": "same clarified sentence in caregiver language",
+  "inferredSpeaker": "patient",
   "alternates": ["second interpretation", "third interpretation"],
   "confidence": 0.87,
   "urgency": "LOW",
   "mood": "calm",
   "detectedLanguage": "en-US",
-  "translation": "English translation only if input was non-English — omit this field otherwise"
+  "dictionaryMatchIds": ["dict_id_used_if_any"]
 }
 
 urgency rules:
@@ -223,12 +359,16 @@ mood rules:
 
 interface GemmaRawResponse {
   primaryText?: string;
+  patientLanguageText?: string;
+  caregiverLanguageText?: string;
+  inferredSpeaker?: string;
   alternates?: unknown[];
   confidence?: number;
   urgency?: string;
   mood?: string;
   detectedLanguage?: string;
   translation?: string;
+  dictionaryMatchIds?: unknown[];
 }
 
 const VALID_URGENCY: ReadonlySet<string> = new Set([
@@ -244,18 +384,21 @@ const VALID_MOOD: ReadonlySet<string> = new Set([
 ]);
 
 interface ParsedFields {
-  primaryText: string;
+  patientLanguageText: string;
+  caregiverLanguageText: string;
+  inferredSpeakerModel?: 'patient' | 'caregiver';
   alternates: string[];
   confidence: number;
   urgency: Urgency;
   mood: Mood;
   detectedLanguage: string;
-  translation?: string;
+  dictionaryMatchIds: string[];
 }
 
 function parseGemmaResponse(
   raw: string,
   input: InterpretationInput,
+  allowedDictionaryIds: ReadonlySet<string>,
 ): ParsedFields {
   let parsed: GemmaRawResponse;
   try {
@@ -265,13 +408,17 @@ function parseGemmaResponse(
       .trim();
     parsed = JSON.parse(clean) as GemmaRawResponse;
   } catch {
+    const fallback = raw.slice(0, 200) || 'Message received.';
     return {
-      primaryText: raw.slice(0, 200) || 'Message received.',
+      patientLanguageText: fallback,
+      caregiverLanguageText: fallback,
+      inferredSpeakerModel: undefined,
       alternates: [],
       confidence: 0.5,
       urgency: 'NORMAL',
       mood: 'calm',
       detectedLanguage: input.language ?? 'en-US',
+      dictionaryMatchIds: [],
     };
   }
 
@@ -282,11 +429,25 @@ function parseGemmaResponse(
     ? (parsed.mood as Mood)
     : 'calm';
 
-  return {
-    primaryText:
-      typeof parsed.primaryText === 'string' && parsed.primaryText.length > 0
+  const patientRaw =
+    typeof parsed.patientLanguageText === 'string' &&
+    parsed.patientLanguageText.length > 0
+      ? parsed.patientLanguageText
+      : typeof parsed.primaryText === 'string' && parsed.primaryText.length > 0
         ? parsed.primaryText
-        : 'Message received.',
+        : 'Message received.';
+  const caregiverRaw =
+    typeof parsed.caregiverLanguageText === 'string' &&
+    parsed.caregiverLanguageText.length > 0
+      ? parsed.caregiverLanguageText
+      : typeof parsed.translation === 'string' && parsed.translation.length > 0
+        ? parsed.translation
+        : patientRaw;
+
+  return {
+    patientLanguageText: patientRaw,
+    caregiverLanguageText: caregiverRaw,
+    inferredSpeakerModel: normalizeInferredSpeaker(parsed.inferredSpeaker),
     alternates: Array.isArray(parsed.alternates)
       ? (parsed.alternates.filter((a) => typeof a === 'string') as string[]).slice(
           0,
@@ -303,8 +464,14 @@ function parseGemmaResponse(
       typeof parsed.detectedLanguage === 'string'
         ? parsed.detectedLanguage
         : (input.language ?? 'en-US'),
-    translation:
-      typeof parsed.translation === 'string' ? parsed.translation : undefined,
+    dictionaryMatchIds: Array.isArray(parsed.dictionaryMatchIds)
+      ? parsed.dictionaryMatchIds
+          .filter(
+            (id): id is string =>
+              typeof id === 'string' && allowedDictionaryIds.has(id),
+          )
+          .slice(0, 5)
+      : [],
   };
 }
 
@@ -464,8 +631,13 @@ async function callOllamaStreaming(
 }
 
 function buildInferenceRequest(input: InterpretationInput) {
-  const inputType: 'symbols' | 'vision+speech' | 'text' | 'speech' =
-    input.sourceType === 'symbols'
+  const channelCount = getContributingChannels(input).filter(
+    (channel) => channel !== 'time',
+  ).length;
+  const inputType: 'symbols' | 'vision+speech' | 'text' | 'speech' | 'compound' =
+    channelCount > 1
+      ? 'compound'
+      : input.sourceType === 'symbols'
       ? 'symbols'
       : input.imageDataUrl
         ? 'vision+speech'
@@ -477,9 +649,12 @@ function buildInferenceRequest(input: InterpretationInput) {
     inputType,
     transcript: input.transcript,
     symbols: input.symbols,
+    symbolIds: input.symbolIds,
+    gestureHints: input.gestureHints,
+    timeOfDay: input.timeOfDay,
     visionOn: Boolean(input.imageDataUrl),
     urgencyHint: input.urgencyHint,
-    language: input.language,
+    language: input.language ?? input.patientLanguage,
   };
 }
 
@@ -490,7 +665,9 @@ async function interpret(
   const req = buildInferenceRequest(input);
   const decision: RoutingDecision = chooseModel(req);
   const modelName = getModelName(decision.model);
-  const prompt = buildPrompt(input);
+  const dictionaryEntries = await loadRelevantDictionaryEntries(input);
+  const allowedDictionaryIds = new Set(dictionaryEntries.map((entry) => entry.id));
+  const prompt = buildPrompt(input, dictionaryEntries);
   const t0 = Date.now();
 
   const rawResponse = await callOllamaStreaming(
@@ -502,24 +679,75 @@ async function interpret(
   );
   const latencyMs = Date.now() - t0;
 
-  const parsed = parseGemmaResponse(rawResponse, input);
+  const parsed = parseGemmaResponse(rawResponse, input, allowedDictionaryIds);
   const guardedUrgency = applyUrgencyGuard(parsed.urgency, input.transcript);
+  await Promise.all(parsed.dictionaryMatchIds.map((id) => incrementConfirmation(id)));
+
+  const symbolOnly = input.sourceType === 'symbols';
+
+  const fromModel = symbolOnly ? undefined : parsed.inferredSpeakerModel;
+  const transcriptHint = symbolOnly
+    ? undefined
+    : inferSpeakerFromTranscript(
+        input.transcript ?? '',
+        input.patientLanguage,
+        input.caregiverLanguage,
+      );
+  const fromDetection = symbolOnly
+    ? undefined
+    : inferSpeakerFromDetectedLanguage(
+        parsed.detectedLanguage,
+        input.patientLanguage,
+        input.caregiverLanguage,
+      );
+
+  const tieBreakSpeaker: 'patient' | 'caregiver' = symbolOnly
+    ? 'patient'
+    : (fromModel ??
+      transcriptHint ??
+      input.speakerRole ??
+      input.sessionLastInferredSpeaker ??
+      'patient');
+
+  const inferredSpeaker: 'patient' | 'caregiver' = symbolOnly
+    ? 'patient'
+    : (fromModel ??
+      transcriptHint ??
+      fromDetection ??
+      input.sessionLastInferredSpeaker ??
+      'patient');
+
+  const bilingual = resolveBilingualHero({
+    patientLanguageText: parsed.patientLanguageText,
+    caregiverLanguageText: parsed.caregiverLanguageText,
+    patientLang: input.patientLanguage,
+    caregiverLang: input.caregiverLanguage,
+    detectedLanguage: parsed.detectedLanguage,
+    speakerRole: tieBreakSpeaker,
+  });
 
   return {
     id: uid('interp'),
     ts: Date.now(),
-    primaryText: parsed.primaryText,
+    primaryText: bilingual.primaryText,
+    patientLanguageText: bilingual.patientLanguageText,
+    caregiverLanguageText: bilingual.caregiverLanguageText,
     alternates: parsed.alternates,
     confidence: parsed.confidence,
     urgency: guardedUrgency,
     mood: parsed.mood,
     detectedLanguage: parsed.detectedLanguage,
-    translation: parsed.translation,
+    translation: bilingual.translation,
+    ttsLang: bilingual.ttsLang,
+    bilingualAmbiguous: bilingual.ambiguous,
+    inferredSpeaker,
     sourceModel: decision.model,
     sourceType: input.sourceType,
     routingReason: decision.reason,
     latencyMs,
     visionUsed: Boolean(input.imageDataUrl),
+    dictionaryMatchIds: parsed.dictionaryMatchIds,
+    contributingChannels: getContributingChannels(input),
     sourceFragment:
       input.transcript?.slice(0, 60) ?? input.symbols?.join(', '),
   };

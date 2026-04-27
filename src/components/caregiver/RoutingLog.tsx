@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Camera, Cpu, Route } from 'lucide-react';
+import { Camera, Cpu, Route, Wrench } from 'lucide-react';
 import { Card, StatusBadge } from '@/components/primitives';
 import { useModelRouting } from '@/contexts/ModelRoutingContext';
 import { formatClock } from '@/lib/time';
@@ -102,7 +102,14 @@ export function RoutingLog({ compact }: RoutingLogProps) {
                     {entry.model}
                   </StatusBadge>
                   <StatusBadge className="text-[10px]">
-                    {entry.inputType}
+                    {entry.inputType === 'tool' ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Wrench className="h-3 w-3" aria-hidden />
+                        {entry.toolName ?? 'tool'}
+                      </span>
+                    ) : (
+                      entry.inputType
+                    )}
                   </StatusBadge>
                   {entry.visionUsed ? (
                     <StatusBadge

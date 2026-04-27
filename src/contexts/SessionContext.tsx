@@ -20,6 +20,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { load, save } from '@/lib/storage';
+import { formatConversationTailForPrompt } from '@/lib/conversationContext';
 import { directionFor } from '@/hooks/useRTL';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useModelRouting } from './ModelRoutingContext';
@@ -31,12 +32,14 @@ import {
 import type { InferenceRequest, Interpretation, ModelId } from '@/types/model';
 import type {
   InteractionRecord,
+  LastInputSnapshot,
   PendingImageContext,
   SessionState,
 } from '@/types/session';
 
 type Action =
   | { type: 'SUSPEND_RELAY' }
+  | { type: 'SET_SESSION_INFERRED_SPEAKER'; role: 'patient' | 'caregiver' }
   | { type: 'START_LISTEN' }
   | { type: 'STOP_LISTEN' }
   | { type: 'SET_INTERIM'; text: string }
@@ -46,6 +49,7 @@ type Action =
   | { type: 'TOGGLE_VISION' }
   | { type: 'SET_VISION'; value: boolean }
   | { type: 'SET_PENDING_IMAGE'; image: PendingImageContext | null }
+  | { type: 'SET_LAST_INPUT'; input: LastInputSnapshot | null }
   | { type: 'SET_LANGUAGE'; language: string; direction: 'ltr' | 'rtl' }
   | { type: 'CANCEL_CURRENT' }
   | { type: 'SET_ERROR'; message: string | null }
@@ -61,10 +65,12 @@ const INITIAL: SessionState = {
   currentInterpretation: null,
   history: [],
   visionOn: false,
+  sessionInferredSpeaker: null,
   detectedLanguage: 'en-US',
   direction: 'ltr',
   interimTranscript: '',
   pendingImage: null,
+  lastInputSnapshot: null,
   lastError: null,
 };
 
@@ -77,7 +83,10 @@ function reducer(state: SessionState, action: Action): SessionState {
         isProcessing: false,
         interimTranscript: '',
         pendingImage: null,
+        sessionInferredSpeaker: null,
       };
+    case 'SET_SESSION_INFERRED_SPEAKER':
+      return { ...state, sessionInferredSpeaker: action.role };
     case 'START_LISTEN':
       return {
         ...state,
@@ -103,7 +112,9 @@ function reducer(state: SessionState, action: Action): SessionState {
         isProcessing: false,
         currentInterpretation: action.interpretation,
         detectedLanguage: action.interpretation.detectedLanguage,
-        direction: directionFor(action.interpretation.detectedLanguage),
+        direction: directionFor(
+          action.interpretation.ttsLang ?? action.interpretation.detectedLanguage,
+        ),
         interimTranscript: '',
         lastError: null,
       };
@@ -128,6 +139,8 @@ function reducer(state: SessionState, action: Action): SessionState {
       return { ...state, visionOn: action.value };
     case 'SET_PENDING_IMAGE':
       return { ...state, pendingImage: action.image };
+    case 'SET_LAST_INPUT':
+      return { ...state, lastInputSnapshot: action.input };
     case 'SET_LANGUAGE':
       return {
         ...state,
@@ -153,40 +166,59 @@ function reducer(state: SessionState, action: Action): SessionState {
         ),
       };
     case 'CLEAR_HISTORY':
-      return { ...state, history: [] };
+      return { ...state, history: [], sessionInferredSpeaker: null };
     case 'HYDRATE_HISTORY':
       return { ...state, history: action.history };
   }
 }
 
 function resultToInterpretation(result: InterpretationResult): Interpretation {
+  const inputType =
+    result.contributingChannels.length > 1
+      ? 'compound'
+      : result.sourceType === 'speech'
+        ? result.visionUsed
+          ? 'vision+speech'
+          : 'speech'
+        : result.sourceType === 'symbols'
+          ? 'symbols'
+          : 'text';
+
   return {
     id: result.id,
     ts: result.ts,
     primary: result.primaryText,
+    patientLanguageText: result.patientLanguageText,
+    caregiverLanguageText: result.caregiverLanguageText,
     alternates: result.alternates,
     confidence: result.confidence,
     urgency: result.urgency,
     mood: result.mood,
     detectedLanguage: result.detectedLanguage,
     translation: result.translation,
+    ttsLang: result.ttsLang,
+    bilingualAmbiguous: result.bilingualAmbiguous,
+    inferredSpeaker: result.inferredSpeaker,
     model: isModelId(result.sourceModel) ? result.sourceModel : 'E2B',
     latencyMs: result.latencyMs,
-    inputType:
-      result.sourceType === 'speech'
-        ? result.visionUsed
-          ? 'vision+speech'
-          : 'speech'
-        : result.sourceType === 'symbols'
-          ? 'symbols'
-          : 'text',
+    inputType,
     visionUsed: result.visionUsed,
+    dictionaryMatchIds: result.dictionaryMatchIds,
+    contributingChannels: result.contributingChannels,
     sourceFragment: result.sourceFragment,
   };
 }
 
 function isModelId(value: string): value is ModelId {
   return value === 'E2B' || value === 'E4B' || value === '27B';
+}
+
+function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
 }
 
 interface SessionContextValue {
@@ -240,6 +272,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
         return null;
       }
       const visionOn = req.visionOn ?? state.visionOn;
+      const imageDataUrl = state.pendingImage?.dataUrl;
+      const patientLanguage =
+        req.patientLanguage ?? settings.language.primaryLanguage;
+      const caregiverLanguage =
+        req.caregiverLanguage ?? settings.language.caregiverLanguage;
+      const conversationTail = formatConversationTailForPrompt(state.history);
       const input: InterpretationInput = {
         sourceType:
           req.inputType === 'symbols'
@@ -249,7 +287,15 @@ export function SessionProvider({ children }: PropsWithChildren) {
               : 'speech',
         transcript: req.transcript,
         symbols: req.symbols,
-        imageDataUrl: state.pendingImage?.dataUrl,
+        symbolIds: req.symbolIds,
+        imageDataUrl,
+        gestureHints: req.gestureHints,
+        timeOfDay: req.timeOfDay ?? getTimeOfDay(),
+        patientLanguage,
+        caregiverLanguage,
+        ...(req.speakerRole !== undefined ? { speakerRole: req.speakerRole } : {}),
+        sessionLastInferredSpeaker: state.sessionInferredSpeaker,
+        ...(conversationTail ? { conversationTail } : {}),
         language: req.language,
         urgencyHint: req.urgencyHint,
         onStreamChunk: (partial) => {
@@ -272,9 +318,26 @@ export function SessionProvider({ children }: PropsWithChildren) {
           spoken: false,
           cameraUsed: Boolean(state.pendingImage),
           sourceType: input.sourceType,
+          symbolIds: req.symbolIds,
         };
+        dispatch({
+          type: 'SET_LAST_INPUT',
+          input: {
+            ts: Date.now(),
+            sourceType: input.sourceType,
+            transcript: input.transcript,
+            symbols: input.symbols,
+            symbolIds: input.symbolIds,
+            imageDataUrl,
+            contributingChannels: result.contributingChannels,
+          },
+        });
         dispatch({ type: 'SET_INTERPRETATION', interpretation: interp });
         dispatch({ type: 'PUSH_HISTORY', record });
+        dispatch({
+          type: 'SET_SESSION_INFERRED_SPEAKER',
+          role: result.inferredSpeaker,
+        });
         recordInterpretation(interp, result.routingReason);
         if (state.pendingImage) {
           dispatch({ type: 'SET_PENDING_IMAGE', image: null });
@@ -293,7 +356,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
         return null;
       }
     },
-    [settings.relayPowerOn, state.visionOn, state.pendingImage, recordInterpretation],
+    [
+      settings.relayPowerOn,
+      settings.language.primaryLanguage,
+      settings.language.caregiverLanguage,
+      state.visionOn,
+      state.pendingImage,
+      state.sessionInferredSpeaker,
+      state.history,
+      recordInterpretation,
+    ],
   );
 
   const acceptAlternate = useCallback(

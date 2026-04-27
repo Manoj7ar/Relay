@@ -26,6 +26,9 @@ export interface RoutingDecision {
  * Swap out for a learned router (e.g. Cactus) without touching any UI.
  */
 export function chooseModel(req: InferenceRequest): RoutingDecision {
+  if (req.inputType === 'compound') {
+    return { model: '27B', reason: 'Concurrent signals → multimodal fusion.' };
+  }
   if (req.visionOn || req.inputType === 'vision+speech') {
     return { model: '27B', reason: 'Camera + speech → multimodal reasoning.' };
   }

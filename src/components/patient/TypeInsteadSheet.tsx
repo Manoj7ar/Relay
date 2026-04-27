@@ -3,6 +3,7 @@ import { ChevronUp, Keyboard, Send } from 'lucide-react';
 import { Card, PillButton } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { pickSourceLanguageHint } from '@/lib/transcriptSpeakerHint';
 import { cn } from '@/lib/cn';
 
 /**
@@ -16,7 +17,7 @@ export function TypeInsteadSheet() {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { submit } = useSession();
+  const { submit, state } = useSession();
   const { settings } = useSettings();
 
   const collapse = () => {
@@ -45,10 +46,18 @@ export function TypeInsteadSheet() {
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
+      const languageHint = pickSourceLanguageHint(
+        trimmed,
+        settings.language.primaryLanguage,
+        settings.language.caregiverLanguage,
+        state.sessionInferredSpeaker,
+      );
       await submit({
         inputType: 'text',
         transcript: trimmed,
-        language: settings.language.primaryLanguage,
+        language: languageHint,
+        patientLanguage: settings.language.primaryLanguage,
+        caregiverLanguage: settings.language.caregiverLanguage,
       });
       collapse();
     } catch {

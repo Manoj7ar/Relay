@@ -5,12 +5,13 @@ import { InteractionCard } from '@/components/caregiver/InteractionCard';
 import { RoutingLog } from '@/components/caregiver/RoutingLog';
 import { EmergencyTimeline } from '@/components/caregiver/EmergencyTimeline';
 import { HandoverNote } from '@/components/caregiver/HandoverNote';
+import { PatientDictionaryPanel } from '@/components/caregiver/PatientDictionaryPanel';
 import { AlertTriangle, MessageCircle } from 'lucide-react';
 import { Card, PageHeader } from '@/components/primitives';
 import { useSession } from '@/contexts/SessionContext';
 import { detectDistressPattern } from '@/lib/distressDetector';
 
-type Tab = 'today' | 'routing' | 'emergencies' | 'handover';
+type Tab = 'today' | 'dictionary' | 'routing' | 'emergencies' | 'handover';
 
 const MAX_VISIBLE = 2;
 
@@ -61,6 +62,7 @@ export function CaregiverPage() {
           onChange={setTab}
           options={[
             { value: 'today', label: 'Today' },
+            { value: 'dictionary', label: 'Dictionary' },
             { value: 'routing', label: 'Routing' },
             { value: 'emergencies', label: 'Alerts' },
             { value: 'handover', label: 'Handover' },
@@ -105,6 +107,12 @@ export function CaregiverPage() {
         {tab === 'routing' && (
           <div className="h-full min-h-0 overflow-hidden">
             <RoutingLog compact />
+          </div>
+        )}
+
+        {tab === 'dictionary' && (
+          <div className="h-full min-h-0 overflow-hidden">
+            <PatientDictionaryPanel compact />
           </div>
         )}
 

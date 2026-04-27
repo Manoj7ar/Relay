@@ -14,12 +14,15 @@ import type {
   RoutingLogEntry,
 } from '@/types/model';
 import { logEntryFromInterpretation } from '@/services/modelRouter';
+import { routingEntryFromToolEvent } from '@/services/interpretation/HandoverAgent';
+import type { HandoverToolEvent } from '@/types/handover';
 
 interface ModelRoutingValue {
   currentModel: ModelId;
   routingLog: RoutingLogEntry[];
   setCurrentModel: (m: ModelId) => void;
   recordInterpretation: (interp: Interpretation, reason: string) => void;
+  recordToolInvocation: (event: HandoverToolEvent) => void;
   clearLog: () => void;
 }
 
@@ -47,11 +50,24 @@ export function ModelRoutingProvider({ children }: PropsWithChildren) {
     [],
   );
 
+  const recordToolInvocation = useCallback((event: HandoverToolEvent) => {
+    setCurrentModel('27B');
+    const entry = routingEntryFromToolEvent(event);
+    setRoutingLog((prev) => [entry, ...prev].slice(0, MAX_LOG));
+  }, []);
+
   const clearLog = useCallback(() => setRoutingLog([]), []);
 
   const value = useMemo(
-    () => ({ currentModel, routingLog, setCurrentModel, recordInterpretation, clearLog }),
-    [currentModel, routingLog, recordInterpretation, clearLog],
+    () => ({
+      currentModel,
+      routingLog,
+      setCurrentModel,
+      recordInterpretation,
+      recordToolInvocation,
+      clearLog,
+    }),
+    [currentModel, routingLog, recordInterpretation, recordToolInvocation, clearLog],
   );
 
   return (

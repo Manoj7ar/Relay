@@ -1,11 +1,31 @@
-import { useState } from 'react';
-import { ClipboardCheck, Download, FileJson, FileText } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  ClipboardCheck,
+  Download,
+  FileJson,
+  FileText,
+  Share2,
+  Wrench,
+} from 'lucide-react';
 import { Card, PillButton } from '@/components/primitives';
+import { useModelRouting } from '@/contexts/ModelRoutingContext';
 import { useSession } from '@/contexts/SessionContext';
 import { useSettings } from '@/contexts/SettingsContext';
-import { formatClock } from '@/lib/time';
+import {
+  exportHandoverNoteJson,
+  handoverNoteToMarkdown,
+} from '@/lib/handoverNotes';
+import {
+  generateHandoverNote,
+  HandoverToolCapabilityError,
+} from '@/services/interpretation/HandoverAgent';
+import type {
+  HandoverNote as HandoverNoteRecord,
+  HandoverToolEvent,
+} from '@/types/handover';
 
-function downloadBlob(blob: Blob, filename: string): void {
+function downloadText(text: string, filename: string, type: string): void {
+  const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -16,46 +36,6 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-function buildSummary(
-  name: string,
-  records: ReturnType<typeof useSession>['state']['history'],
-): string {
-  if (!records.length) {
-    return `Handover summary for ${name}\n\nNo interactions logged today.`;
-  }
-  const start = new Date(records[records.length - 1]!.ts);
-  const end = new Date(records[0]!.ts);
-  const total = records.length;
-  const highs = records.filter((r) => r.urgency === 'HIGH');
-  const emergencies = highs.length;
-  const cancelled = highs.filter((r) => r.cancelled).length;
-  const moods = records.reduce<Record<string, number>>((acc, r) => {
-    acc[r.mood] = (acc[r.mood] ?? 0) + 1;
-    return acc;
-  }, {});
-  const topMood =
-    Object.entries(moods).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'calm';
-  const models = new Set(records.map((r) => r.model));
-
-  const highlights = records
-    .slice(0, 3)
-    .map((r) => `- ${formatClock(r.ts)} — ${r.primary} (${r.urgency})`)
-    .join('\n');
-
-  return [
-    `Handover summary for ${name}`,
-    `${start.toDateString()} · ${formatClock(start.getTime())} → ${formatClock(end.getTime())}`,
-    '',
-    `Interactions: ${total}`,
-    `Emergencies: ${emergencies} (${cancelled} cancelled)`,
-    `Predominant mood: ${topMood}`,
-    `Models used: ${[...models].join(', ')}`,
-    '',
-    'Highlights:',
-    highlights,
-  ].join('\n');
-}
-
 interface HandoverNoteProps {
   patientName?: string;
   compact?: boolean;
@@ -63,8 +43,12 @@ interface HandoverNoteProps {
 
 export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
   const { state } = useSession();
+  const { routingLog, recordToolInvocation } = useModelRouting();
   const { settings } = useSettings();
-  const [summary, setSummary] = useState('');
+  const [note, setNote] = useState<HandoverNoteRecord | null>(null);
+  const [toolEvents, setToolEvents] = useState<HandoverToolEvent[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const resolvedName =
@@ -73,9 +57,38 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
       settings.profile.displayName.trim() ||
       'Patient');
 
-  const generate = () => {
-    setSummary(buildSummary(resolvedName, state.history));
+  const summary = useMemo(() => (note ? handoverNoteToMarkdown(note) : ''), [note]);
+
+  const generate = async () => {
+    setGenerating(true);
+    setError(null);
     setCopied(false);
+    setNote(null);
+    setToolEvents([]);
+    const now = Date.now();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    try {
+      const generated = await generateHandoverNote({
+        shiftStart: todayStart.getTime(),
+        shiftEnd: now,
+        sessionHistory: state.history,
+        routingLog,
+        onToolEvent: (event) => {
+          setToolEvents((prev) => [event, ...prev]);
+          recordToolInvocation(event);
+        },
+      });
+      setNote(generated);
+    } catch (err) {
+      const message =
+        err instanceof HandoverToolCapabilityError || err instanceof Error
+          ? err.message
+          : 'Handover generation failed.';
+      setError(message);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const copy = async () => {
@@ -89,36 +102,31 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
     }
   };
 
+  const share = async () => {
+    if (!summary || !navigator.share) return;
+    await navigator.share({
+      title: `Relay handover for ${resolvedName}`,
+      text: summary,
+    });
+  };
+
   const today = new Date().toISOString().slice(0, 10);
 
   const exportTxt = () => {
     if (!summary) return;
-    downloadBlob(
-      new Blob([summary], { type: 'text/plain' }),
+    downloadText(
+      summary,
       `relay-handover-${today}.txt`,
+      'text/markdown',
     );
   };
 
   const exportJson = () => {
-    const data = {
-      exportedAt: new Date().toISOString(),
-      patient: resolvedName,
-      summary: summary || null,
-      interactions: state.history.map((r) => ({
-        time: new Date(r.ts).toISOString(),
-        input: r.rawTranscript,
-        interpreted: r.primary,
-        confidence: Math.round(r.confidence * 100),
-        urgency: r.urgency,
-        mood: r.mood,
-        model: r.model,
-        language: r.detectedLanguage,
-        cancelled: Boolean(r.cancelled),
-      })),
-    };
-    downloadBlob(
-      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+    if (!note) return;
+    downloadText(
+      exportHandoverNoteJson(note),
       `relay-session-${today}.json`,
+      'application/json',
     );
   };
 
@@ -143,14 +151,42 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
           variant="accent"
           className={compact ? '!min-h-9 text-xs' : undefined}
           onClick={generate}
+          disabled={generating}
         >
-          Generate
+          {generating ? 'Generating…' : 'Generate'}
         </PillButton>
       </div>
+      <p className="text-[11px] leading-snug text-muted">
+        Uses Gemma tool calling against local session history, dictionary deltas,
+        alert log, routing log, and a rule-based pattern tool.
+      </p>
+      {toolEvents.length ? (
+        <div className="max-h-28 space-y-1 overflow-y-auto rounded-xl2 bg-black/[0.04] p-2">
+          {toolEvents.map((event) => (
+            <div
+              key={event.id}
+              className="flex items-start gap-2 text-[11px] leading-snug"
+            >
+              <Wrench className="mt-0.5 h-3 w-3 shrink-0 text-muted" aria-hidden />
+              <span>
+                <strong>{event.toolName}</strong> · {event.summary}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {error ? (
+        <div
+          role="alert"
+          className="rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-2.5 py-2 text-xs text-text"
+        >
+          {error}
+        </div>
+      ) : null}
       <textarea
         value={summary}
-        onChange={(e) => setSummary(e.target.value)}
-        placeholder="Tap Generate for a summary."
+        readOnly
+        placeholder="Tap Generate for a tool-built handover note."
         rows={compact ? 5 : 10}
         className={
           compact
@@ -163,7 +199,7 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
           size="sm"
           variant="glass"
           onClick={exportJson}
-          disabled={state.history.length === 0}
+          disabled={!note}
           leftIcon={<FileJson className="h-4 w-4" aria-hidden />}
         >
           Export JSON
@@ -176,6 +212,15 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
           leftIcon={<Download className="h-4 w-4" aria-hidden />}
         >
           Export .txt
+        </PillButton>
+        <PillButton
+          size="sm"
+          variant="glass"
+          onClick={share}
+          disabled={!summary || !navigator.share}
+          leftIcon={<Share2 className="h-4 w-4" aria-hidden />}
+        >
+          Share
         </PillButton>
         <PillButton
           size="sm"

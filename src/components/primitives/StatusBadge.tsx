@@ -7,6 +7,8 @@ interface StatusBadgeProps {
   tone?: Tone;
   icon?: ReactNode;
   className?: string;
+  /** Merged onto the text span (e.g. `vp-narrow-sr-only` in index.css). */
+  labelClassName?: string;
   children: ReactNode;
   dot?: boolean;
 }
@@ -31,6 +33,7 @@ export function StatusBadge({
   tone = 'neutral',
   icon,
   className,
+  labelClassName,
   children,
   dot,
 }: StatusBadgeProps) {
@@ -49,7 +52,7 @@ export function StatusBadge({
         />
       ) : null}
       {icon ? <span className="shrink-0">{icon}</span> : null}
-      <span className="truncate">{children}</span>
+      <span className={cn('truncate', labelClassName)}>{children}</span>
     </span>
   );
 }

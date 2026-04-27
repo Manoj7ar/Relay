@@ -15,6 +15,7 @@ export function SymbolBoardButton({ onOpen }: SymbolBoardButtonProps) {
       fullWidth
       className={cn('relay-home-pill')}
       leftIcon={<LayoutGrid className="h-5 w-5" aria-hidden />}
+      aria-label="Open symbol board"
     >
       Symbol board
     </PillButton>

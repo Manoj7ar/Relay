@@ -193,7 +193,7 @@ export function LanguageSwitcher() {
         <span aria-hidden className="shrink-0">
           {flag}
         </span>
-        <span className="min-w-0 truncate">{primaryLine}</span>
+        <span className="min-w-0 truncate vp-narrow-sr-only">{primaryLine}</span>
         <ChevronDown
           className={cn(
             'h-3.5 w-3.5 shrink-0 opacity-60 transition-transform duration-200',

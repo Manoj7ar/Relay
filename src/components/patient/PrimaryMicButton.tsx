@@ -8,6 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useMicrophone } from '@/hooks/useMicrophone';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { MIC_COPY, type MicUiState } from '@/lib/micStateCopy';
+import { pickSourceLanguageHint } from '@/lib/transcriptSpeakerHint';
 import { cn } from '@/lib/cn';
 
 export function PrimaryMicButton() {
@@ -16,8 +17,12 @@ export function PrimaryMicButton() {
   const haptics = useHaptics();
   const permissions = usePermissions('microphone');
   const mic = useMicrophone();
+  const sttLang =
+    state.sessionInferredSpeaker === 'caregiver'
+      ? settings.language.caregiverLanguage
+      : settings.language.primaryLanguage;
   const stt = useSpeechRecognition({
-    lang: settings.language.primaryLanguage,
+    lang: sttLang,
   });
   const [finalizing, setFinalizing] = useState(false);
   const pendingSubmitRef = useRef(false);
@@ -40,11 +45,19 @@ export function PrimaryMicButton() {
     stopAll();
     const transcript = stt.finalized.transcript;
     stt.reset();
+    const languageHint = pickSourceLanguageHint(
+      transcript,
+      settings.language.primaryLanguage,
+      settings.language.caregiverLanguage,
+      state.sessionInferredSpeaker,
+    );
     void submit({
       inputType: state.visionOn ? 'vision+speech' : 'speech',
       transcript,
       visionOn: state.visionOn,
-      language: settings.language.primaryLanguage,
+      language: languageHint,
+      patientLanguage: settings.language.primaryLanguage,
+      caregiverLanguage: settings.language.caregiverLanguage,
     }).finally(() => {
       pendingSubmitRef.current = false;
       setFinalizing(false);
@@ -55,6 +68,9 @@ export function PrimaryMicButton() {
     submit,
     state.visionOn,
     settings.language.primaryLanguage,
+    settings.language.caregiverLanguage,
+    state.sessionInferredSpeaker,
+    sttLang,
     stopAll,
   ]);
 

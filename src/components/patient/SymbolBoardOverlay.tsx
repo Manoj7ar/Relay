@@ -21,9 +21,13 @@ export function SymbolBoardOverlay({ open, onClose }: SymbolBoardOverlayProps) {
     await submit({
       inputType: 'symbols',
       symbols: [tile.label],
+      symbolIds: [tile.id],
       transcript: tile.impliedPhrase,
       urgencyHint: tile.urgencyHint,
       language: settings.language.primaryLanguage,
+      patientLanguage: settings.language.primaryLanguage,
+      caregiverLanguage: settings.language.caregiverLanguage,
+      speakerRole: 'patient',
     });
   };
 

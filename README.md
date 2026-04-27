@@ -12,7 +12,7 @@ The codebase prioritizes **real browser APIs** and **honest failure modes**: if 
 |------|-------------|
 | **Onboarding** | First-run flow for role, identity, condition, voice samples (stored locally), language, caregiver details, personal phrases (for Gemma context), and accessibility preferences. Skippable steps where marked. |
 | **Home (`/`)** | Large mic control, live transcript, interpretation card, symbol board, optional camera, “type instead” inline composer, language switcher, and connection status. |
-| **Caregiver (`/caregiver`)** | Today’s interactions, routing log, alerts timeline, and handover note—fed from session history after successful interpretations. |
+| **Caregiver (`/caregiver`)** | Today’s interactions, patient dictionary, routing log, alerts timeline, and tool-built handover note—fed from local browser data after successful interpretations. |
 | **Settings (`/settings`)** | Profile, accessibility (contrast, text size), **Ollama base URL** and model names, **emergency** (HTTPS proxy URL + caregiver phone), language, connectivity, routing log, developer tools. |
 | **About (`/about`)** | High-level architecture and how Gemma fits in. |
 
@@ -74,6 +74,7 @@ React UI
   └─ services: audio, STT, TTS, camera, emergency, routing
   └─ interpretationService.interpret(input)
         └─ GemmaInterpreterAdapter  →  Ollama HTTP API
+  └─ IndexedDB: voice samples, patient dictionary, handover notes
 ```
 
 Deeper diagrams, file-level notes, and browser caveats: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. Ollama behavior and integration seams: **[docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md)**.
@@ -90,9 +91,13 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 | Speech-to-text | **Real** (Web Speech API where supported) | Unsupported browsers → type-instead UI; see architecture doc |
 | Text-to-speech | **Real** | `speechSynthesis` with language-aware voice selection |
 | Camera preview + frame | **Real** | Frame passed into `interpret()` as image data |
+| Patient Dictionary | **Real** | IndexedDB corpus with add/edit/delete/import/export; entries injected into Gemma prompts |
+| Multimodal fusion | **Real when Ollama is reachable** | Concurrent speech/camera/symbol channels route as compound input to 27B |
 | Permissions UX | **Real** | Query, prompt, denied paths |
 | Model routing policy | **Real** | `chooseModel` in `modelRouter.ts`—no LLM inside the router |
 | Gemma / interpretation | **Real when Ollama is reachable** | Streaming + JSON parse + client-side checks; fails honestly otherwise |
+| Bilingual patient / caregiver | **Real when Ollama is reachable** | Gemma returns `patientLanguageText` + `caregiverLanguageText` + `inferredSpeaker`; UI/TTS use `detectedLanguage` + bilingual routing. STT locale follows **session inference** (model + script heuristics + last turn), not biometrics — see `transcriptSpeakerHint.ts` |
+| Handover agent | **Real when Ollama tool calling is supported** | `/api/chat` tool loop reads local history/dictionary/alerts/routing and writes note to IndexedDB |
 | Emergency dispatch | **Real when configured** | `POST` to user-set HTTPS proxy URL + caregiver phone in settings |
 
 ---
@@ -103,9 +108,13 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 |-------|----------|
 | Ollama client + prompts | `src/services/interpretation/GemmaInterpreterAdapter.ts` |
 | Interpretation entry | `src/services/interpretationService.ts` |
+| Bilingual hero routing | `src/lib/bilingualHero.ts` |
+| Speaker inference (session + transcript) | `src/lib/transcriptSpeakerHint.ts`, `src/lib/conversationContext.ts` |
 | Ollama URL resolution | `src/lib/ollamaUrl.ts` |
 | Session + history | `src/contexts/SessionContext.tsx` |
 | Persisted settings | `src/contexts/SettingsContext.tsx` (localStorage) |
+| Patient dictionary | `src/lib/patientDictionary.ts` (IndexedDB) |
+| Handover agent + tools | `src/services/interpretation/HandoverAgent.ts`, `src/services/interpretation/tools/` |
 | Emergency | `src/services/emergency.ts` |
 | Voice sample blobs | `src/lib/voiceSamples.ts` (IndexedDB) |
 
@@ -114,6 +123,7 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 ## Integrations and safety
 
 - **Ollama:** interpretation text and optional image payload leave the browser for **your** server.
+- **Patient Dictionary:** personal signal corpus stays in IndexedDB on this device unless the user manually exports JSON.
 - **Emergency proxy:** only used when you set a URL you trust; payloads are health-adjacent—treat production like any HIPAA-sensitive integration (consent, retention, TLS, review).
 
 ---

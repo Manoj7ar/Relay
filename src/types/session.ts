@@ -8,11 +8,23 @@ export interface InteractionRecord extends Interpretation {
   spoken?: boolean;
   cameraUsed?: boolean;
   sourceType?: InterpretationSourceType;
+  symbolIds?: string[];
+  imageDataUrl?: string;
 }
 
 export interface PendingImageContext {
   dataUrl: string;
   capturedAt: number;
+}
+
+export interface LastInputSnapshot {
+  ts: number;
+  sourceType: InterpretationSourceType;
+  transcript?: string;
+  symbols?: string[];
+  symbolIds?: string[];
+  imageDataUrl?: string;
+  contributingChannels: string[];
 }
 
 export interface SessionState {
@@ -21,12 +33,19 @@ export interface SessionState {
   currentInterpretation: Interpretation | null;
   history: InteractionRecord[];
   visionOn: boolean;
+  /**
+   * Last inferred speaker for this session (patient vs caregiver). Drives STT
+   * locale hints and model continuity — not biometric voice ID.
+   */
+  sessionInferredSpeaker: 'patient' | 'caregiver' | null;
   detectedLanguage: string;
   direction: 'ltr' | 'rtl';
   /** Live speech-to-text partial transcript while listening. */
   interimTranscript: string;
   /** Last captured frame awaiting the next interpretation call. */
   pendingImage: PendingImageContext | null;
+  /** Last successful input payload, kept in memory for save-as-signal flows. */
+  lastInputSnapshot: LastInputSnapshot | null;
   /** Last interpretation error surfaced to the UI (e.g. "Gemma not connected"). */
   lastError: string | null;
 }

@@ -8,6 +8,7 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { useSettings } from '@/contexts/SettingsContext';
+import { clearAll as clearPatientDictionary } from '@/lib/patientDictionary';
 import { clearAllSamples } from '@/lib/voiceSamples';
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
       dispatch({ type: 'RESET_ONBOARDING' });
       dispatch({ type: 'CLEAR_VOICE_SAMPLES' });
       void clearAllSamples();
+      void clearPatientDictionary();
       params.delete('reset-onboarding');
       const qs = params.toString();
       window.history.replaceState(

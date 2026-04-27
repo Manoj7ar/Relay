@@ -20,6 +20,7 @@ export function ConnectionBadge() {
         dot
         icon={<CloudOff className="h-3.5 w-3.5" aria-hidden />}
         className="text-[11px]"
+        labelClassName="vp-narrow-sr-only"
       >
         Offline
       </StatusBadge>
@@ -33,6 +34,7 @@ export function ConnectionBadge() {
         dot
         icon={<Cpu className="h-3.5 w-3.5" aria-hidden />}
         className="text-[11px]"
+        labelClassName="vp-narrow-sr-only"
       >
         Gemma online
       </StatusBadge>
@@ -46,6 +48,7 @@ export function ConnectionBadge() {
         dot
         icon={<Cpu className="h-3.5 w-3.5" aria-hidden />}
         className="text-[11px]"
+        labelClassName="vp-narrow-sr-only"
       >
         Gemma…
       </StatusBadge>
@@ -58,6 +61,7 @@ export function ConnectionBadge() {
       dot
       icon={<Cpu className="h-3.5 w-3.5" aria-hidden />}
       className="text-[11px]"
+      labelClassName="vp-narrow-sr-only"
     >
       Gemma offline
     </StatusBadge>

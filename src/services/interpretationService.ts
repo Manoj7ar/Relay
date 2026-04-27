@@ -11,15 +11,36 @@
  */
 
 import type { Mood, Urgency } from '@/types/model';
+import type { DictionaryEntry } from '@/types/dictionary';
 import { GemmaInterpreterAdapter } from './interpretation/GemmaInterpreterAdapter';
 
 export type InterpretationSourceType = 'speech' | 'text' | 'symbols';
+
+export type BilingualSpeakerRole = 'patient' | 'caregiver';
 
 export interface InterpretationInput {
   sourceType: InterpretationSourceType;
   transcript?: string;
   symbols?: string[];
+  symbolIds?: string[];
   imageDataUrl?: string;
+  gestureHints?: string[];
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  recentEntries?: DictionaryEntry[];
+  /** BCP-47 patient language from settings (clarified output + dictionary context). */
+  patientLanguage: string;
+  /** BCP-47 caregiver language from settings (parallel translation). */
+  caregiverLanguage: string;
+  /**
+   * Explicit speaker override (e.g. symbol board). When omitted, Gemma +
+   * transcript heuristics + session continuity infer the speaker.
+   */
+  speakerRole?: BilingualSpeakerRole;
+  /** Last session inference (from prior turns). */
+  sessionLastInferredSpeaker?: 'patient' | 'caregiver' | null;
+  /** Pre-formatted recent lines for the model (see `formatConversationTailForPrompt`). */
+  conversationTail?: string;
+  /** Legacy hint: often the active STT locale; model still receives patient + caregiver codes. */
   language?: string;
   urgencyHint?: Urgency;
   /**
@@ -35,12 +56,20 @@ export interface InterpretationResult {
   id: string;
   ts: number;
   primaryText: string;
+  /** Clarified intent in the patient's configured language. */
+  patientLanguageText: string;
+  /** Same intent in the caregiver's configured language. */
+  caregiverLanguageText: string;
   alternates: string[];
   confidence: number;
   urgency: Urgency;
   mood: Mood;
   detectedLanguage: string;
   translation?: string;
+  /** Language tag to use for TTS of `primaryText` (listener-facing). */
+  ttsLang: string;
+  /** Model could not confidently match detectedLanguage to either configured language. */
+  bilingualAmbiguous: boolean;
   /** E2B / E4B / 27B — populated by the real adapter. */
   sourceModel: string;
   sourceType: InterpretationSourceType;
@@ -48,8 +77,12 @@ export interface InterpretationResult {
   routingReason: string;
   latencyMs: number;
   visionUsed: boolean;
+  dictionaryMatchIds: string[];
+  contributingChannels: string[];
   /** Raw user-facing fragment (what was actually spoken / typed / symbol). */
   sourceFragment?: string;
+  /** Resolved speaker for this turn (persistence + follow-on recognition). */
+  inferredSpeaker: BilingualSpeakerRole;
 }
 
 export interface InterpreterAdapter {

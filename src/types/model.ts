@@ -1,17 +1,25 @@
 export type ModelId = 'E2B' | 'E4B' | '27B';
 
-export type InputType = 'speech' | 'symbols' | 'vision+speech' | 'text';
+export type InputType = 'speech' | 'symbols' | 'vision+speech' | 'text' | 'compound';
 
 export type Urgency = 'LOW' | 'NORMAL' | 'HIGH';
 
 export type Mood = 'calm' | 'distressed' | 'frustrated' | 'in-pain';
 
+export type InferenceSpeakerRole = 'patient' | 'caregiver';
+
 export interface InferenceRequest {
   inputType: InputType;
   transcript?: string;
   symbols?: string[];
+  symbolIds?: string[];
   imageRef?: string;
+  gestureHints?: string[];
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
   language?: string;
+  patientLanguage?: string;
+  caregiverLanguage?: string;
+  speakerRole?: InferenceSpeakerRole;
   visionOn?: boolean;
   urgencyHint?: Urgency;
 }
@@ -20,30 +28,40 @@ export interface Interpretation {
   id: string;
   ts: number;
   primary: string;
+  patientLanguageText?: string;
+  caregiverLanguageText?: string;
   alternates: string[];
   confidence: number;
   urgency: Urgency;
   mood: Mood;
   detectedLanguage: string;
   translation?: string;
+  /** BCP-47 tag used for TTS of `primary` (listener-facing). */
+  ttsLang?: string;
+  bilingualAmbiguous?: boolean;
   model: ModelId;
   latencyMs: number;
   inputType: InputType;
   visionUsed: boolean;
+  dictionaryMatchIds: string[];
+  contributingChannels: string[];
   /** Action summary once executed (e.g. "Spoken only", "Emergency call triggered"). */
   actionTaken?: string;
   /** Raw user-facing input fragment for display in caregiver history. */
   sourceFragment?: string;
+  /** Who spoke for this turn (model + heuristics + session); used for follow-on STT and prompts. */
+  inferredSpeaker?: InferenceSpeakerRole;
 }
 
 export interface RoutingLogEntry {
   id: string;
   ts: number;
-  inputType: InputType;
+  inputType: InputType | 'tool';
   model: ModelId;
   latencyMs: number;
   reason: string;
   visionUsed: boolean;
+  toolName?: string;
 }
 
 export interface ModelLabel {

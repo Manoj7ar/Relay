@@ -139,7 +139,7 @@ function BottomNav() {
                 end={item.to === '/'}
                 className={({ isActive }) =>
                   cn(
-                    'relative z-10 flex w-full min-h-[48px] flex-col items-center justify-center gap-1 rounded-full px-1 py-2 text-[clamp(10px,2.6vw,11px)] font-medium leading-none transition-[color,transform] duration-fast ease-smooth active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-2',
+                    'bottom-nav-link relative z-10 flex w-full min-h-[48px] flex-col items-center justify-center gap-1 rounded-full px-1 py-2 text-[clamp(10px,2.6vw,11px)] font-medium leading-none transition-[color,transform] duration-fast ease-smooth active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-2',
                     isActive
                       ? 'text-white'
                       : 'text-text hover:bg-black/5 motion-reduce:hover:bg-transparent',
@@ -147,7 +147,9 @@ function BottomNav() {
                 }
               >
                 <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                <span className="max-w-full truncate">{item.label}</span>
+                <span className="max-w-full truncate vp-narrow-sr-only">
+                  {item.label}
+                </span>
               </NavLink>
             </li>
           );
