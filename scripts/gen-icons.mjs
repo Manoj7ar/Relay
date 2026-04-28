@@ -18,14 +18,14 @@ const targets = [
 for (const t of targets) {
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: t.size - t.pad * 2 },
-    background: '#f5f5f4',
+    background: '#e4e2dc',
   });
   const png = resvg.render().asPng();
   if (t.pad > 0) {
     // For maskable, re-render centred in a larger canvas with padding.
     const outer = `<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${t.size}" height="${t.size}" viewBox="0 0 ${t.size} ${t.size}">
-  <rect width="${t.size}" height="${t.size}" fill="#f5f5f4"/>
+  <rect width="${t.size}" height="${t.size}" fill="#e4e2dc"/>
   <g transform="translate(${t.pad}, ${t.pad})">
     ${svg.replace(/<\?xml[^?]*\?>/, '').replace(/<svg[^>]*>/, '<svg xmlns="http://www.w3.org/2000/svg" width="' + (t.size - t.pad * 2) + '" height="' + (t.size - t.pad * 2) + '" viewBox="0 0 64 64">')}
   </g>

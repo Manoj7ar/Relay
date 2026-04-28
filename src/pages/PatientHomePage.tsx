@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 import { TopStatusBar } from '@/components/patient/TopStatusBar';
 import { TranscriptionCard } from '@/components/patient/TranscriptionCard';
 import { PrimaryMicButton } from '@/components/patient/PrimaryMicButton';
-import { SymbolBoardButton } from '@/components/patient/SymbolBoardButton';
+import { HomeQuickActionRow } from '@/components/patient/HomeQuickActionRow';
 import { SymbolBoardOverlay } from '@/components/patient/SymbolBoardOverlay';
 import { EmergencyBanner } from '@/components/patient/EmergencyBanner';
 import { TypeInsteadSheet } from '@/components/patient/TypeInsteadSheet';
@@ -32,7 +32,7 @@ export function PatientHomePage() {
           <TranscriptionCard />
         </div>
         <div className="shrink-0 flex flex-col gap-1.5 pb-1">
-          <SymbolBoardButton onOpen={() => setBoardOpen(true)} />
+          <HomeQuickActionRow onOpenSymbolBoard={() => setBoardOpen(true)} />
           <PrimaryMicButton />
           <TypeInsteadSheet />
         </div>

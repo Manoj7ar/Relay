@@ -29,7 +29,9 @@ function computeMenuPosition(trigger: HTMLElement): MenuPosition {
   const rect = trigger.getBoundingClientRect();
   const vw = window.innerWidth;
   const width = Math.min(MENU_MAX_WIDTH, vw - 16);
-  let left = rect.right - width;
+  // Center the menu under the trigger (not right-aligned), then clamp to viewport.
+  const triggerCenterX = rect.left + rect.width / 2;
+  let left = triggerCenterX - width / 2;
   left = Math.max(8, Math.min(left, vw - width - 8));
   const top = rect.bottom + 8;
   return { top, left, width };

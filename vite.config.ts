@@ -26,8 +26,8 @@ export default defineConfig({
         short_name: 'Relay',
         description:
           'Mobile-first voice accessibility assistant for people with speech impairments.',
-        theme_color: '#f5f5f4',
-        background_color: '#f5f5f4',
+        theme_color: '#e4e2dc',
+        background_color: '#e4e2dc',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

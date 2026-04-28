@@ -111,12 +111,12 @@ function BottomNav() {
     >
       <ul
         ref={listRef}
-        className="glass-strong relative mx-auto flex items-stretch justify-between gap-0.5 rounded-full p-1 sm:gap-1 sm:p-1.5"
+        className="bottom-nav-dock relative mx-auto flex items-stretch justify-between gap-0.5 rounded-full p-1 sm:gap-1 sm:p-1.5"
       >
         <div
           aria-hidden
           className={cn(
-            'pointer-events-none absolute z-0 rounded-full bg-[var(--accent)]',
+            'bottom-nav-active-pill pointer-events-none absolute z-0 rounded-full bg-[var(--accent)]',
             'transition-[left,top,width,height,opacity] duration-300 ease-spring motion-reduce:transition-none',
           )}
           style={{
@@ -139,10 +139,8 @@ function BottomNav() {
                 end={item.to === '/'}
                 className={({ isActive }) =>
                   cn(
-                    'bottom-nav-link relative z-10 flex w-full min-h-[48px] flex-col items-center justify-center gap-1 rounded-full px-1 py-2 text-[clamp(10px,2.6vw,11px)] font-medium leading-none transition-[color,transform] duration-fast ease-smooth active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-2',
-                    isActive
-                      ? 'text-white'
-                      : 'text-text hover:bg-black/5 motion-reduce:hover:bg-transparent',
+                    'bottom-nav-link relative z-10 flex w-full min-h-[48px] flex-col items-center justify-center gap-1 rounded-full px-1 py-2 text-[clamp(10px,2.6vw,11px)] font-medium leading-none ease-smooth active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-2',
+                    isActive ? 'text-white' : 'text-text',
                   )
                 }
               >

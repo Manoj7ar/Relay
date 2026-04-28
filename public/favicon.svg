@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <radialGradient id="g" cx="50%" cy="55%" r="60%">
-      <stop offset="0%" stop-color="#f5f5f4" />
+      <stop offset="0%" stop-color="#e4e2dc" />
       <stop offset="100%" stop-color="#c8c8c4" />
     </radialGradient>
   </defs>
@@ -10,5 +10,5 @@
     d="M32 14c-4 6-10 9-10 18a10 10 0 0 0 20 0c0-9-6-12-10-18z"
     fill="#3a3a38"
   />
-  <circle cx="32" cy="36" r="3" fill="#f5f5f4" />
+  <circle cx="32" cy="36" r="3" fill="#e4e2dc" />
 </svg>
