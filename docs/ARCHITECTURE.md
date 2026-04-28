@@ -61,7 +61,7 @@ flowchart TB
 
 ## UI layer (`src/pages`, `src/components`)
 
-- **Pages**: `PatientHomePage`, `CaregiverPage`, nested **Settings** routes under `src/pages/settings/` (`SettingsHubPage`, subpages), `AboutPage`.
+- **Pages**: `PatientHomePage`, nested **Caregiver** routes under `src/pages/caregiver/` (`CaregiverLayout`, `CaregiverHubPage`, subpages), nested **Settings** routes under `src/pages/settings/` (`SettingsHubPage`, subpages), `AboutPage`.
 - **Primitives**: reusable glass-style controls (`Card`, `PillButton`, `Modal`, etc.).
 - **Domain components**: `patient/`, `caregiver/`, `settings/`.
 

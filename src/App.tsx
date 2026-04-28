@@ -3,7 +3,15 @@ import { Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { RoutedViews } from '@/components/layout/RoutedViews';
 import { PatientHomePage } from '@/pages/PatientHomePage';
-import { CaregiverPage } from '@/pages/CaregiverPage';
+import { CaregiverLayout } from '@/pages/caregiver/CaregiverLayout';
+import { CaregiverHubPage } from '@/pages/caregiver/CaregiverHubPage';
+import {
+  CaregiverAlertsPage,
+  CaregiverDictionaryPage,
+  CaregiverHandoverPage,
+  CaregiverRoutingPage,
+  CaregiverTodayPage,
+} from '@/pages/caregiver/caregiverSubpages';
 import { SettingsLayout } from '@/pages/settings/SettingsLayout';
 import { SettingsHubPage } from '@/pages/settings/SettingsHubPage';
 import {
@@ -59,7 +67,14 @@ export default function App() {
             <RoutedViews>
               <Routes>
                 <Route path="/" element={<PatientHomePage />} />
-                <Route path="/caregiver" element={<CaregiverPage />} />
+                <Route path="/caregiver" element={<CaregiverLayout />}>
+                  <Route index element={<CaregiverHubPage />} />
+                  <Route path="today" element={<CaregiverTodayPage />} />
+                  <Route path="dictionary" element={<CaregiverDictionaryPage />} />
+                  <Route path="routing" element={<CaregiverRoutingPage />} />
+                  <Route path="alerts" element={<CaregiverAlertsPage />} />
+                  <Route path="handover" element={<CaregiverHandoverPage />} />
+                </Route>
                 <Route path="/settings" element={<SettingsLayout />}>
                   <Route index element={<SettingsHubPage />} />
                   <Route path="profile" element={<SettingsProfilePage />} />

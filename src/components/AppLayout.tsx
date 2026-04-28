@@ -66,6 +66,8 @@ function BottomNav() {
       if (n.to === '/') return p === '/';
       if (n.to === '/settings')
         return p === '/settings' || p.startsWith('/settings/');
+      if (n.to === '/caregiver')
+        return p === '/caregiver' || p.startsWith('/caregiver/');
       return p === n.to;
     });
   }, [location.pathname]);
