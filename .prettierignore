@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-ssr
+.vite
+coverage
+package-lock.json
+*.min.js
+public

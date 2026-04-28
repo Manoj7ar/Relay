@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "npx --yes prettier@3.4.2 --write \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "lucide-react": "^0.454.0",

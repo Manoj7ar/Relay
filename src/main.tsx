@@ -1,4 +1,4 @@
-import React from 'react';
+import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
@@ -11,7 +11,7 @@ import './index.css';
 registerSW({ immediate: true });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+  <StrictMode>
     <BrowserRouter>
       <SettingsProvider>
         <ModelRoutingProvider>
@@ -21,5 +21,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </ModelRoutingProvider>
       </SettingsProvider>
     </BrowserRouter>
-  </React.StrictMode>,
+  </StrictMode>,
 );

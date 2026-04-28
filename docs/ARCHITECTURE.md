@@ -8,6 +8,8 @@ Relay is a mobile-first PWA with a clean separation between:
 
 There is no demo mode, no scripted scenarios, no fake answer dictionary. Model output is produced only by **`GemmaInterpreterAdapter`** calling **Ollama** when `http://localhost:11434` is reachable; otherwise the UI shows **`GemmaNotConnectedError`**.
 
+For a **directory map** of `src/` (pages, components, contexts, services, hooks), see [SOURCE_LAYOUT.md](./SOURCE_LAYOUT.md).
+
 ## Layer diagram
 
 ```mermaid
@@ -141,4 +143,4 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 | Interpretation | **Ollama** via `GemmaInterpreterAdapter`; **error** if unreachable | `GemmaInterpreterAdapter.ts` |
 | Emergency escalation | In-app countdown + **POST to configured proxy** when set | `services/emergency.ts` |
 
-For the Gemma wiring checklist, see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md).
+For the Gemma wiring checklist, see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md). For local setup and scripts, see [README.md](../README.md).

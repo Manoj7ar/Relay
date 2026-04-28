@@ -4,6 +4,8 @@
 
 Relay is a **Vite + React 18 + TypeScript** PWA (strict mode, `vite-plugin-pwa` / Workbox). State is held in React Context: **Session** (interpretation, listening, history, camera frame), **ModelRouting** (append-only routing + tool log), **Settings** (accessibility, integrations, language). Patient-specific signals, voice blobs, and handover notes are stored in IndexedDB. Routes: Home (`/`), Caregiver (`/caregiver`), Settings (`/settings`), About (`/about`). There is **no** Judge Demo, demo mode, or scripted scenario engine in this codebase.
 
+Repository layout: [docs/SOURCE_LAYOUT.md](docs/SOURCE_LAYOUT.md).
+
 ## Architecture (concise)
 
 1. **UI** — `src/pages/*`, `src/components/{patient,caregiver,settings,primitives}`.

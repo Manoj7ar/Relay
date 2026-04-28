@@ -172,6 +172,7 @@ Deployment hardening (CSP, secrets pattern): [docs/SECURITY.md](docs/SECURITY.md
 
 | Document | Purpose |
 |----------|---------|
+| [docs/SOURCE_LAYOUT.md](docs/SOURCE_LAYOUT.md) | `src/` folder map for orientation |
 | [docs/README.md](docs/README.md) | Index of `docs/` |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, flows, browser limits |
 | [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma/Ollama + integration table (aligned with README) |
