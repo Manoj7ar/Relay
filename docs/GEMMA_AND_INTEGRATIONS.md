@@ -80,6 +80,40 @@ The app then picks the **listener-facing** hero line and `ttsLang` in `src/lib/b
 
 ---
 
+## Ollama wire protocol (what judges can grep)
+
+Implementation lives in [`src/services/interpretation/GemmaInterpreterAdapter.ts`](../src/services/interpretation/GemmaInterpreterAdapter.ts).
+
+| Aspect | Behavior |
+|--------|----------|
+| **Endpoint** | `POST {ollamaBase}/api/generate` where `ollamaBase` comes from Settings (see `getResolvedOllamaBaseUrl`). |
+| **Streaming** | `stream: true` — response body is **NDJSON** (one JSON object per line); the client accumulates chunks until the stream ends. |
+| **Structured output** | `format: 'json'` so the model is steered toward a single JSON object for interpretation. |
+| **Progressive UI** | While streaming, a forgiving extractor reads the in-progress `"primaryText"` field and calls `onStreamChunk` so the UI can animate text **without** leaking raw JSON. |
+| **Multimodal** | When `imageDataUrl` is present, the adapter strips the base64 payload and passes it under Ollama’s `images[]` array for the same `generate` request. |
+| **Timeout** | `REQUEST_TIMEOUT_MS` is **30_000** (30 seconds) on the fetch. |
+| **Failure** | Non-OK HTTP, network errors, or timeouts throw **`GemmaNotConnectedError`** — surfaced as `SessionContext` `lastError`, not fabricated phrases. |
+
+### CORS, HTTPS, and mixed content
+
+- **Same machine:** app on `http://localhost:5173` calling `http://127.0.0.1:11434` is the usual dev path.
+- **HTTPS app → HTTP Ollama:** browsers treat this as **mixed content** and may block `fetch`; use HTTPS for Ollama (reverse proxy) or run the dev app over HTTP for local demos.
+- **Cross-origin:** if the PWA origin differs from the Ollama host, Ollama (or a proxy) must send appropriate **CORS** headers for `POST` + `OPTIONS` preflight.
+
+---
+
+## Safety and trust
+
+| Mechanism | File | Purpose |
+|------------|------|---------|
+| **Urgency guard** | [`src/lib/urgencyGuard.ts`](../src/lib/urgencyGuard.ts) | After the model returns JSON, client-side logic ensures a **clear emergency phrase** in the user transcript cannot be **downgraded** to a lower urgency bucket by a confused model. |
+| **Honest connectivity** | `GemmaInterpreterAdapter` | No mock or cached “AI answer” when Ollama is down — users see an explicit error string suitable for accessibility (`aria-live` surfaces on the home flow). |
+| **Dictionary id allowlist** | Adapter parse step | Returned `dictionaryMatchIds` are filtered to ids that were actually injected into the prompt, reducing hallucinated corpus references. |
+
+For deployment-facing notes (CSP, proxies), see [SECURITY.md](./SECURITY.md).
+
+---
+
 ## Model tiers (routing narrative)
 
 | Id | Role | Typical use |

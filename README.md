@@ -2,6 +2,8 @@
 
 Relay is a **mobile-first progressive web app (PWA)** for people whose speech is hard to understand—whether from ALS, stroke-related aphasia, dysarthria, Parkinson’s, or similar conditions. It captures voice (and optional camera context), runs speech-to-text in the browser where supported, sends text to a **local Gemma model via Ollama**, and shows a clear interpretation the user can hear again with **browser text-to-speech**, confirm, and route to caregivers when configured.
 
+**Wedge (one line):** Relay pairs **browser-native speech** with **local Gemma 4 via Ollama** so disfluent or fragmented speech can become a clear, caregiver-ready phrase—**without cloud inference** for the core interpret path—plus honest errors when the model is unreachable.
+
 The codebase prioritizes **real browser APIs** and **honest failure modes**: if Ollama is unreachable or misconfigured, the app surfaces that error instead of inventing model output.
 
 ---
@@ -51,6 +53,34 @@ npm run preview      # serve the production build locally
 ```
 
 **Trying on a phone:** run `npm run build && npm run preview -- --host`, open the printed URL on the same network, then use **Add to Home Screen** (iOS) or the install prompt (Android).
+
+### Hackathon / judge quickstart
+
+Use this path to verify the repo end-to-end (see also [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) for CORS and wire details).
+
+1. **Clone** the repository and install **Node.js 20+**.
+2. Run **`npm install`** at the repo root.
+3. Install [Ollama](https://ollama.com) and start **`ollama serve`** on a host your browser can reach.
+4. Pull the three default model tags (must match **Settings → Models** unless you change both code defaults and settings):
+
+   ```bash
+   ollama pull gemma4:e2b
+   ollama pull gemma4:e4b
+   ollama pull gemma4:27b
+   ```
+
+5. Run **`npm run dev`** and open **http://localhost:5173** (or the URL Vite prints).
+6. In **Settings → Models**, confirm **Ollama base URL** (e.g. `http://127.0.0.1:11434`) and the **same three tags** as in step 4.
+7. If the app is served from **https://** but Ollama is **http://** on another host, the browser may block requests (mixed content) or require **CORS** on Ollama—see [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md#ollama-wire-protocol-what-judges-can-grep).
+8. Optional: open **`/?reset-onboarding=1`** once to reset first-run onboarding (see `App.tsx`).
+9. **Happy path:** Home → allow microphone → speak → wait for interpretation card → use read-aloud (TTS).
+10. **Multimodal path:** Enable camera, capture context, speak → routing should prefer the **27B** tier for `vision+speech` / compound (see [docs/MODEL_ROUTING.md](docs/MODEL_ROUTING.md)).
+
+### Model tags vs Gemma 4 naming
+
+Default Ollama tags are defined in **`src/services/interpretation/GemmaInterpreterAdapter.ts`** (`MODEL_DEFAULTS`: `gemma4:e2b`, `gemma4:e4b`, `gemma4:27b`). They must match tags you **pull** in Ollama and enter under **Settings → Models**.
+
+For **hackathon or Google naming guidelines** (official asset and model variant names), verify against the sponsor’s current documentation before submitting—update Settings tags locally if the published names differ; do not assume this README tracks every rename.
 
 ---
 
@@ -122,9 +152,12 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 
 ## Integrations and safety
 
-- **Ollama:** interpretation text and optional image payload leave the browser for **your** server.
+- **Ollama:** interpretation text and optional image payload leave the browser for **your** Ollama host. There is **no** mock interpretation path: failures surface as **`GemmaNotConnectedError`** (see `GemmaInterpreterAdapter`).
+- **Urgency guard:** after each successful parse, client-side **`applyUrgencyGuard`** (`src/lib/urgencyGuard.ts`) prevents the model from **downgrading** urgency when the user’s transcript clearly indicates an emergency-class phrase.
 - **Patient Dictionary:** personal signal corpus stays in IndexedDB on this device unless the user manually exports JSON.
 - **Emergency proxy:** only used when you set a URL you trust; payloads are health-adjacent—treat production like any HIPAA-sensitive integration (consent, retention, TLS, review).
+
+Deployment hardening (CSP, secrets pattern): [docs/SECURITY.md](docs/SECURITY.md). License and hackathon winner obligations (informational): [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md).
 
 ---
 
@@ -142,6 +175,12 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 | [docs/README.md](docs/README.md) | Index of `docs/` |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, flows, browser limits |
 | [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma/Ollama + integration table (aligned with README) |
+| [docs/MODEL_ROUTING.md](docs/MODEL_ROUTING.md) | Deterministic E2B / E4B / 27B routing (Cactus-style narrative) |
+| [docs/GROUNDING.md](docs/GROUNDING.md) | Dictionary grounding + handover tools overview |
+| [docs/LATENCY_AND_METRICS.md](docs/LATENCY_AND_METRICS.md) | How to record interpretation latency (`latencyMs`) |
+| [docs/SECURITY.md](docs/SECURITY.md) | CSP notes, no repo secrets, Ollama/proxy trust |
+| [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md) | MIT repo + hackathon CC-BY winner note (informational) |
+| [docs/HACKATHON_POSITIONING.md](docs/HACKATHON_POSITIONING.md) | Impact tracks, Ollama/Cactus angles for writeups |
 | [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md) | Longer technical narrative |
 | [SUBMISSION_SUMMARY.md](SUBMISSION_SUMMARY.md) | Short blurb for portals |
 | [DELIVER.md](DELIVER.md) | Delivery checklist and tree |
@@ -150,4 +189,6 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 
 ## License
 
-[MIT](LICENSE)
+Relay is licensed under the [MIT License](LICENSE). Third-party notices: [NOTICE](NOTICE).
+
+For **Kaggle / Gemma 4 Good Hackathon** rules: potential winners may have additional **sponsor license** obligations (e.g. CC-BY 4.0 on the winning submission)—see [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md) and the official competition rules.

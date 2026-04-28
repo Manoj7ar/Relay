@@ -62,6 +62,12 @@ const MODEL_STORAGE_KEYS = {
   '27B': 'relay.model.quality',
 } as const;
 
+/**
+ * Default Ollama image tags per routing tier. Must match what you `ollama pull`
+ * and what users enter under Settings → Models (`localStorage` keys above).
+ * For hackathon or sponsor naming, align with the official Gemma model / asset
+ * guidelines before changing these strings (README + docs link to details).
+ */
 const MODEL_DEFAULTS: Record<ModelId, string> = {
   E2B: 'gemma4:e2b',
   E4B: 'gemma4:e4b',

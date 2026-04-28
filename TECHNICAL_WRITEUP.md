@@ -15,11 +15,15 @@ Relay is a **Vite + React 18 + TypeScript** PWA (strict mode, `vite-plugin-pwa` 
 7. **Routing policy** — `modelRouter.chooseModel` is **pure** (no network); picks E2B / E4B / 27B from input shape, with compound multimodal inputs forced to 27B.
 8. **Integrations** — **Emergency**: `fetch` to user-configured `relay.emergency.proxyUrl` when URL and caregiver phone are set; otherwise throws `EmergencyNotConnectedError`.
 
-See **docs/ARCHITECTURE.md** and **docs/GEMMA_AND_INTEGRATIONS.md** for diagrams and the same “real vs stub” table as **README.md**.
+See **docs/ARCHITECTURE.md** and **docs/GEMMA_AND_INTEGRATIONS.md** for diagrams and the same “real vs stub” table as **README.md**. Routing policy detail: [docs/MODEL_ROUTING.md](docs/MODEL_ROUTING.md). Grounding: [docs/GROUNDING.md](docs/GROUNDING.md). Hackathon copy blocks: [docs/HACKATHON_POSITIONING.md](docs/HACKATHON_POSITIONING.md).
 
 ## Multilingual & RTL
 
 `detectedLanguage` from the model updates session direction (`useRTL` / `directionFor`). Optional `translation` line is shown for bilingual caregiver readability. **LanguageBadge** uses BCP-47 codes with flag + native label fallbacks.
+
+## Bilingual listener line and speaker inference
+
+Gemma returns **`patientLanguageText`** and **`caregiverLanguageText`**; [`bilingualHero.ts`](src/lib/bilingualHero.ts) picks the **listener-facing** `primaryText` / **`ttsLang`** using `detectedLanguage` vs configured patient and caregiver locales, with ambiguity handling. **`inferredSpeaker`** (model JSON) is combined with **transcript script heuristics** and **session carry-over** in [`transcriptSpeakerHint.ts`](src/lib/transcriptSpeakerHint.ts) — this is **not** speaker diarization or voice biometrics; it is language/context/session heuristics suitable for a browser-only client.
 
 ## Offline
 
@@ -36,10 +40,11 @@ Large tap targets, `aria-live` on streaming interpretation text, reduced-motion 
 ## Limitations (explicit)
 
 - **STT** depends on the **Web Speech API**; not all browsers implement it (e.g. Firefox desktop → typed fallback).
-- **Ollama** must be running with pulled model tags matching **Settings → Models** defaults or your overrides.
+- **Ollama** must be running with pulled model tags matching **Settings → Models** defaults or your overrides (defaults documented in `GemmaInterpreterAdapter` and README; align tags with [Gemma / hackathon naming](https://ai.google.dev/gemma) before final demo).
 - **Ollama tool calling** must be supported by the selected local model for agent handover; otherwise Relay surfaces a specific capability error.
 - **Emergency** does not bundle a carrier; you implement SMS/voice on the proxy you host.
 - **Clinical / HIPAA** deployment is out of scope for this hackathon repo.
+- **Speaker inference** is heuristic + model-linguistic, not proof of who spoke in a biometric sense.
 
 ## Evaluation
 

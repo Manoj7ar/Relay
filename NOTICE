@@ -1,0 +1,24 @@
+Relay — third-party open-source components
+==========================================
+
+This project includes or depends on the following major components.
+See package.json for full dependency versions.
+
+Runtime (npm dependencies)
+--------------------------
+- react, react-dom — MIT License — Copyright Meta Platforms, Inc.
+- react-router-dom — MIT License — Copyright Remix Software Inc.
+- lucide-react — ISC License — Copyright Lucide Contributors
+- terser — BSD-2-Clause — Copyright 2012-2023 by Tilde Ltd and other contributors
+
+Build / dev (npm devDependencies)
+---------------------------------
+- vite — MIT License — Copyright 2019-present, VoidZero Inc. and Vite contributors
+- @vitejs/plugin-react — MIT License
+- typescript — Apache License 2.0 — Copyright Microsoft Corporation
+- tailwindcss — MIT License — Copyright Tailwind Labs, Inc.
+- postcss, autoprefixer — MIT License
+- vite-plugin-pwa — MIT License — Copyright 2020-PRESENT Anthony Fu
+
+SPDX-License-Identifier for Relay application code: MIT
+(See LICENSE file in the repository root.)
