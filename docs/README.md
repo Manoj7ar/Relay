@@ -10,4 +10,4 @@
 | [SECURITY.md](./SECURITY.md) | CSP notes, trust boundaries, no repo secrets |
 | [LICENSE_NOTES.md](./LICENSE_NOTES.md) | MIT + hackathon winner license note (informational) |
 
-See the repository [README.md](../README.md) for setup, the **Hackathon / judge quickstart**, and the **canonical “Implementation status”** table (aligned with [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) and [ARCHITECTURE.md](./ARCHITECTURE.md)). For Kaggle-style blurbs and impact framing, use [SUBMISSION_SUMMARY.md](../SUBMISSION_SUMMARY.md).
+See the repository [README.md](../README.md) for setup, the **Hackathon / judge quickstart**, and the **canonical “Implementation status”** table (aligned with [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) and [ARCHITECTURE.md](./ARCHITECTURE.md)). For competition writeups, reuse the README wedge + tables and [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md).

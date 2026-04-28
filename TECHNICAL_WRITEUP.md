@@ -15,7 +15,7 @@ Relay is a **Vite + React 18 + TypeScript** PWA (strict mode, `vite-plugin-pwa` 
 7. **Routing policy** — `modelRouter.chooseModel` is **pure** (no network); picks E2B / E4B / 27B from input shape, with compound multimodal inputs forced to 27B.
 8. **Integrations** — **Emergency**: `fetch` to user-configured `relay.emergency.proxyUrl` when URL and caregiver phone are set; otherwise throws `EmergencyNotConnectedError`.
 
-See **docs/ARCHITECTURE.md** and **docs/GEMMA_AND_INTEGRATIONS.md** for diagrams and the same “real vs stub” table as **README.md**. Routing policy detail: [docs/MODEL_ROUTING.md](docs/MODEL_ROUTING.md). Grounding: [docs/GROUNDING.md](docs/GROUNDING.md). Hackathon-oriented blurbs: [SUBMISSION_SUMMARY.md](SUBMISSION_SUMMARY.md).
+See **docs/ARCHITECTURE.md** and **docs/GEMMA_AND_INTEGRATIONS.md** for diagrams and the same “real vs stub” table as **README.md**. Routing policy detail: [docs/MODEL_ROUTING.md](docs/MODEL_ROUTING.md). Grounding: [docs/GROUNDING.md](docs/GROUNDING.md). For hackathon-style blurbs, compose from **README.md** (wedge, quickstart, implementation table) and **GEMMA_AND_INTEGRATIONS.md**.
 
 ## Multilingual & RTL
 
