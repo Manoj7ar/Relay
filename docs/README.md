@@ -9,6 +9,5 @@
 | [LATENCY_AND_METRICS.md](./LATENCY_AND_METRICS.md) | How to read / fill `latencyMs` tables |
 | [SECURITY.md](./SECURITY.md) | CSP notes, trust boundaries, no repo secrets |
 | [LICENSE_NOTES.md](./LICENSE_NOTES.md) | MIT + hackathon winner license note (informational) |
-| [HACKATHON_POSITIONING.md](./HACKATHON_POSITIONING.md) | Impact tracks, demo beats, Ollama/Cactus angles |
 
-See the repository [README.md](../README.md) for setup, the **Hackathon / judge quickstart**, and the **canonical “Implementation status”** table (aligned with [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) and [ARCHITECTURE.md](./ARCHITECTURE.md)).
+See the repository [README.md](../README.md) for setup, the **Hackathon / judge quickstart**, and the **canonical “Implementation status”** table (aligned with [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) and [ARCHITECTURE.md](./ARCHITECTURE.md)). For Kaggle-style blurbs and impact framing, use [SUBMISSION_SUMMARY.md](../SUBMISSION_SUMMARY.md).

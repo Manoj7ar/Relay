@@ -180,7 +180,6 @@ Deployment hardening (CSP, secrets pattern): [docs/SECURITY.md](docs/SECURITY.md
 | [docs/LATENCY_AND_METRICS.md](docs/LATENCY_AND_METRICS.md) | How to record interpretation latency (`latencyMs`) |
 | [docs/SECURITY.md](docs/SECURITY.md) | CSP notes, no repo secrets, Ollama/proxy trust |
 | [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md) | MIT repo + hackathon CC-BY winner note (informational) |
-| [docs/HACKATHON_POSITIONING.md](docs/HACKATHON_POSITIONING.md) | Impact tracks, Ollama/Cactus angles for writeups |
 | [TECHNICAL_WRITEUP.md](TECHNICAL_WRITEUP.md) | Longer technical narrative |
 | [SUBMISSION_SUMMARY.md](SUBMISSION_SUMMARY.md) | Short blurb for portals |
 | [DELIVER.md](DELIVER.md) | Delivery checklist and tree |
