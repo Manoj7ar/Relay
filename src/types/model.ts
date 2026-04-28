@@ -45,7 +45,7 @@ export interface Interpretation {
   visionUsed: boolean;
   dictionaryMatchIds: string[];
   contributingChannels: string[];
-  /** Action summary once executed (e.g. "Spoken only", "Emergency call triggered"). */
+  /** Optional note after caregiver action (e.g. "Confirmed", "Dismissed"). */
   actionTaken?: string;
   /** Raw user-facing input fragment for display in caregiver history. */
   sourceFragment?: string;

@@ -1,65 +1,87 @@
-import { Card } from '@/components/primitives';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useSession } from '@/contexts/SessionContext';
 import { directionFor } from '@/hooks/useRTL';
 import { PRIMARY_LANGUAGE_OPTIONS } from '@/lib/relayLanguages';
+import {
+  SettingsControlCard,
+  SettingsSection,
+  SettingsStack,
+} from '@/components/settings/SettingsShell';
 
 export function LanguagePanel() {
   const { settings, dispatch } = useSettings();
   const { state, dispatch: sessionDispatch } = useSession();
 
   return (
-    <Card padded={false} className="h-full min-h-0 space-y-2 overflow-hidden p-3">
-      <p className="text-xs font-semibold">Language</p>
-      <div className="rounded-xl2 bg-white/70 p-2 text-xs">
-        <p className="text-muted">Auto-detected primary language</p>
-        <p className="mt-0.5 font-medium">
-          {state.detectedLanguage}
-          <span className="ms-1 text-muted">
-            ({state.direction.toUpperCase()})
-          </span>
-        </p>
-      </div>
+    <SettingsStack>
+      <SettingsSection
+        title="Detection"
+        description="What the browser last heard for the primary language (informational)."
+      >
+        <SettingsControlCard>
+          <p className="text-xs text-muted">Auto-detected primary language</p>
+          <p className="mt-1 text-sm font-semibold">
+            {state.detectedLanguage}
+            <span className="ms-1.5 text-xs font-normal text-muted">
+              ({state.direction.toUpperCase()})
+            </span>
+          </p>
+        </SettingsControlCard>
+      </SettingsSection>
 
-      <label className="block text-xs">
-        <span className="mb-1 block text-muted">Primary language</span>
-        <select
-          value={settings.language.primaryLanguage}
-          onChange={(e) => {
-            const v = e.target.value;
-            dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: v });
-            sessionDispatch({
-              type: 'SET_LANGUAGE',
-              language: v,
-              direction: directionFor(v),
-            });
-          }}
-          className="control-select"
-        >
-          {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SettingsSection
+        title="Configured languages"
+        description="Used for interpretation output and text-to-speech voice choice."
+      >
+        <SettingsControlCard className="space-y-3">
+          <label className="block text-xs">
+            <span className="mb-1.5 block font-medium text-text">
+              Primary language
+            </span>
+            <select
+              value={settings.language.primaryLanguage}
+              onChange={(e) => {
+                const v = e.target.value;
+                dispatch({ type: 'SET_PRIMARY_LANGUAGE', value: v });
+                sessionDispatch({
+                  type: 'SET_LANGUAGE',
+                  language: v,
+                  direction: directionFor(v),
+                });
+              }}
+              className="control-select"
+            >
+              {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <label className="block text-xs">
-        <span className="mb-1 block text-muted">Caregiver language</span>
-        <select
-          value={settings.language.caregiverLanguage}
-          onChange={(e) =>
-            dispatch({ type: 'SET_CAREGIVER_LANGUAGE', value: e.target.value })
-          }
-          className="control-select"
-        >
-          {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-      </label>
-    </Card>
+          <label className="block text-xs">
+            <span className="mb-1.5 block font-medium text-text">
+              Caregiver language
+            </span>
+            <select
+              value={settings.language.caregiverLanguage}
+              onChange={(e) =>
+                dispatch({
+                  type: 'SET_CAREGIVER_LANGUAGE',
+                  value: e.target.value,
+                })
+              }
+              className="control-select"
+            >
+              {PRIMARY_LANGUAGE_OPTIONS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </SettingsControlCard>
+      </SettingsSection>
+    </SettingsStack>
   );
 }

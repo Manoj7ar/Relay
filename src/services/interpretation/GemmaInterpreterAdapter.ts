@@ -30,11 +30,12 @@ import {
   inferSpeakerFromTranscript,
 } from '@/lib/transcriptSpeakerHint';
 import { uid } from '@/lib/id';
+import { getOllamaModelTagForTier } from '@/lib/ollamaModelConfig';
 import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
 import { incrementConfirmation, listEntries } from '@/lib/patientDictionary';
 import { applyUrgencyGuard } from '@/lib/urgencyGuard';
 import type { DictionaryEntry, SignalModality } from '@/types/dictionary';
-import type { ModelId, Mood, Urgency } from '@/types/model';
+import type { Mood, Urgency } from '@/types/model';
 import { chooseModel, type RoutingDecision } from '../modelRouter';
 import type {
   InterpretationInput,
@@ -49,40 +50,10 @@ export class GemmaNotConnectedError extends Error {
   constructor(ollamaBase: string, detail?: string) {
     super(
       `Gemma is not reachable at ${ollamaBase}. ` +
-        `Set the Ollama URL in Settings → Models (HTTPS + CORS when the app is on the web). ` +
+        `Set the Ollama URL in Settings → Models & connectivity (HTTPS + CORS when the app is on the web). ` +
         `${detail ?? ''}`.trim(),
     );
     this.name = 'GemmaNotConnectedError';
-  }
-}
-
-const MODEL_STORAGE_KEYS = {
-  E2B: 'relay.model.fast',
-  E4B: 'relay.model.finetuned',
-  '27B': 'relay.model.quality',
-} as const;
-
-/**
- * Default Ollama image tags per routing tier. Must match what you `ollama pull`
- * and what users enter under Settings → Models (`localStorage` keys above).
- * For hackathon or sponsor naming, align with the official Gemma model / asset
- * guidelines before changing these strings (README + docs link to details).
- */
-const MODEL_DEFAULTS: Record<ModelId, string> = {
-  E2B: 'gemma4:e2b',
-  E4B: 'gemma4:e4b',
-  '27B': 'gemma4:27b',
-};
-
-function getModelName(tier: ModelId): string {
-  if (typeof window === 'undefined') return MODEL_DEFAULTS[tier];
-  try {
-    return (
-      window.localStorage.getItem(MODEL_STORAGE_KEYS[tier]) ??
-      MODEL_DEFAULTS[tier]
-    );
-  } catch {
-    return MODEL_DEFAULTS[tier];
   }
 }
 
@@ -670,7 +641,7 @@ async function interpret(
   const ollamaBase = getResolvedOllamaBaseUrl();
   const req = buildInferenceRequest(input);
   const decision: RoutingDecision = chooseModel(req);
-  const modelName = getModelName(decision.model);
+  const modelName = getOllamaModelTagForTier(decision.model);
   const dictionaryEntries = await loadRelevantDictionaryEntries(input);
   const allowedDictionaryIds = new Set(dictionaryEntries.map((entry) => entry.id));
   const prompt = buildPrompt(input, dictionaryEntries);

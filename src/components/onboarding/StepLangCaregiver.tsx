@@ -91,7 +91,7 @@ export function StepLangCaregiver({ setupRole }: StepLangCaregiverProps) {
 
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-          {isSelf ? 'Who can we alert?' : 'Your details'}
+          {isSelf ? 'Caregiver details' : 'Your details'}
         </h2>
 
         <label className="block">
@@ -131,30 +131,6 @@ export function StepLangCaregiver({ setupRole }: StepLangCaregiverProps) {
               </option>
             ))}
           </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">
-            Emergency contact phone (optional)
-          </span>
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={settings.integrations.caregiverPhone}
-            onChange={(e) =>
-              dispatch({
-                type: 'SET_CAREGIVER_PHONE',
-                value: e.target.value,
-              })
-            }
-            placeholder="+15555550134"
-            className="control-input text-base"
-          />
-          <span className="mt-1 block text-[11px] leading-snug text-muted">
-            Included when Relay POSTs to your emergency proxy URL (Settings →
-            Integrations).
-          </span>
         </label>
       </section>
     </div>

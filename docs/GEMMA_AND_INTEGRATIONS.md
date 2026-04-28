@@ -26,13 +26,7 @@ You can verify mic → interim transcript → typed fallback without running Oll
 | **Gemma via Ollama** | `src/services/interpretation/GemmaInterpreterAdapter.ts` | `POST http://localhost:11434/api/generate` with `stream: true`, optional `images[]` from camera, JSON response mapping to `InterpretationResult`, client-side `applyUrgencyGuard`. On failure / non-OK / network error → **`GemmaNotConnectedError`** (honest; no fake text). |
 | **Dictionary personalization** | `src/lib/patientDictionary.ts` + `GemmaInterpreterAdapter` | Loads recent relevant entries from IndexedDB, injects compact JSON as “Patient's known signals,” validates returned `dictionaryMatchIds`, and passively increments confirmations. |
 | **Handover tools** | `src/services/interpretation/HandoverAgent.ts` + `src/services/interpretation/tools/` | `POST /api/chat` with Ollama tools. Tool calls are visible in UI and routing log. Unsupported tool models → `HandoverToolCapabilityError`. |
-| **Model tag names** | Settings → **Models** | `localStorage` keys `relay.model.fast`, `relay.model.finetuned`, `relay.model.quality` (defaults `gemma4:e2b`, `gemma4:e4b`, `gemma4:27b`). |
-
-### Emergency (optional proxy)
-
-| Capability | File | Behavior |
-|------------|------|----------|
-| **Emergency dispatch** | `src/services/emergency.ts` | When `relay.emergency.proxyUrl` and caregiver phone are set, `POST`s JSON to your proxy. Otherwise **`EmergencyNotConnectedError`**. |
+| **Model tag names** | Settings → **Models & connectivity** → Advanced | Optional `localStorage` overrides per tier (`relay.model.*`). Empty = automatic defaults `gemma4:e2b` / `gemma4:e4b` / `gemma4:27b` via `src/lib/ollamaModelConfig.ts`. |
 
 ---
 
@@ -62,7 +56,7 @@ const result = await interpret({
 });
 ```
 
-`patientLanguage` / `caregiverLanguage` come from **Settings → Language**. The model returns **`inferredSpeaker`** (`patient` | `caregiver`) using the current transcript, optional **conversation tail** (recent session lines), and linguistic cues — not browser voice biometrics. `sessionLastInferredSpeaker` carries the previous turn into the prompt and STT hints for smoother follow-on. Optional **`speakerRole`** still forces attribution (e.g. symbol board → patient).
+`patientLanguage` / `caregiverLanguage` come from **Settings → Language** (`/settings/language`). The model returns **`inferredSpeaker`** (`patient` | `caregiver`) using the current transcript, optional **conversation tail** (recent session lines), and linguistic cues — not browser voice biometrics. `sessionLastInferredSpeaker` carries the previous turn into the prompt and STT hints for smoother follow-on. Optional **`speakerRole`** still forces attribution (e.g. symbol board → patient).
 
 ### Bilingual JSON from Gemma
 
@@ -156,18 +150,6 @@ To change behavior, edit **`GemmaInterpreterAdapter.ts`** (prompt, timeout, base
 
 ---
 
-## Emergency
-
-**When proxy URL + caregiver phone are set:**
-
-```ts
-await triggerEmergency({ message, caregiverPhone, ts });
-```
-
-The proxy URL is read from `localStorage` (`relay.emergency.proxyUrl`). The phone comes from **Settings → Integrations** (persisted with the rest of settings). Implement SMS, voice, or paging **on your server**; Relay only sends JSON from the browser.
-
----
-
 ## Offline vs cloud
 
 - **PWA shell:** Workbox precaches the app; the UI loads offline.
@@ -179,6 +161,6 @@ The proxy URL is read from `localStorage` (`relay.emergency.proxyUrl`). The phon
 ## Remaining work before full production
 
 - STT language picker / noise handling improvements.
-- Security, consent, and retention policies for any hosted emergency proxy.
+- Security, consent, and retention policies for any third-party endpoints you add around Ollama.
 
 For layer diagrams, see [ARCHITECTURE.md](./ARCHITECTURE.md).

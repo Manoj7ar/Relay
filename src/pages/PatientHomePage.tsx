@@ -6,7 +6,6 @@ import { TranscriptionCard } from '@/components/patient/TranscriptionCard';
 import { PrimaryMicButton } from '@/components/patient/PrimaryMicButton';
 import { HomeQuickActionRow } from '@/components/patient/HomeQuickActionRow';
 import { SymbolBoardOverlay } from '@/components/patient/SymbolBoardOverlay';
-import { EmergencyBanner } from '@/components/patient/EmergencyBanner';
 import { TypeInsteadSheet } from '@/components/patient/TypeInsteadSheet';
 
 export function PatientHomePage() {
@@ -37,8 +36,6 @@ export function PatientHomePage() {
           <TypeInsteadSheet />
         </div>
       </div>
-
-      <EmergencyBanner />
 
       <SymbolBoardOverlay
         open={boardOpen}

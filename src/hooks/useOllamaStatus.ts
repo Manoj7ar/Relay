@@ -5,7 +5,7 @@ export type OllamaStatus = 'checking' | 'running' | 'unreachable';
 
 /**
  * Polls the configured Ollama server (`/api/tags`) to show whether inference
- * is reachable. Base URL comes from Settings → Models (defaults to localhost).
+ * is reachable. Base URL comes from Settings → Models & connectivity (defaults to localhost).
  */
 export function useOllamaStatus(
   storedBaseUrl: string | undefined,

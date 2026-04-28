@@ -62,7 +62,12 @@ function BottomNav() {
 
   const activeIndex = useMemo(() => {
     const p = location.pathname;
-    return NAV.findIndex((n) => (n.to === '/' ? p === '/' : p === n.to));
+    return NAV.findIndex((n) => {
+      if (n.to === '/') return p === '/';
+      if (n.to === '/settings')
+        return p === '/settings' || p.startsWith('/settings/');
+      return p === n.to;
+    });
   }, [location.pathname]);
 
   const measure = useCallback(() => {

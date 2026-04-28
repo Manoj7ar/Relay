@@ -1,26 +1,14 @@
 import { uid } from '@/lib/id';
+import { getOllamaModelTagForTier } from '@/lib/ollamaModelConfig';
 import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
 import type { HandoverNote, HandoverToolEvent } from '@/types/handover';
-import type { ModelId, RoutingLogEntry } from '@/types/model';
-import type { InteractionRecord } from '@/types/session';
+import type { RoutingLogEntry } from '@/types/model';
 import { GemmaNotConnectedError } from './GemmaInterpreterAdapter';
 import { getTool, relayTools } from './tools/registry';
 import type { RelayToolContext } from './tools/types';
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_TOOL_ROUNDS = 8;
-
-const MODEL_STORAGE_KEYS = {
-  E2B: 'relay.model.fast',
-  E4B: 'relay.model.finetuned',
-  '27B': 'relay.model.quality',
-} as const;
-
-const MODEL_DEFAULTS: Record<ModelId, string> = {
-  E2B: 'gemma4:e2b',
-  E4B: 'gemma4:e4b',
-  '27B': 'gemma4:27b',
-};
 
 export class HandoverToolCapabilityError extends Error {
   constructor(detail?: string) {
@@ -58,18 +46,6 @@ interface OllamaMessage {
 interface OllamaChatResponse {
   message?: OllamaMessage;
   error?: string;
-}
-
-function getModelName(tier: ModelId): string {
-  if (typeof window === 'undefined') return MODEL_DEFAULTS[tier];
-  try {
-    return (
-      window.localStorage.getItem(MODEL_STORAGE_KEYS[tier]) ??
-      MODEL_DEFAULTS[tier]
-    );
-  } catch {
-    return MODEL_DEFAULTS[tier];
-  }
 }
 
 function emit(
@@ -184,7 +160,7 @@ export async function generateHandoverNote({
   onToolEvent,
 }: GenerateHandoverInput): Promise<HandoverNote> {
   const ollamaBase = getResolvedOllamaBaseUrl();
-  const model = getModelName('27B');
+  const model = getOllamaModelTagForTier('27B');
   const context: RelayToolContext = {
     shiftStart,
     shiftEnd,

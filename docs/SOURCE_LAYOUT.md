@@ -14,9 +14,10 @@ This is the **orientation map** for judges and contributors. Paths are relative 
 
 | Folder | Role |
 |--------|------|
-| `components/patient/` | Home experience: mic, transcript card, camera, symbols, emergency, language. |
+| `components/patient/` | Home experience: mic, transcript card, camera, symbols, language. |
 | `components/caregiver/` | Shift views: history, routing log, handover, dictionary panel, timelines. |
-| `components/settings/` | Settings panels: profile, models, language, accessibility, integrations, developer. |
+| `components/settings/` | Settings panels + `SettingsShell` layout primitives. |
+| `pages/settings/` | Settings hub, nested route pages (`settingsSubpages.tsx`), `SettingsLayout`. |
 | `components/onboarding/` | First-run steps and shell. |
 | `components/dictionary/` | Shared dictionary entry modals/forms. |
 | `components/layout/` | `RoutedViews` and other layout wrappers. |
@@ -34,7 +35,7 @@ This is the **orientation map** for judges and contributors. Paths are relative 
 
 | Folder | Role |
 |--------|------|
-| `services/` | Browser capabilities: audio, camera, STT, TTS, permissions, emergency. |
+| `services/` | Browser capabilities: audio, camera, STT, TTS, permissions. |
 | `services/interpretationService.ts` | Single `interpret()` entry; delegates to Gemma adapter. |
 | `services/interpretation/` | `GemmaInterpreterAdapter`, `HandoverAgent`, `modelRouter`, `tools/` registry. |
 

@@ -1,52 +1,56 @@
-import { useEffect, useState } from 'react';
-import { CheckCircle2, Cpu, Loader2, XCircle } from 'lucide-react';
-import { Card, PillButton } from '@/components/primitives';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  CheckCircle2,
+  ChevronDown,
+  Cpu,
+  Loader2,
+  RotateCcw,
+  XCircle,
+} from 'lucide-react';
+import { PillButton } from '@/components/primitives';
 import { useSettings } from '@/contexts/SettingsContext';
+import {
+  SettingsControlCard,
+  SettingsSection,
+  SettingsStack,
+} from '@/components/settings/SettingsShell';
+import {
+  clearAllOllamaModelOverrides,
+  hasOllamaModelOverrideStored,
+  OLLAMA_MODEL_DEFAULT_TAG,
+  readOllamaModelOverrideRaw,
+  writeOllamaModelOverride,
+} from '@/lib/ollamaModelConfig';
 import {
   DEFAULT_OLLAMA_BASE_URL,
   resolveOllamaBaseUrl,
 } from '@/lib/ollamaUrl';
+import { cn } from '@/lib/cn';
+import type { ModelId } from '@/types/model';
 
-const MODEL_KEYS = {
-  fast: 'relay.model.fast',
-  finetuned: 'relay.model.finetuned',
-  quality: 'relay.model.quality',
-} as const;
-
-const DEFAULTS = {
-  fast: 'gemma4:e2b',
-  finetuned: 'gemma4:e4b',
-  quality: 'gemma4:27b',
-} as const;
-
-interface FieldSpec {
-  key: keyof typeof MODEL_KEYS;
+const TIER_FIELDS: {
+  key: ModelId;
   label: string;
-  tier: 'E2B' | 'E4B' | '27B';
-  description: string;
-}
-
-const FIELDS: FieldSpec[] = [
+  short: string;
+  hint: string;
+}[] = [
   {
-    key: 'fast',
-    label: 'Fast model (E2B tier)',
-    tier: 'E2B',
-    description:
-      'Used for real-time speech shortcuts, under ~2s latency.',
+    key: 'E2B',
+    label: 'Fast tier (E2B)',
+    short: 'Fast',
+    hint: 'Short speech and low-latency paths.',
   },
   {
-    key: 'finetuned',
-    label: 'Fine-tuned model (E4B tier)',
-    tier: 'E4B',
-    description:
-      'Used for symbol-board expansion and personalized phrase reconstruction.',
+    key: 'E4B',
+    label: 'Fine-tuned tier (E4B)',
+    short: 'Tuned',
+    hint: 'Symbols and phrase expansion.',
   },
   {
-    key: 'quality',
-    label: 'Quality model (27B tier)',
-    tier: '27B',
-    description:
-      'Used for multimodal reasoning (camera + speech) and HIGH-urgency utterances.',
+    key: '27B',
+    label: 'Quality tier (27B)',
+    short: 'Detailed',
+    hint: 'Camera + speech and urgent cases.',
   },
 ];
 
@@ -56,49 +60,47 @@ type TestStatus =
   | { kind: 'ok'; models: string[] }
   | { kind: 'fail'; message: string };
 
-function readStored(key: string): string {
-  if (typeof window === 'undefined') return '';
-  try {
-    return window.localStorage.getItem(key) ?? '';
-  } catch {
-    return '';
-  }
+function readAllOverrides(): Record<ModelId, string> {
+  return {
+    E2B: readOllamaModelOverrideRaw('E2B'),
+    E4B: readOllamaModelOverrideRaw('E4B'),
+    '27B': readOllamaModelOverrideRaw('27B'),
+  };
 }
 
-function writeStored(key: string, value: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    if (value.trim().length === 0) {
-      window.localStorage.removeItem(key);
-    } else {
-      window.localStorage.setItem(key, value.trim());
-    }
-  } catch {
-    // ignore
-  }
+function resolvedTag(tier: ModelId): string {
+  const raw = readOllamaModelOverrideRaw(tier).trim();
+  return raw.length > 0 ? raw : OLLAMA_MODEL_DEFAULT_TAG[tier];
 }
 
 export function ModelConfigPanel() {
   const { settings, dispatch } = useSettings();
-  const [values, setValues] = useState<Record<keyof typeof MODEL_KEYS, string>>(
-    { fast: '', finetuned: '', quality: '' },
+  const [advOpen, setAdvOpen] = useState(false);
+  const [overrides, setOverrides] = useState<Record<ModelId, string>>(() =>
+    readAllOverrides(),
   );
   const [status, setStatus] = useState<TestStatus>({ kind: 'idle' });
 
-  useEffect(() => {
-    setValues({
-      fast: readStored(MODEL_KEYS.fast),
-      finetuned: readStored(MODEL_KEYS.finetuned),
-      quality: readStored(MODEL_KEYS.quality),
-    });
+  const refreshOverrides = useCallback(() => {
+    setOverrides(readAllOverrides());
   }, []);
 
-  const updateField = (key: keyof typeof MODEL_KEYS, value: string) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
-    writeStored(MODEL_KEYS[key], value);
+  useEffect(() => {
+    refreshOverrides();
+  }, [advOpen, refreshOverrides]);
+
+  const updateTier = (tier: ModelId, value: string) => {
+    setOverrides((prev) => ({ ...prev, [tier]: value }));
+    writeOllamaModelOverride(tier, value);
+  };
+
+  const resetOverrides = () => {
+    clearAllOllamaModelOverrides();
+    refreshOverrides();
   };
 
   const effectiveBase = resolveOllamaBaseUrl(settings.ollama.baseUrl);
+  const customStored = hasOllamaModelOverrideStored();
 
   const testOllama = async () => {
     setStatus({ kind: 'checking' });
@@ -127,120 +129,170 @@ export function ModelConfigPanel() {
     }
   };
 
+  const activeLine = TIER_FIELDS.map(
+    (f) => `${f.short}: ${resolvedTag(f.key)}`,
+  ).join(' · ');
+
   return (
-    <Card padded={false} className="h-full min-h-0 space-y-3 overflow-y-auto p-3 text-sm">
-      <div className="flex items-center justify-between">
-        <p className="inline-flex items-center gap-1.5 text-xs font-semibold">
-          <Cpu className="h-3.5 w-3.5" aria-hidden />
-          Model configuration
-        </p>
-      </div>
-
-      <p className="text-[11px] leading-snug text-muted">
-        Set your Ollama API base URL (another computer, home server, or HTTPS
-        tunnel). Leave blank to use{' '}
-        <code className="rounded bg-black/5 px-1">{DEFAULT_OLLAMA_BASE_URL}</code>
-        . Model names must match tags on that server (
-        <code className="rounded bg-black/5 px-1">ollama list</code>). Hosted
-        apps need <span className="font-medium text-text">HTTPS</span> on the
-        Ollama side and{' '}
-        <span className="font-medium text-text">CORS</span> allowing this
-        origin.
-      </p>
-
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium">Ollama base URL</span>
-        <input
-          type="text"
-          inputMode="url"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="https://ollama.example.com or http://192.168.1.10:11434"
-          value={settings.ollama.baseUrl}
-          onChange={(e) =>
-            dispatch({ type: 'SET_OLLAMA_BASE_URL', value: e.target.value })
-          }
-          className="control-input font-mono text-sm"
-        />
-        <p className="mt-1 text-[10px] leading-snug text-muted">
-          Using:{' '}
-          <span className="break-all font-mono text-text">{effectiveBase}</span>
-        </p>
-      </label>
-
-      {FIELDS.map((field) => (
-        <div key={field.key} className="space-y-1">
+    <SettingsStack className="text-sm">
+      <SettingsSection
+        title="Ollama server"
+        description="Leave blank to use this device. Use a full URL if Ollama runs on another machine or tunnel."
+      >
+        <SettingsControlCard className="space-y-2">
           <label className="block text-xs">
-            <span className="mb-1 block font-medium">{field.label}</span>
+            <span className="mb-1.5 block font-medium text-text">
+              Base URL (optional)
+            </span>
             <input
               type="text"
-              value={values[field.key]}
-              onChange={(e) => updateField(field.key, e.target.value)}
-              placeholder={DEFAULTS[field.key]}
+              inputMode="url"
+              autoComplete="off"
               spellCheck={false}
+              placeholder="e.g. http://192.168.1.10:11434"
+              value={settings.ollama.baseUrl}
+              onChange={(e) =>
+                dispatch({ type: 'SET_OLLAMA_BASE_URL', value: e.target.value })
+              }
               className="control-input font-mono text-sm"
             />
           </label>
           <p className="text-[10px] leading-snug text-muted">
-            {field.description}
+            Resolves to{' '}
+            <span className="break-all font-mono text-text">{effectiveBase}</span>
+            . Hosted apps need HTTPS on Ollama and CORS for this origin.
           </p>
-          <p className="text-[10px] text-muted">
-            Current:{' '}
-            <span className="font-mono">
-              {values[field.key] || DEFAULTS[field.key]}
-            </span>
-          </p>
-        </div>
-      ))}
+        </SettingsControlCard>
+      </SettingsSection>
 
-      <div className="space-y-1.5 border-t border-black/5 pt-2">
-        <PillButton
-          size="sm"
-          variant="accent"
-          onClick={testOllama}
-          disabled={status.kind === 'checking'}
-          leftIcon={
-            status.kind === 'checking' ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Cpu className="h-4 w-4" aria-hidden />
-            )
-          }
+      <SettingsSection
+        title="Model tags"
+        description="Relay routes each request to a tier; tags default automatically unless you override them in Advanced."
+      >
+        <SettingsControlCard className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-text">
+            <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            Active tags
+          </div>
+          <p className="break-words font-mono text-[11px] leading-snug text-text">
+            {activeLine}
+          </p>
+          <p className="text-[10px] leading-snug text-muted">
+            {customStored
+              ? 'Custom overrides on — open Advanced or clear them below.'
+              : `Recommended defaults when empty (${DEFAULT_OLLAMA_BASE_URL}).`}
+          </p>
+        </SettingsControlCard>
+      </SettingsSection>
+
+      <SettingsSection title="Advanced">
+        <details
+          className="rounded-xl2 border border-black/[0.08] bg-white/50 open:border-black/[0.12] open:bg-white/65"
+          onToggle={(e) => setAdvOpen(e.currentTarget.open)}
         >
-          {status.kind === 'checking' ? 'Checking…' : 'Test Ollama connection'}
-        </PillButton>
-
-        {status.kind === 'ok' ? (
-          <div className="rounded-xl2 border border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] leading-snug">
-            <p className="inline-flex items-center gap-1 font-semibold text-emerald-700">
-              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-              Ollama running · {status.models.length} model
-              {status.models.length === 1 ? '' : 's'} available
-            </p>
-            {status.models.length ? (
-              <p className="mt-1 break-words font-mono text-[10px] text-muted">
-                {status.models.join(', ')}
-              </p>
-            ) : (
-              <p className="mt-1 text-muted">
-                No models pulled yet — run{' '}
-                <code className="rounded bg-black/5 px-1">
-                  ollama pull gemma4:e2b
-                </code>
-                .
-              </p>
+          <summary
+            className={cn(
+              'flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-text',
+              'select-none [&::-webkit-details-marker]:hidden',
             )}
-          </div>
-        ) : status.kind === 'fail' ? (
-          <div className="rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] p-2 text-[11px] leading-snug text-[var(--danger)]">
-            <p className="inline-flex items-center gap-1 font-semibold">
-              <XCircle className="h-3.5 w-3.5" aria-hidden />
-              Ollama not found
+          >
+            <span>Ollama model tag overrides</span>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 shrink-0 text-muted transition-transform duration-fast ease-smooth',
+                advOpen && 'rotate-180',
+              )}
+              aria-hidden
+            />
+          </summary>
+          <div className="space-y-3 border-t border-black/[0.06] px-3 pb-3 pt-2">
+            <p className="text-[10px] leading-snug text-muted">
+              Map each tier to a tag from{' '}
+              <code className="rounded bg-black/5 px-1">ollama list</code>. Leave
+              blank to use the default for that tier.
             </p>
-            <p className="mt-1 text-text">{status.message}</p>
+
+            {TIER_FIELDS.map((field) => (
+              <div key={field.key} className="space-y-1">
+                <label className="block text-xs">
+                  <span className="mb-1 block font-medium">{field.label}</span>
+                  <input
+                    type="text"
+                    value={overrides[field.key]}
+                    onChange={(e) => updateTier(field.key, e.target.value)}
+                    placeholder={OLLAMA_MODEL_DEFAULT_TAG[field.key]}
+                    spellCheck={false}
+                    className="control-input font-mono text-sm"
+                  />
+                </label>
+                <p className="text-[10px] leading-snug text-muted">{field.hint}</p>
+              </div>
+            ))}
+
+            <PillButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={resetOverrides}
+              leftIcon={<RotateCcw className="h-4 w-4" aria-hidden />}
+              className="w-full"
+            >
+              Clear overrides — use automatic tags
+            </PillButton>
           </div>
-        ) : null}
-      </div>
-    </Card>
+        </details>
+      </SettingsSection>
+
+      <SettingsSection title="Connection test">
+        <SettingsControlCard className="space-y-2">
+          <PillButton
+            size="sm"
+            variant="accent"
+            onClick={testOllama}
+            disabled={status.kind === 'checking'}
+            leftIcon={
+              status.kind === 'checking' ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Cpu className="h-4 w-4" aria-hidden />
+              )
+            }
+          >
+            {status.kind === 'checking' ? 'Checking…' : 'Test Ollama'}
+          </PillButton>
+
+          {status.kind === 'ok' ? (
+            <div className="rounded-xl2 border border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] leading-snug">
+              <p className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                Ollama running · {status.models.length} model
+                {status.models.length === 1 ? '' : 's'} available
+              </p>
+              {status.models.length ? (
+                <p className="mt-1 break-words font-mono text-[10px] text-muted">
+                  {status.models.join(', ')}
+                </p>
+              ) : (
+                <p className="mt-1 text-muted">
+                  No models pulled yet — run{' '}
+                  <code className="rounded bg-black/5 px-1">
+                    ollama pull gemma4:e2b
+                  </code>
+                  .
+                </p>
+              )}
+            </div>
+          ) : status.kind === 'fail' ? (
+            <div className="rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] p-2 text-[11px] leading-snug text-[var(--danger)]">
+              <p className="inline-flex items-center gap-1 font-semibold">
+                <XCircle className="h-3.5 w-3.5" aria-hidden />
+                Ollama not found
+              </p>
+              <p className="mt-1 text-text">{status.message}</p>
+            </div>
+          ) : null}
+        </SettingsControlCard>
+      </SettingsSection>
+    </SettingsStack>
   );
 }

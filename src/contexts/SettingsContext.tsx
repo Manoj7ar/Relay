@@ -28,7 +28,6 @@ type Action =
   | { type: 'SET_RELAY_POWER_ON'; value: boolean }
   | { type: 'SET_HIGH_CONTRAST'; value: boolean }
   | { type: 'SET_LARGE_TEXT'; value: boolean }
-  | { type: 'SET_CAREGIVER_PHONE'; value: string }
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
   | { type: 'SET_SETUP_ROLE'; value: ProfileSettings['setupRole'] }
@@ -55,14 +54,6 @@ function reducer(state: SettingsState, action: Action): SettingsState {
       return {
         ...state,
         accessibility: { ...state.accessibility, largeText: action.value },
-      };
-    case 'SET_CAREGIVER_PHONE':
-      return {
-        ...state,
-        integrations: {
-          ...state.integrations,
-          caregiverPhone: action.value,
-        },
       };
     case 'SET_PRIMARY_LANGUAGE':
       return {
@@ -159,7 +150,6 @@ function hydrate(fallback: SettingsState): SettingsState {
   const stored = load<Partial<SettingsState>>(STORAGE_KEY, fallback);
   return {
     ...fallback,
-    ...stored,
     relayPowerOn:
       typeof stored.relayPowerOn === 'boolean'
         ? stored.relayPowerOn
@@ -167,20 +157,6 @@ function hydrate(fallback: SettingsState): SettingsState {
     accessibility: {
       ...fallback.accessibility,
       ...(stored.accessibility ?? {}),
-    },
-    integrations: {
-      caregiverPhone: (() => {
-        const raw = stored.integrations as unknown;
-        if (raw && typeof raw === 'object' && 'caregiverPhone' in raw) {
-          const v = (raw as { caregiverPhone?: unknown }).caregiverPhone;
-          if (typeof v === 'string') return v;
-        }
-        if (raw && typeof raw === 'object' && 'twilio' in raw) {
-          const tw = (raw as { twilio?: { caregiverPhone?: unknown } }).twilio;
-          if (tw && typeof tw.caregiverPhone === 'string') return tw.caregiverPhone;
-        }
-        return fallback.integrations.caregiverPhone;
-      })(),
     },
     language: { ...fallback.language, ...(stored.language ?? {}) },
     ollama: {
@@ -208,8 +184,19 @@ function hydrate(fallback: SettingsState): SettingsState {
   } as SettingsState;
 }
 
+const EMERGENCY_PROXY_LEGACY_KEY = 'relay.emergency.proxyUrl';
+
 export function SettingsProvider({ children }: PropsWithChildren) {
   const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, hydrate);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(EMERGENCY_PROXY_LEGACY_KEY);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     save(STORAGE_KEY, settings);

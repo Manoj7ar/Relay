@@ -4,7 +4,16 @@ import { AppLayout } from '@/components/AppLayout';
 import { RoutedViews } from '@/components/layout/RoutedViews';
 import { PatientHomePage } from '@/pages/PatientHomePage';
 import { CaregiverPage } from '@/pages/CaregiverPage';
-import { SettingsPage } from '@/pages/SettingsPage';
+import { SettingsLayout } from '@/pages/settings/SettingsLayout';
+import { SettingsHubPage } from '@/pages/settings/SettingsHubPage';
+import {
+  SettingsAccessibilityPage,
+  SettingsDeveloperPage,
+  SettingsLanguagePage,
+  SettingsModelsPage,
+  SettingsProfilePage,
+  SettingsRoutingPage,
+} from '@/pages/settings/settingsSubpages';
 import { AboutPage } from '@/pages/AboutPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -51,7 +60,18 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<PatientHomePage />} />
                 <Route path="/caregiver" element={<CaregiverPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<SettingsLayout />}>
+                  <Route index element={<SettingsHubPage />} />
+                  <Route path="profile" element={<SettingsProfilePage />} />
+                  <Route path="language" element={<SettingsLanguagePage />} />
+                  <Route
+                    path="accessibility"
+                    element={<SettingsAccessibilityPage />}
+                  />
+                  <Route path="models" element={<SettingsModelsPage />} />
+                  <Route path="routing" element={<SettingsRoutingPage />} />
+                  <Route path="developer" element={<SettingsDeveloperPage />} />
+                </Route>
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="*" element={<PatientHomePage />} />
               </Routes>

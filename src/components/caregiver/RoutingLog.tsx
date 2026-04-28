@@ -53,7 +53,7 @@ export function RoutingLog({ compact }: RoutingLogProps) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden">
       <div className="flex shrink-0 items-center justify-between px-1 text-[10px] uppercase tracking-wider text-muted">
-        <span>Routing log</span>
+        <span>{compact ? 'Recent entries' : 'Routing log'}</span>
         <button
           type="button"
           onClick={clearLog}
@@ -89,7 +89,7 @@ export function RoutingLog({ compact }: RoutingLogProps) {
           No entries for {filter} in the log yet.
         </p>
       ) : (
-        <ol className="min-h-0 space-y-1.5 overflow-hidden">
+        <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
           {entries.map((entry) => (
             <li key={entry.id}>
               <Card padded={false} className={compact ? 'p-2' : 'p-3'}>

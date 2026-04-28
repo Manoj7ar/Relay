@@ -4,13 +4,12 @@ Relay is a **static client-side PWA**: there is no Relay-owned backend in this r
 
 ## Secrets and configuration
 
-- **No API keys** are embedded in the repo. Ollama base URL, model tags, emergency proxy URL, and caregiver phone live in **browser localStorage** via Settings (user-controlled).
-- **Do not commit** personal `localStorage` dumps or `.env` files with real phone numbers into public forks.
+- **No API keys** are embedded in the repo. Ollama base URL and model tag overrides live in **browser localStorage** via Settings (user-controlled).
+- **Do not commit** personal `localStorage` dumps or `.env` files with real credentials into public forks.
 
-## Ollama and emergency proxy trust
+## Ollama trust
 
 - **Ollama:** whoever controls the configured URL receives **transcripts and optional camera frames** as part of inference. Use HTTPS and a host you trust; see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md#ollama-wire-protocol-what-judges-can-grep) for CORS and mixed-content caveats.
-- **Emergency proxy:** when enabled, the browser **POST**s JSON to your proxy. Treat that like any **health-adjacent** integration: TLS, authentication, retention, and consent are your responsibility (see README “Integrations and safety”).
 
 ## Content Security Policy (CSP)
 

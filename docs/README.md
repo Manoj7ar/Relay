@@ -4,7 +4,7 @@
 |----------|-------------|
 | [SOURCE_LAYOUT.md](./SOURCE_LAYOUT.md) | `src/` directory map (components, contexts, services, hooks) |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | UI, hooks, contexts, services, capability layer |
-| [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) | Gemma 4 / Ollama wire protocol, bilingual JSON, emergency proxy |
+| [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md) | Gemma 4 / Ollama wire protocol, bilingual JSON |
 | [MODEL_ROUTING.md](./MODEL_ROUTING.md) | Deterministic E2B / E4B / 27B routing (`chooseModel`) |
 | [GROUNDING.md](./GROUNDING.md) | Dictionary injection + handover tool grounding |
 | [LATENCY_AND_METRICS.md](./LATENCY_AND_METRICS.md) | How to read / fill `latencyMs` tables |

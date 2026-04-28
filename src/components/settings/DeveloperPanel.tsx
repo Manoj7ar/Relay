@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/components/primitives';
+import {
+  SettingsControlCard,
+  SettingsSection,
+  SettingsStack,
+} from '@/components/settings/SettingsShell';
 
 /**
  * Developer / capability-layer info. Surfaces what's wired vs. what's
@@ -32,69 +36,66 @@ export function DeveloperPanel() {
     {
       label: 'Permissions',
       status: 'real',
-      detail: 'navigator.permissions (with graceful fallback) + denied recovery copy.',
+      detail:
+        'navigator.permissions (with graceful fallback) + denied recovery copy.',
     },
     {
       label: 'Gemma 4 interpretation',
       status: 'real',
       detail:
-        'src/services/interpretation/GemmaInterpreterAdapter.ts — Ollama POST /api/generate; surfaces GemmaNotConnectedError when unreachable.',
-    },
-    {
-      label: 'Emergency dispatch',
-      status: 'real',
-      detail:
-        'src/services/emergency.ts — POST to user-set HTTPS proxy when URL and caregiver phone are configured; otherwise EmergencyNotConnectedError.',
+        'GemmaInterpreterAdapter — Ollama POST /api/generate; GemmaNotConnectedError when unreachable.',
     },
   ];
 
   return (
-    <div className="flex flex-col gap-2">
-      <Card padded={false} className="p-3">
-        <h2 className="text-sm font-semibold text-text">Capability status</h2>
-        <p className="mt-0.5 text-[11px] text-muted">
-          What is backed by real browser APIs and local Ollama vs. what still
-          needs configuration.
-        </p>
-        <ul className="mt-2 space-y-1.5">
+    <SettingsStack>
+      <SettingsSection
+        title="Capability status"
+        description="What this build wires to real browser APIs and Ollama."
+      >
+        <SettingsControlCard className="divide-y divide-black/[0.06] p-0">
           {rows.map((row) => (
-            <li
+            <div
               key={row.label}
-              className="flex items-start gap-2 rounded-xl2 bg-white/60 px-2.5 py-1.5"
+              className="flex gap-3 px-3 py-3 first:pt-3 last:pb-3"
             >
               <span
                 className={
                   row.status === 'real'
-                    ? 'mt-0.5 inline-flex shrink-0 items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700'
-                    : 'mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-800'
+                    ? 'mt-0.5 inline-flex h-fit shrink-0 items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700'
+                    : 'mt-0.5 inline-flex h-fit shrink-0 items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-800'
                 }
               >
-                {row.status === 'real' ? 'WIRED' : 'STUB'}
+                {row.status === 'real' ? 'Live' : 'Stub'}
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-text">{row.label}</p>
-                <p className="text-[11px] leading-snug text-muted">{row.detail}</p>
+                <p className="text-sm font-semibold text-text">{row.label}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted">
+                  {row.detail}
+                </p>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
-      </Card>
-      <Card padded={false} className="p-3">
-        <h2 className="text-sm font-semibold text-text">Connect Gemma 4</h2>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted">
-          Customize <code>interpret()</code> in{' '}
-          <code>src/services/interpretation/GemmaInterpreterAdapter.ts</code>{' '}
-          (Ollama base URL in Settings, prompts, timeouts). Map the output to{' '}
-          <code>InterpretationResult</code>. Every input surface (mic, typed,
-          symbols, camera-attached) flows through the same path.
-        </p>
-        <Link
-          to="/about"
-          className="mt-2 inline-block text-[11px] font-medium text-[var(--accent)] underline-offset-2 hover:underline"
-        >
-          Architecture overview →
-        </Link>
-      </Card>
-    </div>
+        </SettingsControlCard>
+      </SettingsSection>
+
+      <SettingsSection title="Extend Relay">
+        <SettingsControlCard className="space-y-2">
+          <p className="text-xs leading-relaxed text-muted">
+            Customize prompts and timeouts in{' '}
+            <code className="rounded bg-black/5 px-1 text-[11px]">
+              GemmaInterpreterAdapter
+            </code>
+            . All input surfaces share the same interpretation path.
+          </p>
+          <Link
+            to="/about"
+            className="inline-block text-xs font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+          >
+            Architecture overview →
+          </Link>
+        </SettingsControlCard>
+      </SettingsSection>
+    </SettingsStack>
   );
 }

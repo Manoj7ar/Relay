@@ -23,9 +23,9 @@ export function EmergencyTimeline({
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--danger)]/10 text-[var(--danger)]">
           <AlertTriangle className="h-5 w-5" aria-hidden />
         </span>
-        <p className="text-xs font-medium text-text">No emergency events yet</p>
+        <p className="text-xs font-medium text-text">No high-urgency events yet</p>
         <p className="max-w-[260px] text-[11px] leading-snug text-muted">
-          HIGH-urgency interpretations (or cancelled countdowns) show on this timeline.
+          HIGH-urgency interpretations from today appear here with any action note.
         </p>
       </Card>
     );

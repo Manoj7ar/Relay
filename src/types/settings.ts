@@ -3,11 +3,6 @@ export interface AccessibilitySettings {
   largeText: boolean;
 }
 
-/** Optional emergency POST: proxy URL lives in localStorage; phone is persisted here. */
-export interface IntegrationsSettings {
-  caregiverPhone: string;
-}
-
 export interface LanguageSettings {
   primaryLanguage: string;
   caregiverLanguage: string;
@@ -58,7 +53,6 @@ export interface SettingsState {
   /** When false, interpretation and patient inputs are suspended (master switch). */
   relayPowerOn: boolean;
   accessibility: AccessibilitySettings;
-  integrations: IntegrationsSettings;
   language: LanguageSettings;
   ollama: OllamaSettings;
   profile: ProfileSettings;
@@ -83,9 +77,6 @@ export const DEFAULT_SETTINGS: SettingsState = {
   accessibility: {
     highContrast: false,
     largeText: false,
-  },
-  integrations: {
-    caregiverPhone: '',
   },
   language: {
     primaryLanguage: 'en-US',

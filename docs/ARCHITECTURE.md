@@ -47,9 +47,6 @@ flowchart TB
   subgraph routing [Routing policy]
     Router[modelRouter.chooseModel]
   end
-  subgraph integrations [Integrations]
-    Emergency[emergency optional proxy]
-  end
 
   Pages --> Session
   Components --> Session
@@ -60,12 +57,11 @@ flowchart TB
   GemmaAdapter --> Router
   Session --> RoutingCtx
   Settings --> Session
-  Session --> Emergency
 ```
 
 ## UI layer (`src/pages`, `src/components`)
 
-- **Pages**: `PatientHomePage`, `CaregiverPage`, `SettingsPage`, `AboutPage`.
+- **Pages**: `PatientHomePage`, `CaregiverPage`, nested **Settings** routes under `src/pages/settings/` (`SettingsHubPage`, subpages), `AboutPage`.
 - **Primitives**: reusable glass-style controls (`Card`, `PillButton`, `Modal`, etc.).
 - **Domain components**: `patient/`, `caregiver/`, `settings/`.
 
@@ -91,7 +87,7 @@ All browser API access lives inside these services; UI consumes typed state only
 |---------|----------------|
 | `SessionContext` | Listening/processing flags, interim transcript, current interpretation, pending camera frame, history, vision toggle, language/direction, `lastError` surface for "not connected" states |
 | `ModelRoutingContext` | Current model id, append-only routing log (persisted) |
-| `SettingsContext` | Accessibility, integrations, language |
+| `SettingsContext` | Accessibility, language, Ollama URL, profile |
 
 ## Interpretation layer (`src/services/interpretationService.ts`)
 
@@ -116,10 +112,6 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 | `speechSynthesisService` | `window.speechSynthesis` |
 | `cameraService` | `getUserMedia({ video })`, `<video>` + `<canvas>` for frame capture |
 
-## Integrations (`src/services`)
-
-- **`emergency.ts`** — When `relay.emergency.proxyUrl` (localStorage) and caregiver phone (settings) are set, posts JSON to your HTTPS proxy; otherwise throws `EmergencyNotConnectedError`.
-
 ## Persistence
 
 - `localStorage` keys prefixed with `relay.*` (session history, settings, routing log).
@@ -141,6 +133,4 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 | Camera preview + frame capture | Real `getUserMedia({ video })`; frame stored on session | Fed into `interpret()` as `imageDataUrl` |
 | Routing decision | Real `chooseModel` | Swap to Cactus if desired |
 | Interpretation | **Ollama** via `GemmaInterpreterAdapter`; **error** if unreachable | `GemmaInterpreterAdapter.ts` |
-| Emergency escalation | In-app countdown + **POST to configured proxy** when set | `services/emergency.ts` |
-
 For the Gemma wiring checklist, see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md). For local setup and scripts, see [README.md](../README.md).

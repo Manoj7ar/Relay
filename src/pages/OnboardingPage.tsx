@@ -118,7 +118,7 @@ export function OnboardingPage() {
       case 'voice':
         return 'Optional — record four short phrases so Relay learns how common words sound in this voice.';
       case 'lang-caregiver':
-        return 'Pick primary + caregiver language and who gets emergency alerts.';
+        return 'Pick primary and caregiver languages, plus who supports day-to-day care.';
       case 'phrases':
         return 'Common phrases help Gemma understand how you usually speak.';
       case 'a11y-done':
