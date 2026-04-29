@@ -19,6 +19,7 @@ This is the **orientation map** for judges and contributors. Paths are relative 
 | `components/settings/` | Settings panels + `SettingsShell` layout primitives. |
 | `pages/caregiver/` | Caregiver hub, nested route pages (`caregiverSubpages.tsx`), `CaregiverLayout`; shell in `components/caregiver/CaregiverShell.tsx`. |
 | `pages/settings/` | Settings hub, nested route pages (`settingsSubpages.tsx`), `SettingsLayout`. |
+| `components/about/` | About / architecture explainer (`AboutArchitectureContent`). |
 | `components/onboarding/` | First-run steps and shell. |
 | `components/dictionary/` | Shared dictionary entry modals/forms. |
 | `components/layout/` | `RoutedViews` and other layout wrappers. |
