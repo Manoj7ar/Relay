@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AppLayout } from '@/components/AppLayout';
 import { RoutedViews } from '@/components/layout/RoutedViews';
 import { PatientHomePage } from '@/pages/PatientHomePage';
@@ -51,49 +52,55 @@ export default function App() {
 
   if (!settings.onboardingCompletedAt) {
     return (
-      <Routes>
-        <Route path="*" element={<OnboardingPage />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="*" element={<OnboardingPage />} />
+        </Routes>
+        <Analytics />
+      </>
     );
   }
 
   return (
-    <Routes>
-      <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route
-        path="*"
-        element={
-          <AppLayout>
-            <RoutedViews>
-              <Routes>
-                <Route path="/" element={<PatientHomePage />} />
-                <Route path="/caregiver" element={<CaregiverLayout />}>
-                  <Route index element={<CaregiverHubPage />} />
-                  <Route path="today" element={<CaregiverTodayPage />} />
-                  <Route path="dictionary" element={<CaregiverDictionaryPage />} />
-                  <Route path="routing" element={<CaregiverRoutingPage />} />
-                  <Route path="alerts" element={<CaregiverAlertsPage />} />
-                  <Route path="handover" element={<CaregiverHandoverPage />} />
-                </Route>
-                <Route path="/settings" element={<SettingsLayout />}>
-                  <Route index element={<SettingsHubPage />} />
-                  <Route path="profile" element={<SettingsProfilePage />} />
-                  <Route path="language" element={<SettingsLanguagePage />} />
-                  <Route
-                    path="accessibility"
-                    element={<SettingsAccessibilityPage />}
-                  />
-                  <Route path="models" element={<SettingsModelsPage />} />
-                  <Route path="routing" element={<SettingsRoutingPage />} />
-                  <Route path="developer" element={<SettingsDeveloperPage />} />
-                </Route>
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="*" element={<PatientHomePage />} />
-              </Routes>
-            </RoutedViews>
-          </AppLayout>
-        }
-      />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route
+          path="*"
+          element={
+            <AppLayout>
+              <RoutedViews>
+                <Routes>
+                  <Route path="/" element={<PatientHomePage />} />
+                  <Route path="/caregiver" element={<CaregiverLayout />}>
+                    <Route index element={<CaregiverHubPage />} />
+                    <Route path="today" element={<CaregiverTodayPage />} />
+                    <Route path="dictionary" element={<CaregiverDictionaryPage />} />
+                    <Route path="routing" element={<CaregiverRoutingPage />} />
+                    <Route path="alerts" element={<CaregiverAlertsPage />} />
+                    <Route path="handover" element={<CaregiverHandoverPage />} />
+                  </Route>
+                  <Route path="/settings" element={<SettingsLayout />}>
+                    <Route index element={<SettingsHubPage />} />
+                    <Route path="profile" element={<SettingsProfilePage />} />
+                    <Route path="language" element={<SettingsLanguagePage />} />
+                    <Route
+                      path="accessibility"
+                      element={<SettingsAccessibilityPage />}
+                    />
+                    <Route path="models" element={<SettingsModelsPage />} />
+                    <Route path="routing" element={<SettingsRoutingPage />} />
+                    <Route path="developer" element={<SettingsDeveloperPage />} />
+                  </Route>
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="*" element={<PatientHomePage />} />
+                </Routes>
+              </RoutedViews>
+            </AppLayout>
+          }
+        />
+      </Routes>
+      <Analytics />
+    </>
   );
 }
