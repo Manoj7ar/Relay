@@ -3,7 +3,12 @@
  *
  * Feature-detects `SpeechRecognition`/`webkitSpeechRecognition`. If absent,
  * consumers should fall back to the Type-instead sheet.
- * No auto-restart loops — each `start()` is one logical "utterance".
+ *
+ * With `continuous: true` (home mic), browsers still end each **segment** after
+ * a pause (~1s) and fire `onend`. We **bridge** by starting a **new**
+ * `SpeechRecognition` instance (reusing `rec.start()` on the same object is
+ * unreliable across Chrome/Safari). Tap `stop()` on the handle ends the run and
+ * delivers one merged `onFinal`.
  */
 
 export type RecognitionStatus =
@@ -90,9 +95,31 @@ function mapError(err: string): RecognitionError {
   }
 }
 
+function mergeFinalAndInterim(final: string, interim: string): string {
+  const a = final.trim();
+  const b = interim.trim();
+  if (!a) return b;
+  if (!b) return a;
+  return `${a} ${b}`.replace(/\s+/g, ' ').trim();
+}
+
+/** After these errors, do not bridge to another segment; user or device must intervene. */
+const FATAL_FOR_BRIDGE: ReadonlySet<RecognitionErrorKind> = new Set([
+  'permission_denied',
+  'aborted',
+  'language_not_supported',
+  'audio_capture',
+  /** Cloud STT (e.g. Chromium) cannot proceed; swallowing caused endless empty bridged segments. */
+  'network',
+]);
+
+const MAX_CONTINUOUS_BRIDGE = 120;
+/** Delay before starting the next segment; avoids InvalidStateError on same tick as `onend`. */
+const BRIDGE_RESTART_MS = 80;
+
 export interface RecognitionOptions {
   lang?: string;
-  /** Continuous keeps the recognizer listening after a pause; default false for mobile. */
+  /** Continuous hint for the engine; bridging still uses fresh instances when needed. */
   continuous?: boolean;
   /** Surface partial transcripts; default true. */
   interimResults?: boolean;
@@ -101,7 +128,7 @@ export interface RecognitionOptions {
 
 /**
  * Start a recognition run. The caller receives a handle to stop/abort.
- * The service does not auto-restart on `end` — one run per tap.
+ * With `continuous: true`, segment `onend` events start a new recognition until `stop()`.
  */
 export function startRecognition(
   opts: RecognitionOptions,
@@ -120,85 +147,197 @@ export function startRecognition(
     return { stop: () => undefined, abort: () => undefined };
   }
 
-  const rec = new Ctor();
-  rec.continuous = opts.continuous ?? false;
-  rec.interimResults = opts.interimResults ?? true;
-  rec.maxAlternatives = opts.maxAlternatives ?? 3;
-  if (opts.lang) rec.lang = opts.lang;
+  const engineContinuous = opts.continuous ?? false;
 
   let stopped = false;
+  let aborted = false;
   let finalTranscript = '';
   let finalConfidence: number | null = null;
+  let lastInterim = '';
+  let lastErrorKind: RecognitionErrorKind | null = null;
+  let bridgeCount = 0;
+  /** Active instance (each segment gets a new object). */
+  let currentRec: SpeechRecognition | null = null;
+  let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
+  let sessionFinished = false;
 
-  rec.onstart = () => {
-    callbacks.onUpdate({ status: 'listening', error: null });
-  };
-
-  rec.onresult = (event: SpeechRecognitionEvent) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const result = event.results[i];
-      const alt = result[0];
-      if (result.isFinal) {
-        finalTranscript += alt.transcript;
-        if (typeof alt.confidence === 'number') {
-          finalConfidence = alt.confidence;
-        }
-      } else {
-        interim += alt.transcript;
-      }
+  const clearBridgeTimer = () => {
+    if (bridgeTimer !== null) {
+      clearTimeout(bridgeTimer);
+      bridgeTimer = null;
     }
-    callbacks.onUpdate({
-      transcript: finalTranscript,
-      interimTranscript: interim,
-      confidence: finalConfidence,
-    });
   };
 
-  rec.onerror = (event: SpeechRecognitionErrorEvent) => {
-    const err = mapError(event.error);
-    callbacks.onUpdate({ status: 'error', error: err });
-  };
-
-  rec.onend = () => {
-    const trimmed = finalTranscript.trim();
-    if (trimmed) {
-      callbacks.onFinal(trimmed, finalConfidence);
+  const finishSession = () => {
+    if (sessionFinished) {
+      return;
     }
+    sessionFinished = true;
+    stopped = true;
+    clearBridgeTimer();
+    currentRec = null;
+    const combined = mergeFinalAndInterim(finalTranscript, lastInterim);
+    lastInterim = '';
+    bridgeCount = 0;
+    callbacks.onFinal(combined, finalConfidence);
     callbacks.onUpdate({ status: 'idle', interimTranscript: '' });
     callbacks.onEnd();
   };
 
-  try {
-    rec.start();
-  } catch (err) {
-    callbacks.onUpdate({
-      status: 'error',
-      error: {
-        kind: 'unknown',
-        message: err instanceof Error ? err.message : String(err),
-      },
-    });
-    callbacks.onEnd();
-  }
+  const attachSegment = () => {
+    if (aborted || stopped) return;
+
+    const rec = new Ctor();
+    currentRec = rec;
+    rec.continuous = engineContinuous;
+    rec.interimResults = opts.interimResults ?? true;
+    rec.maxAlternatives = opts.maxAlternatives ?? 3;
+    if (opts.lang) rec.lang = opts.lang;
+
+    /** Text already merged before this `SpeechRecognition` segment (after bridging). */
+    const segmentStartFinal = finalTranscript;
+
+    rec.onstart = () => {
+      lastErrorKind = null;
+      callbacks.onUpdate({ status: 'listening', error: null });
+    };
+
+    rec.onresult = (event: SpeechRecognitionEvent) => {
+      let segmentFinal = '';
+      let interim = '';
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        const alt = result[0];
+        if (result.isFinal) {
+          segmentFinal += alt.transcript;
+          if (typeof alt.confidence === 'number') {
+            finalConfidence = alt.confidence;
+          }
+        } else {
+          interim += alt.transcript;
+        }
+      }
+      lastInterim = interim;
+      finalTranscript = segmentStartFinal + segmentFinal;
+      callbacks.onUpdate({
+        transcript: mergeFinalAndInterim(finalTranscript, interim),
+        interimTranscript: interim,
+        confidence: finalConfidence,
+      });
+    };
+
+    rec.onerror = (event: SpeechRecognitionErrorEvent) => {
+      const err = mapError(event.error);
+      lastErrorKind = err.kind;
+      if (engineContinuous && !FATAL_FOR_BRIDGE.has(err.kind)) {
+        /* Transient engine errors; `onend` will bridge or finish. Surfacing
+         * `status: error` makes PrimaryMicButton call stopAll() and ends the run. */
+        return;
+      }
+      callbacks.onUpdate({ status: 'error', error: err });
+    };
+
+    rec.onend = () => {
+      if (aborted) {
+        clearBridgeTimer();
+        currentRec = null;
+        lastInterim = '';
+        bridgeCount = 0;
+        callbacks.onUpdate({ status: 'idle', interimTranscript: '' });
+        callbacks.onEnd();
+        return;
+      }
+
+      if (sessionFinished) return;
+
+      /* Fatal error already surfaced in `onerror`; do not flush an empty `onFinal` or clobber error with idle. */
+      if (lastErrorKind !== null && FATAL_FOR_BRIDGE.has(lastErrorKind)) {
+        clearBridgeTimer();
+        currentRec = null;
+        lastInterim = '';
+        bridgeCount = 0;
+        sessionFinished = true;
+        stopped = true;
+        callbacks.onEnd();
+        return;
+      }
+
+      const canBridge =
+        engineContinuous &&
+        !stopped &&
+        bridgeCount < MAX_CONTINUOUS_BRIDGE &&
+        (lastErrorKind === null || !FATAL_FOR_BRIDGE.has(lastErrorKind));
+
+      if (canBridge) {
+        bridgeCount += 1;
+        const merged = mergeFinalAndInterim(finalTranscript, lastInterim);
+        finalTranscript = merged;
+        lastInterim = '';
+        callbacks.onUpdate({
+          transcript: finalTranscript,
+          interimTranscript: '',
+          confidence: finalConfidence,
+        });
+
+        clearBridgeTimer();
+        currentRec = null;
+        bridgeTimer = setTimeout(() => {
+          bridgeTimer = null;
+          if (stopped || aborted) return;
+          attachSegment();
+        }, BRIDGE_RESTART_MS);
+        return;
+      }
+
+      finishSession();
+    };
+
+    try {
+      rec.start();
+    } catch {
+      stopped = true;
+      finishSession();
+    }
+  };
+
+  attachSegment();
 
   return {
     stop: () => {
-      if (stopped) return;
+      if (stopped) {
+        return;
+      }
       stopped = true;
-      try {
-        rec.stop();
-      } catch {
-        // ignore
+      clearBridgeTimer();
+      if (currentRec) {
+        try {
+          currentRec.stop();
+        } catch {
+          finishSession();
+        }
+      } else {
+        /* Between bridged segments there is no live instance, so `onend` never
+         * fires — flush accumulated text so the client can submit. */
+        finishSession();
       }
     },
     abort: () => {
       if (stopped) return;
       stopped = true;
-      try {
-        rec.abort();
-      } catch {
-        // ignore
+      aborted = true;
+      clearBridgeTimer();
+      if (currentRec) {
+        try {
+          currentRec.abort();
+        } catch {
+          // ignore
+        }
+      } else {
+        currentRec = null;
+        lastInterim = '';
+        bridgeCount = 0;
+        callbacks.onUpdate({ status: 'idle', interimTranscript: '' });
+        callbacks.onEnd();
       }
     },
   };

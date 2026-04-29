@@ -10,6 +10,11 @@ import {
 
 interface UseSTTOptions {
   lang?: string;
+  /**
+   * When true (default), Web Speech stays open across short pauses until `stop()` —
+   * matches tap-to-speak / tap-to-stop on the home mic.
+   */
+  continuous?: boolean;
 }
 
 const INITIAL: RecognitionResult = {
@@ -48,7 +53,7 @@ export function useSpeechRecognition(opts: UseSTTOptions = {}) {
     handleRef.current = startRecognition(
       {
         lang: opts.lang,
-        continuous: false,
+        continuous: opts.continuous !== false,
         interimResults: true,
       },
       {
@@ -62,7 +67,7 @@ export function useSpeechRecognition(opts: UseSTTOptions = {}) {
         },
       },
     );
-  }, [opts.lang]);
+  }, [opts.lang, opts.continuous]);
 
   const stop = useCallback(() => {
     handleRef.current?.stop();

@@ -6,6 +6,7 @@
   "description": "Relay — mobile-first voice accessibility PWA for people with speech impairments",
   "scripts": {
     "dev": "vite",
+    "local-stt": "node scripts/local-stt-server.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

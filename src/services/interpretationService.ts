@@ -2,10 +2,8 @@
  * Single "raw input → interpreted phrase" entry point.
  *
  * All UI + contexts call `interpret(input)`. The implementation is whatever
- * the single adapter does — currently `GemmaInterpreterAdapter`, which
- * throws `NotImplemented` until a real Gemma 4 / Ollama endpoint is wired.
- * The returned shape is aligned to Gemma's eventual output so UI never
- * changes when the adapter body is filled in.
+ * the single adapter does — `GemmaInterpreterAdapter` calling **Ollama**.
+ * The returned shape is aligned to Gemma's JSON contract so the UI stays stable.
  *
  * See docs/GEMMA_AND_INTEGRATIONS.md.
  */

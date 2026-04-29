@@ -23,7 +23,7 @@ You can verify mic → interim transcript → typed fallback without running Oll
 
 | Capability | File | Behavior |
 |------------|------|----------|
-| **Gemma via Ollama** | `src/services/interpretation/GemmaInterpreterAdapter.ts` | `POST http://localhost:11434/api/generate` with `stream: true`, optional `images[]` from camera, JSON response mapping to `InterpretationResult`, client-side `applyUrgencyGuard`. On failure / non-OK / network error → **`GemmaNotConnectedError`** (honest; no fake text). |
+| **Gemma via Ollama** | `src/services/interpretation/GemmaInterpreterAdapter.ts` | `POST {ollamaBase}/api/generate` with `stream: true`, optional `images[]` from camera, JSON response mapping to `InterpretationResult`, client-side `applyUrgencyGuard`. On failure / non-OK / network error → **`GemmaNotConnectedError`** (honest; no fake text). |
 | **Dictionary personalization** | `src/lib/patientDictionary.ts` + `GemmaInterpreterAdapter` | Loads recent relevant entries from IndexedDB, injects compact JSON as “Patient's known signals,” validates returned `dictionaryMatchIds`, and passively increments confirmations. |
 | **Handover tools** | `src/services/interpretation/HandoverAgent.ts` + `src/services/interpretation/tools/` | `POST /api/chat` with Ollama tools. Tool calls are visible in UI and routing log. Unsupported tool models → `HandoverToolCapabilityError`. |
 | **Model tag names** | Settings → **Models & connectivity** → Advanced | Optional `localStorage` overrides per tier (`relay.model.*`). Empty = automatic defaults `gemma4:e2b` / `gemma4:e4b` / `gemma4:27b` via `src/lib/ollamaModelConfig.ts`. |

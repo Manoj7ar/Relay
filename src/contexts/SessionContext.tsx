@@ -3,8 +3,9 @@
  *
  * All "raw input → interpreted phrase" calls go through
  * `interpretationService.interpret`, which delegates to
- * `GemmaInterpreterAdapter`. Until Gemma is wired, interpret() throws
- * `GemmaNotConnectedError`; we surface that as `state.lastError` so the
+ * `GemmaInterpreterAdapter`. When the backend is unreachable, interpret()
+ * throws `GemmaNotConnectedError`; we surface `state.lastError` (title + hint +
+ * optional technical) so the
  * UI can show an honest "not connected" state instead of a fake answer.
  *
  * See docs/ARCHITECTURE.md + docs/GEMMA_AND_INTEGRATIONS.md.
@@ -36,6 +37,8 @@ import type {
   PendingImageContext,
   SessionState,
 } from '@/types/session';
+import type { SessionInterpretationError } from '@/types/interpretationError';
+import { sessionErrorFromUnknown } from '@/lib/sessionInterpretationError';
 
 type Action =
   | { type: 'SUSPEND_RELAY' }
@@ -52,7 +55,7 @@ type Action =
   | { type: 'SET_LAST_INPUT'; input: LastInputSnapshot | null }
   | { type: 'SET_LANGUAGE'; language: string; direction: 'ltr' | 'rtl' }
   | { type: 'CANCEL_CURRENT' }
-  | { type: 'SET_ERROR'; message: string | null }
+  | { type: 'SET_ERROR'; error: SessionInterpretationError | null }
   | { type: 'PUSH_HISTORY'; record: InteractionRecord }
   | { type: 'UPDATE_HISTORY'; id: string; patch: Partial<InteractionRecord> }
   | { type: 'CLEAR_HISTORY' }
@@ -91,6 +94,7 @@ function reducer(state: SessionState, action: Action): SessionState {
       return {
         ...state,
         isListening: true,
+        currentInterpretation: null,
         interimTranscript: '',
         lastError: null,
       };
@@ -155,7 +159,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         interimTranscript: '',
       };
     case 'SET_ERROR':
-      return { ...state, lastError: action.message, isProcessing: false };
+      return { ...state, lastError: action.error, isProcessing: false };
     case 'PUSH_HISTORY':
       return { ...state, history: [action.record, ...state.history].slice(0, 100) };
     case 'UPDATE_HISTORY':
@@ -344,12 +348,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
         }
         return result;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Interpretation failed. Please try again.';
         dispatch({ type: 'CANCEL_CURRENT' });
-        dispatch({ type: 'SET_ERROR', message });
+        dispatch({ type: 'SET_ERROR', error: sessionErrorFromUnknown(err) });
         if (import.meta.env?.DEV) {
           console.error('[interpretationService]', err);
         }
@@ -396,7 +396,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   }, []);
 
   const clearError = useCallback(() => {
-    dispatch({ type: 'SET_ERROR', message: null });
+    dispatch({ type: 'SET_ERROR', error: null });
   }, []);
 
   const value = useMemo(

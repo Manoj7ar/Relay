@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, IconButton } from '@/components/primitives';
 import { DictionaryEntryFormModal } from '@/components/dictionary/DictionaryEntryFormModal';
+import { InterpretationErrorCallout } from './InterpretationErrorCallout';
 import { StreamingText } from './StreamingText';
 import { ConfidenceMoodRow } from './ConfidenceMoodRow';
 import { InterpretationAlternates } from './InterpretationAlternates';
@@ -34,6 +35,9 @@ export function TranscriptionCard() {
   const [matchedEntries, setMatchedEntries] = useState<DictionaryEntry[]>([]);
   const [matchesOpen, setMatchesOpen] = useState(false);
   const [feedback, setFeedback] = useState<'yes' | 'no' | null>(null);
+  /** After voting, section fades out and stays hidden for this interpretation id. */
+  const [feedbackSectionFading, setFeedbackSectionFading] = useState(false);
+  const [feedbackSectionHidden, setFeedbackSectionHidden] = useState(false);
   const {
     currentInterpretation,
     isListening,
@@ -85,6 +89,33 @@ export function TranscriptionCard() {
       cancelled = true;
     };
   }, [currentInterpretation?.dictionaryMatchIds, currentInterpretation?.id]);
+
+  useEffect(() => {
+    setFeedback(null);
+    setFeedbackSectionFading(false);
+    setFeedbackSectionHidden(false);
+  }, [currentInterpretation?.id]);
+
+  useEffect(() => {
+    if (feedback !== 'yes' && feedback !== 'no') return undefined;
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const fadeMs = reduceMotion ? 0 : 320;
+    const fadeTimer = window.setTimeout(
+      () => setFeedbackSectionFading(true),
+      3000,
+    );
+    const hideTimer = window.setTimeout(() => {
+      setFeedbackSectionHidden(true);
+      setFeedbackSectionFading(false);
+      setFeedback(null);
+    }, 3000 + fadeMs);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, [feedback]);
 
   const placeholderTitle = isListening
     ? 'Listening…'
@@ -222,19 +253,7 @@ export function TranscriptionCard() {
 
       <div className="shrink-0 space-y-1.5">
         {lastError ? (
-          <div
-            role="alert"
-            className="flex items-start justify-between gap-2 rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-2.5 py-1.5 text-[11px] text-text"
-          >
-            <span className="min-w-0 leading-snug">{lastError}</span>
-            <button
-              type="button"
-              onClick={clearError}
-              className="shrink-0 rounded-full bg-black/5 px-3 py-1 text-[10px] font-medium transition-[background-color,transform] duration-200 ease-smooth hover:bg-black/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
-            >
-              Dismiss
-            </button>
-          </div>
+          <InterpretationErrorCallout error={lastError} onDismiss={clearError} />
         ) : null}
         {currentInterpretation ? (
           <>
@@ -285,44 +304,53 @@ export function TranscriptionCard() {
               alternates={currentInterpretation.alternates}
               onSelect={acceptAlternate}
             />
-            <div className="rounded-xl2 border border-black/5 bg-black/[0.03] p-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium">Was this right?</p>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    aria-pressed={feedback === 'yes'}
-                    onClick={() => setFeedback('yes')}
-                    className="inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-medium hover:bg-black/5 aria-pressed:bg-[var(--accent)] aria-pressed:text-white"
-                  >
-                    <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={feedback === 'no'}
-                    onClick={() => setFeedback('no')}
-                    className="inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-medium hover:bg-black/5 aria-pressed:bg-[var(--danger)] aria-pressed:text-white"
-                  >
-                    <ThumbsDown className="h-3.5 w-3.5" aria-hidden />
-                    No
-                  </button>
+            {!feedbackSectionHidden ? (
+              <div
+                className={cn(
+                  'rounded-xl2 border border-black/5 bg-black/[0.03] p-2',
+                  'transition-opacity duration-300 ease-out motion-reduce:duration-150',
+                  feedbackSectionFading &&
+                    'pointer-events-none opacity-0 motion-reduce:opacity-0',
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium">Was this right?</p>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      aria-pressed={feedback === 'yes'}
+                      onClick={() => setFeedback('yes')}
+                      className="inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-medium hover:bg-black/5 aria-pressed:bg-[var(--accent)] aria-pressed:text-white"
+                    >
+                      <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={feedback === 'no'}
+                      onClick={() => setFeedback('no')}
+                      className="inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-medium hover:bg-black/5 aria-pressed:bg-[var(--danger)] aria-pressed:text-white"
+                    >
+                      <ThumbsDown className="h-3.5 w-3.5" aria-hidden />
+                      No
+                    </button>
+                  </div>
                 </div>
+                {feedback === 'yes' ? (
+                  <button
+                    type="button"
+                    onClick={() => setSaveOpen(true)}
+                    className="mt-1.5 text-xs font-semibold text-[var(--accent)] underline"
+                  >
+                    Save this as a new patient signal
+                  </button>
+                ) : feedback === 'no' ? (
+                  <p className="mt-1.5 text-xs text-muted">
+                    Ask the patient or carer, then save the corrected meaning.
+                  </p>
+                ) : null}
               </div>
-              {feedback === 'yes' ? (
-                <button
-                  type="button"
-                  onClick={() => setSaveOpen(true)}
-                  className="mt-1.5 text-xs font-semibold text-[var(--accent)] underline"
-                >
-                  Save this as a new patient signal
-                </button>
-              ) : feedback === 'no' ? (
-                <p className="mt-1.5 text-xs text-muted">
-                  Ask the patient or carer, then save the corrected meaning.
-                </p>
-              ) : null}
-            </div>
+            ) : null}
             <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
               <span className="inline-flex min-w-0 items-center gap-1 truncate">
                 <Cpu className="h-3 w-3 shrink-0" aria-hidden />

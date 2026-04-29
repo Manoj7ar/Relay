@@ -1,4 +1,5 @@
 import type { Interpretation } from './model';
+import type { SessionInterpretationError } from './interpretationError';
 import type { InterpretationSourceType } from '@/services/interpretationService';
 
 export interface InteractionRecord extends Interpretation {
@@ -46,6 +47,6 @@ export interface SessionState {
   pendingImage: PendingImageContext | null;
   /** Last successful input payload, kept in memory for save-as-signal flows. */
   lastInputSnapshot: LastInputSnapshot | null;
-  /** Last interpretation error surfaced to the UI (e.g. "Gemma not connected"). */
-  lastError: string | null;
+  /** Last interpretation error (title + hint; optional technical in UI). */
+  lastError: SessionInterpretationError | null;
 }

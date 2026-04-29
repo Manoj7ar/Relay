@@ -18,8 +18,8 @@
  *      downgrade a clear emergency phrase.
  *
  * If Ollama is unreachable, any network / non-2xx response raises
- * `GemmaNotConnectedError`. The rest of the app surfaces that as
- * `state.lastError` and keeps the UI honest.
+ * `GemmaNotConnectedError` with a structured `surface` for the UI
+ * (`state.lastError`: title, hint, optional technical).
  *
  * See docs/GEMMA_AND_INTEGRATIONS.md for the deployment checklist.
  */
@@ -42,18 +42,50 @@ import type {
   InterpretationResult,
   InterpreterAdapter,
 } from '../interpretationService';
+import type { SessionInterpretationError } from '@/types/interpretationError';
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const DICTIONARY_CONTEXT_LIMIT = 30;
 
+function buildOllamaErrorSurface(
+  endpoint: string,
+  detail?: string,
+): SessionInterpretationError {
+  const d = detail?.trim() ?? '';
+  const technical =
+    d && (d.length > 60 || d.startsWith('HTTP')) ? d.slice(0, 320) : undefined;
+  if (/abort|timeout|timed out|network|failed to fetch|load failed|ECONNREFUSED/i.test(d)) {
+    return {
+      code: 'ollama_unreachable',
+      title: "Can't reach Ollama",
+      hint: 'Check the URL in Settings → Models and that this browser can reach that host (LAN or CORS).',
+      technical,
+    };
+  }
+  if (/HTTP\s+[45]\d\d/i.test(d)) {
+    return {
+      code: 'ollama_unreachable',
+      title: 'Ollama returned an error',
+      hint: 'Confirm the model is pulled and the server is running.',
+      technical,
+    };
+  }
+  return {
+    code: 'ollama_unreachable',
+    title: "Can't reach Ollama",
+    hint: 'Open Settings → Models & connectivity and verify the server address.',
+    technical: technical ?? (endpoint ? `Endpoint: ${endpoint}` : undefined),
+  };
+}
+
 export class GemmaNotConnectedError extends Error {
-  constructor(ollamaBase: string, detail?: string) {
-    super(
-      `Gemma is not reachable at ${ollamaBase}. ` +
-        `Set the Ollama URL in Settings → Models & connectivity (HTTPS + CORS when the app is on the web). ` +
-        `${detail ?? ''}`.trim(),
-    );
+  readonly surface: SessionInterpretationError;
+
+  constructor(endpoint: string, detail?: string) {
+    const surface = buildOllamaErrorSurface(endpoint, detail);
+    super(surface.title);
     this.name = 'GemmaNotConnectedError';
+    this.surface = surface;
   }
 }
 
