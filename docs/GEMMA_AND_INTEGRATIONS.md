@@ -154,7 +154,8 @@ To change behavior, edit **`GemmaInterpreterAdapter.ts`** (prompt, timeout, base
 
 - **PWA shell:** Workbox precaches the app; the UI loads offline.
 - **Patient corpus:** IndexedDB dictionary and handover note browsing stay local and work without network.
-- **Interpretation / handover generation:** Requires a reachable Ollama (typically same host or LAN). No offline LLM is bundled in this repo.
+- **Interpretation / handover generation:** Requires a reachable Ollama (typically same host or LAN). No cloud LLM is bundled or called by this repo.
+- **STT sidecar:** Optional, local-only HTTP service. The reference `npm run local-stt` script is a wiring harness; set `RELAY_STT_CMD` to your offline transcription engine if browser Web Speech is unavailable.
 
 ---
 
