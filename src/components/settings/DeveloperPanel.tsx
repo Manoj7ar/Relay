@@ -60,8 +60,122 @@ export function DeveloperPanel() {
     },
   ];
 
+  const resetDemoState = async () => {
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm('Reset Relay to a clean demo patient on this device?')
+    ) {
+      return;
+    }
+    setDemoResetting(true);
+    setDemoMessage(null);
+    try {
+      await Promise.all([clearAllSamples(), clearPatientDictionary()]);
+      clearLog();
+      sessionDispatch({ type: 'CLEAR_HISTORY' });
+      sessionDispatch({ type: 'CANCEL_CURRENT' });
+      sessionDispatch({ type: 'SET_ERROR', error: null });
+
+      dispatch({ type: 'RESET' });
+      dispatch({ type: 'SET_SETUP_ROLE', value: 'caregiver' });
+      dispatch({
+        type: 'SET_PROFILE_FIELD',
+        field: 'displayName',
+        value: 'Demo patient',
+      });
+      dispatch({ type: 'SET_PROFILE_FIELD', field: 'condition', value: 'aphasia' });
+      dispatch({
+        type: 'SET_PROFILE_FIELD',
+        field: 'conditionDetail',
+        value: 'Short, fragmented phrases after stroke.',
+      });
+      dispatch({
+        type: 'SET_PROFILE_FIELD',
+        field: 'caregiverName',
+        value: 'Demo caregiver',
+      });
+      dispatch({
+        type: 'SET_PROFILE_FIELD',
+        field: 'caregiverRelationship',
+        value: 'family caregiver',
+      });
+      dispatch({
+        type: 'SET_PERSONAL_PHRASES',
+        value: ['I need water', 'Please slow down', 'I am in pain'],
+      });
+      dispatch({ type: 'COMPLETE_ONBOARDING' });
+
+      await Promise.all([
+        addEntry({
+          modality: 'partial_word',
+          rawTranscript: 'wa',
+          meaning: 'I would like water, please.',
+          contextTags: ['demo', 'water'],
+          confirmedBy: 'demo caregiver',
+        }),
+        addEntry({
+          modality: 'partial_word',
+          rawTranscript: 'slow',
+          meaning: 'Please slow down and give me time to answer.',
+          contextTags: ['demo', 'aphasia'],
+          confirmedBy: 'demo caregiver',
+        }),
+        addEntry({
+          modality: 'vocalization',
+          rawTranscript: 'pain arm',
+          meaning: 'My arm hurts.',
+          contextTags: ['demo', 'pain', 'urgent'],
+          confirmedBy: 'demo caregiver',
+        }),
+      ]);
+
+      setDemoMessage('Demo patient is ready. Go to Home to start the walkthrough.');
+    } catch (err) {
+      setDemoMessage(err instanceof Error ? err.message : 'Demo reset failed.');
+    } finally {
+      setDemoResetting(false);
+    }
+  };
+
   return (
     <SettingsStack>
+      <SettingsSection
+        title="Technical demo HUD"
+        description="Small local-only overlay for judges and demos."
+      >
+        <SettingsControlCard>
+          <Toggle
+            checked={settings.developer.performanceHud}
+            onChange={(value) =>
+              dispatch({ type: 'SET_PERFORMANCE_HUD', value })
+            }
+            label="Show performance HUD"
+            description="Displays tier, latency, approximate tokens/sec, and 0 cloud calls."
+          />
+        </SettingsControlCard>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Demo reset"
+        description="Wipe local demo data and seed a safe patient profile for judging."
+      >
+        <SettingsControlCard className="space-y-2">
+          <PillButton
+            type="button"
+            fullWidth
+            variant="glass"
+            disabled={demoResetting}
+            leftIcon={<RotateCcw className="h-4 w-4" aria-hidden />}
+            onClick={() => void resetDemoState()}
+          >
+            {demoResetting ? 'Resetting…' : 'Reset to demo state'}
+          </PillButton>
+          {demoMessage ? (
+            <p className="text-xs leading-relaxed text-muted">{demoMessage}</p>
+          ) : null}
+        </SettingsControlCard>
+      </SettingsSection>
+
       <SettingsSection
         title="Capability status"
         description="What this build wires to real browser APIs and Ollama."
