@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { Analytics } from '@vercel/analytics/react';
 import { AppLayout } from '@/components/AppLayout';
 import { RoutedViews } from '@/components/layout/RoutedViews';
 import { PatientHomePage } from '@/pages/PatientHomePage';
@@ -56,7 +55,6 @@ export default function App() {
         <Routes>
           <Route path="*" element={<OnboardingPage />} />
         </Routes>
-        <Analytics />
       </>
     );
   }
