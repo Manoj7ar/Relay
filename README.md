@@ -1,6 +1,6 @@
 # Relay
 
-Relay is a **mobile-first progressive web app (PWA)** for people whose speech is hard to understand—whether from ALS, stroke-related aphasia, dysarthria, Parkinson’s, or similar conditions. It captures voice (and optional camera context), runs speech-to-text in the browser where supported, sends text to a **local Gemma model via Ollama**, and shows a clear interpretation the user can hear again with **browser text-to-speech**, confirm, and route to caregivers when configured.
+Relay is a **mobile-first progressive web app (PWA)** for people whose speech is hard to understand—whether from ALS, stroke-related aphasia, dysarthria, Parkinson’s, or similar conditions. It captures voice (and optional camera context), runs speech-to-text in the browser or an optional **local-only STT sidecar**, sends text to a **local Gemma model via Ollama**, and shows a clear interpretation the user can hear again with **browser text-to-speech**, confirm, and route to caregivers when configured.
 
 **Wedge (one line):** Relay pairs **browser-native speech** with **local Gemma 4 via Ollama** so disfluent or fragmented speech can become a clear, caregiver-ready phrase—**without cloud inference** for the core interpret path—plus honest errors when the model is unreachable.
 
@@ -118,7 +118,7 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 | Area | Status | Notes |
 |------|--------|--------|
 | Microphone + RMS level | **Real** | `audioCaptureService`, `useMicrophone` |
-| Speech-to-text | **Real** (Web Speech API where supported) | Unsupported browsers → type-instead UI; see architecture doc |
+| Speech-to-text | **Real** (Web Speech API where supported, optional local STT sidecar) | Unsupported / blocked browser STT → type-instead UI or `VITE_RELAY_LOCAL_STT_URL`; see architecture doc |
 | Text-to-speech | **Real** | `speechSynthesis` with language-aware voice selection |
 | Camera preview + frame | **Real** | Frame passed into `interpret()` as image data |
 | Patient Dictionary | **Real** | IndexedDB corpus with add/edit/delete/import/export; entries injected into Gemma prompts |
