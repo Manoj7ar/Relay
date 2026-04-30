@@ -150,6 +150,7 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 ## Trust and safety
 
 - **Ollama:** interpretation text and optional image payload leave the browser for **your** Ollama host. There is **no** mock interpretation path: failures surface as **`GemmaNotConnectedError`** (see `GemmaInterpreterAdapter`).
+- **Local-only network posture:** production calls are limited to the configured Ollama base URL and optional local STT sidecar (`VITE_RELAY_LOCAL_STT_URL`). Relay does not use analytics, font CDNs, telemetry, or avatar fetches.
 - **Urgency guard:** after each successful parse, client-side **`applyUrgencyGuard`** (`src/lib/urgencyGuard.ts`) prevents the model from **downgrading** urgency when the user’s transcript clearly indicates an emergency-class phrase.
 - **Patient Dictionary:** personal signal corpus stays in IndexedDB on this device unless the user manually exports JSON.
 
