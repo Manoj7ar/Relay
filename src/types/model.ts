@@ -14,6 +14,7 @@ export interface InferenceRequest {
   symbols?: string[];
   symbolIds?: string[];
   imageRef?: string;
+  imageDataUrl?: string;
   gestureHints?: string[];
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
   language?: string;
