@@ -16,6 +16,7 @@ import {
   listEntries,
   updateEntry,
 } from '@/lib/patientDictionary';
+import { exportFineTuneJsonl } from '@/lib/fineTuneExport';
 import { formatClock } from '@/lib/time';
 import type { DictionaryEntry, SignalModality } from '@/types/dictionary';
 
@@ -78,6 +79,16 @@ export function PatientDictionaryPanel({ compact }: { compact?: boolean }) {
       json,
       'application/json',
     );
+  };
+
+  const handleJsonlExport = async () => {
+    const jsonl = await exportFineTuneJsonl();
+    downloadText(
+      `relay-finetune-${new Date().toISOString().slice(0, 10)}.jsonl`,
+      jsonl,
+      'application/x-ndjson',
+    );
+    setMessage('Exported local JSONL fine-tuning dataset.');
   };
 
   const handleImport = async (file: File | undefined) => {
