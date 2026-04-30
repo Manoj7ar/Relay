@@ -77,6 +77,12 @@ export function SettingsModelsPage() {
             >
               <OfflineStatusPanel embedded />
             </SettingsSection>
+            <SettingsSection
+              title="Inference & privacy"
+              description="Where interpretation runs in this build."
+            >
+              <LocalInferencePanel embedded />
+            </SettingsSection>
             <ModelConfigPanel />
           </SettingsStack>
         </div>
