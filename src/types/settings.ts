@@ -83,6 +83,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
   accessibility: {
     highContrast: false,
     largeText: false,
+    lowPower: false,
   },
   language: {
     primaryLanguage: 'en-US',
@@ -90,6 +91,9 @@ export const DEFAULT_SETTINGS: SettingsState = {
   },
   ollama: {
     baseUrl: '',
+  },
+  developer: {
+    performanceHud: false,
   },
   profile: DEFAULT_PROFILE,
   onboardingCompletedAt: null,
