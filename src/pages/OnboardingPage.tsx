@@ -11,6 +11,7 @@ import { StepA11yDone } from '@/components/onboarding/StepA11yDone';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useViewportShell } from '@/hooks/useViewportShell';
 import { useSession } from '@/contexts/SessionContext';
+import { seedOnboardingDictionary } from '@/services/onboardingDictionarySeeder';
 
 type StepId =
   | 'welcome'
