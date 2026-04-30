@@ -332,9 +332,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
           actionTaken: interp.actionTaken ?? 'Spoken only',
           rawTranscript: req.transcript ?? req.symbols?.join(' '),
           spoken: false,
-          cameraUsed: Boolean(state.pendingImage),
+          cameraUsed: Boolean(imageDataUrl),
           sourceType: input.sourceType,
           symbolIds: req.symbolIds,
+          imageDataUrl,
         };
         dispatch({
           type: 'SET_LAST_INPUT',
@@ -355,7 +356,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
           role: result.inferredSpeaker,
         });
         recordInterpretation(interp, result.routingReason);
-        if (state.pendingImage) {
+        if (state.pendingImage && !req.imageDataUrl) {
           dispatch({ type: 'SET_PENDING_IMAGE', image: null });
         }
         return result;
@@ -395,6 +396,17 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [],
   );
 
+  const undoLastInterpretation = useCallback(async () => {
+    if (!settings.relayPowerOn) return false;
+    const interp = state.currentInterpretation;
+    if (!interp || Date.now() - interp.ts > 8000) return false;
+    await Promise.allSettled(
+      (interp.dictionaryMatchIds ?? []).map((id) => decrementConfirmation(id)),
+    );
+    dispatch({ type: 'REMOVE_HISTORY_RECORD', id: interp.id });
+    return true;
+  }, [settings.relayPowerOn, state.currentInterpretation]);
+
   const setInterimTranscript = useCallback((text: string) => {
     dispatch({ type: 'SET_INTERIM', text });
   }, []);
@@ -418,6 +430,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       submit,
       acceptAlternate,
       applyActionTaken,
+      undoLastInterpretation,
       setInterimTranscript,
       setPendingImage,
       clearCurrent,
@@ -428,6 +441,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       submit,
       acceptAlternate,
       applyActionTaken,
+      undoLastInterpretation,
       setInterimTranscript,
       setPendingImage,
       clearCurrent,
