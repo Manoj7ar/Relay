@@ -28,6 +28,7 @@ type Action =
   | { type: 'SET_RELAY_POWER_ON'; value: boolean }
   | { type: 'SET_HIGH_CONTRAST'; value: boolean }
   | { type: 'SET_LARGE_TEXT'; value: boolean }
+  | { type: 'SET_LOW_POWER'; value: boolean }
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
   | { type: 'SET_SETUP_ROLE'; value: ProfileSettings['setupRole'] }
@@ -39,6 +40,7 @@ type Action =
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'RESET_ONBOARDING' }
   | { type: 'SET_OLLAMA_BASE_URL'; value: string }
+  | { type: 'SET_PERFORMANCE_HUD'; value: boolean }
   | { type: 'RESET' };
 
 function reducer(state: SettingsState, action: Action): SettingsState {
@@ -54,6 +56,11 @@ function reducer(state: SettingsState, action: Action): SettingsState {
       return {
         ...state,
         accessibility: { ...state.accessibility, largeText: action.value },
+      };
+    case 'SET_LOW_POWER':
+      return {
+        ...state,
+        accessibility: { ...state.accessibility, lowPower: action.value },
       };
     case 'SET_PRIMARY_LANGUAGE':
       return {
@@ -131,6 +138,14 @@ function reducer(state: SettingsState, action: Action): SettingsState {
       return {
         ...state,
         ollama: { baseUrl: action.value.trim() },
+      };
+    case 'SET_PERFORMANCE_HUD':
+      return {
+        ...state,
+        developer: {
+          ...state.developer,
+          performanceHud: action.value,
+        },
       };
     case 'RESET':
       return DEFAULT_SETTINGS;
