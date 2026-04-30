@@ -2,6 +2,7 @@ import { AccessibilityPanel } from '@/components/settings/AccessibilityPanel';
 import { DeveloperPanel } from '@/components/settings/DeveloperPanel';
 import { LanguagePanel } from '@/components/settings/LanguagePanel';
 import { ModelConfigPanel } from '@/components/settings/ModelConfigPanel';
+import { LocalInferencePanel } from '@/components/settings/LocalInferencePanel';
 import { OfflineStatusPanel } from '@/components/settings/OfflineStatusPanel';
 import { ProfilePanel } from '@/components/settings/ProfilePanel';
 import {
