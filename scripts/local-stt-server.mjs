@@ -10,45 +10,35 @@
  * Ensure .env.local has VITE_RELAY_LOCAL_STT_URL=http://127.0.0.1:9000
  *
  * Endpoints:
- *   GET  /health   → { ok, whisper }
+ *   GET  /health   → { ok, commandConfigured }
  *   POST /transcribe  multipart: audio (file), language (optional BCP-47)
  *                 → { text }
  *
  * Transcription:
- *   If `whisper` is on PATH (pip install -U openai-whisper; needs ffmpeg), uses OpenAI Whisper.
- *   Otherwise returns a short placeholder string so you can verify Relay → HTTP wiring.
+ *   Set RELAY_STT_CMD to any local command that prints a transcript to stdout.
+ *   Use {input} and {language} placeholders, e.g. a whisper.cpp wrapper:
+ *   RELAY_STT_CMD='./transcribe-local.sh {input} {language}'
+ *   If unset, returns placeholder text so you can verify Relay → HTTP wiring.
  *
  * Env:
  *   PORT | RELAY_LOCAL_STT_PORT  (default 9000)
- *   WHISPER_MODEL                 (default tiny)
+ *   RELAY_STT_CMD                 local command template
  *   RELAY_LOCAL_STT_SILENT=1      return empty text (for testing empty handling)
  */
 
 import http from 'node:http';
-import { execFile, spawnSync } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, extname, join } from 'node:path';
+import { join } from 'node:path';
 
-const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 
 const PORT = Number(
   process.env.PORT || process.env.RELAY_LOCAL_STT_PORT || 9000,
 );
-const WHISPER_MODEL = process.env.WHISPER_MODEL || 'tiny';
-
-function whisperOnPath() {
-  const r = spawnSync('whisper', ['-h'], { stdio: 'ignore', timeout: 12000 });
-  if (r.error && r.error.code === 'ENOENT') return false;
-  return r.status === 0 || r.status === 2;
-}
+const STT_CMD = process.env.RELAY_STT_CMD || '';
 
 function applyCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -117,40 +107,25 @@ function parseMultipart(buf, boundaryParam) {
   return out;
 }
 
-async function runWhisper(inputPath, language) {
-  const outDir = mkdtempSync(join(tmpdir(), 'relay-whisper-'));
-  const baseNoExt = basename(inputPath, extname(inputPath));
-  const lg = String(language || 'en')
-    .split(/[-_]/)[0]
-    .toLowerCase();
-  try {
-    await execFileAsync(
-      'whisper',
-      [
-        inputPath,
-        '--model',
-        WHISPER_MODEL,
-        '--language',
-        lg || 'en',
-        '--output_dir',
-        outDir,
-        '--output_format',
-        'txt',
-      ],
-      { maxBuffer: 50 * 1024 * 1024, timeout: 300_000 },
-    );
-    const txtPath = join(outDir, `${baseNoExt}.txt`);
-    if (!existsSync(txtPath)) {
-      throw new Error(`Whisper did not write ${txtPath}`);
-    }
-    return readFileSync(txtPath, 'utf8').trim();
-  } finally {
-    rmSync(outDir, { recursive: true, force: true });
-  }
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+async function runLocalSttCommand(inputPath, language) {
+  if (!STT_CMD.trim()) return '';
+  const cmd = STT_CMD.replaceAll('{input}', shellQuote(inputPath)).replaceAll(
+    '{language}',
+    shellQuote(language || 'en'),
+  );
+  const { stdout } = await execAsync(cmd, {
+    maxBuffer: 50 * 1024 * 1024,
+    timeout: 300_000,
+  });
+  return stdout.trim();
 }
 
 const STUB_TEXT =
-  'Local STT server is running. Install OpenAI Whisper for real transcription: pip install -U openai-whisper and ensure ffmpeg is installed, then restart this script.';
+  'Local STT server is running. Set RELAY_STT_CMD to a local transcription command (for example a whisper.cpp wrapper) for real transcription.';
 
 const server = http.createServer(async (req, res) => {
   applyCors(res);
@@ -164,7 +139,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && (req.url === '/health' || req.url === '/')) {
     sendJson(res, 200, {
       ok: true,
-      whisper: whisperOnPath(),
+      commandConfigured: Boolean(STT_CMD.trim()),
       port: PORT,
       hint: 'POST /transcribe with multipart field "audio" (see localSttService.ts)',
     });
