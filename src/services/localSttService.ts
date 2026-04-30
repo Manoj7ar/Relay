@@ -1,6 +1,5 @@
 /**
- * Optional **local** speech-to-text sidecar (whisper.cpp, Vosk, or any offline
- * command/server you control).
+ * Optional **local** speech-to-text sidecar (offline CLI or HTTP service you control).
  *
  * Browser Web Speech (`SpeechRecognition`) often uses a **separate** cloud service
  * from your LLM (Ollama). If that path returns `network`, Relay can still

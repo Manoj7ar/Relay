@@ -109,9 +109,20 @@ const FATAL_FOR_BRIDGE: ReadonlySet<RecognitionErrorKind> = new Set([
   'aborted',
   'language_not_supported',
   'audio_capture',
-  /** Cloud STT (e.g. Chromium) cannot proceed; swallowing caused endless empty bridged segments. */
+  /**
+   * `network` is fatal unless `allowNetworkRecovery` is set (local STT sidecar +
+   * MediaRecorder will transcribe on stop).
+   */
   'network',
 ]);
+
+function fatalForBridge(
+  kind: RecognitionErrorKind,
+  opts: RecognitionOptions,
+): boolean {
+  if (kind === 'network' && opts.allowNetworkRecovery) return false;
+  return FATAL_FOR_BRIDGE.has(kind);
+}
 
 const MAX_CONTINUOUS_BRIDGE = 120;
 /** Delay before starting the next segment; avoids InvalidStateError on same tick as `onend`. */
@@ -124,6 +135,11 @@ export interface RecognitionOptions {
   /** Surface partial transcripts; default true. */
   interimResults?: boolean;
   maxAlternatives?: number;
+  /**
+   * When true, Chromium `network` (cloud STT unreachable) does not surface as a hard error;
+   * the session ends cleanly with whatever text exists so the client can call local STT.
+   */
+  allowNetworkRecovery?: boolean;
 }
 
 /**
@@ -180,7 +196,7 @@ export function startRecognition(
     lastInterim = '';
     bridgeCount = 0;
     callbacks.onFinal(combined, finalConfidence);
-    callbacks.onUpdate({ status: 'idle', interimTranscript: '' });
+    callbacks.onUpdate({ status: 'idle', interimTranscript: '', error: null });
     callbacks.onEnd();
   };
 
@@ -229,7 +245,12 @@ export function startRecognition(
     rec.onerror = (event: SpeechRecognitionErrorEvent) => {
       const err = mapError(event.error);
       lastErrorKind = err.kind;
-      if (engineContinuous && !FATAL_FOR_BRIDGE.has(err.kind)) {
+      const transient = !fatalForBridge(err.kind, opts);
+      if (
+        transient &&
+        (engineContinuous ||
+          (opts.allowNetworkRecovery && err.kind === 'network'))
+      ) {
         /* Transient engine errors; `onend` will bridge or finish. Surfacing
          * `status: error` makes PrimaryMicButton call stopAll() and ends the run. */
         return;
@@ -251,7 +272,7 @@ export function startRecognition(
       if (sessionFinished) return;
 
       /* Fatal error already surfaced in `onerror`; do not flush an empty `onFinal` or clobber error with idle. */
-      if (lastErrorKind !== null && FATAL_FOR_BRIDGE.has(lastErrorKind)) {
+      if (lastErrorKind !== null && fatalForBridge(lastErrorKind, opts)) {
         clearBridgeTimer();
         currentRec = null;
         lastInterim = '';
@@ -262,11 +283,26 @@ export function startRecognition(
         return;
       }
 
+      /** Cloud STT failed; do not spin bridged segments — flush so local STT can run. */
+      if (
+        lastErrorKind === 'network' &&
+        opts.allowNetworkRecovery &&
+        !stopped &&
+        !sessionFinished
+      ) {
+        clearBridgeTimer();
+        currentRec = null;
+        lastInterim = '';
+        bridgeCount = 0;
+        finishSession();
+        return;
+      }
+
       const canBridge =
         engineContinuous &&
         !stopped &&
         bridgeCount < MAX_CONTINUOUS_BRIDGE &&
-        (lastErrorKind === null || !FATAL_FOR_BRIDGE.has(lastErrorKind));
+        (lastErrorKind === null || !fatalForBridge(lastErrorKind, opts));
 
       if (canBridge) {
         bridgeCount += 1;

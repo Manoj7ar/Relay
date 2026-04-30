@@ -47,10 +47,19 @@ The codebase prioritizes **real browser APIs** and **honest failure modes**: if 
 ```bash
 npm install
 npm run dev          # Vite dev server → http://localhost:5173
+npm run local-stt    # optional: local STT sidecar → http://127.0.0.1:9000
 npm run typecheck    # tsc --noEmit
 npm run build        # typecheck + production bundle + PWA assets
 npm run preview      # serve the production build locally
 ```
+
+### Local STT sidecar (optional)
+
+Relay can POST recorded audio to a **local HTTP sidecar** when browser speech-to-text is empty, unreliable, or unavailable—see `src/services/localSttService.ts` and `scripts/local-stt-server.mjs`.
+
+1. **Start the reference server:** `npm run local-stt` (default `http://127.0.0.1:9000`). Optional: set **`RELAY_STT_CMD`** so `/transcribe` runs your offline command (stdout = transcript); see comments in `scripts/local-stt-server.mjs`.
+2. **Point the app at it:** copy [.env.example](.env.example) values into **`.env.local`**, set **`VITE_RELAY_LOCAL_STT_URL=http://127.0.0.1:9000`**, restart **`npm run dev`**.
+3. **Verify:** Home → tap-to-speak; with no real command configured, the sidecar still returns stub text so you can confirm wiring into `submit()`.
 
 **Trying on a phone:** run `npm run build && npm run preview -- --host`, open the printed URL on the same network, then use **Add to Home Screen** (iOS) or the install prompt (Android).
 
@@ -80,7 +89,7 @@ Use this path to verify the repo end-to-end (see also [docs/GEMMA_AND_INTEGRATIO
 
 Default Ollama tags are defined in **`src/lib/ollamaModelConfig.ts`** (`OLLAMA_MODEL_DEFAULT_TAG`). They must match tags you **pull** in Ollama and optional overrides under **Settings → Models & connectivity** (Advanced).
 
-For **hackathon or Google naming guidelines** (official asset and model variant names), verify against the sponsor’s current documentation before submitting—update Settings tags locally if the published names differ; do not assume this README tracks every rename.
+For **hackathons or updated Ollama image names**, verify the published **Gemma 4** tags against current docs—update **Settings → Models & connectivity** locally if names differ; this README may not track every rename.
 
 ---
 

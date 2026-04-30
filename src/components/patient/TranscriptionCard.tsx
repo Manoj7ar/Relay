@@ -2,12 +2,14 @@ import {
   BookOpen,
   Camera,
   Cpu,
+  ImageIcon,
   RotateCcw,
   Sparkles,
   Square,
   ThumbsDown,
   ThumbsUp,
   Volume2,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, IconButton } from '@/components/primitives';
@@ -26,8 +28,14 @@ import { getEntryById } from '@/lib/patientDictionary';
 import type { DictionaryEntry } from '@/types/dictionary';
 
 export function TranscriptionCard() {
-  const { state, acceptAlternate, dispatch, clearError, undoLastInterpretation } =
-    useSession();
+  const {
+    state,
+    acceptAlternate,
+    dispatch,
+    clearError,
+    undoLastInterpretation,
+    setPendingImage,
+  } = useSession();
   const { settings } = useSettings();
   const tts = useSpeechSynthesis();
   const haptics = useHaptics();
@@ -152,7 +160,7 @@ export function TranscriptionCard() {
     if (isListening || isProcessing || ch.includes('speech')) {
       channels.push('speech');
     }
-    if (visionOn || ch.includes('camera')) {
+    if (visionOn || state.pendingImage || ch.includes('camera')) {
       channels.push('camera');
     }
     if (ch.includes('symbols')) {
@@ -162,7 +170,13 @@ export function TranscriptionCard() {
       channels.push('gesture');
     }
     return Array.from(new Set(channels));
-  }, [currentInterpretation, isListening, isProcessing, visionOn]);
+  }, [
+    currentInterpretation,
+    isListening,
+    isProcessing,
+    visionOn,
+    state.pendingImage,
+  ]);
 
   const canUndoLast =
     currentInterpretation && undoNow - currentInterpretation.ts <= 8000;
@@ -214,6 +228,42 @@ export function TranscriptionCard() {
             compact
             onToggleOff={() => dispatch({ type: 'SET_VISION', value: false })}
           />
+        </div>
+      ) : null}
+
+      {state.pendingImage ? (
+        <div
+          className="mt-1.5 shrink-0 rounded-xl2 border border-[var(--accent)]/20 bg-white/80 px-2.5 py-2 shadow-sm"
+          role="status"
+        >
+          <div className="flex gap-2">
+            <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/10 ring-1 ring-black/10">
+              <img
+                src={state.pendingImage.dataUrl}
+                alt="Captured photo attached to your next message"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-text">
+                <ImageIcon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                Photo attached
+              </p>
+              <p className="text-[10px] leading-snug text-muted">
+                Speak with the mic or type below. Relay sends{' '}
+                <strong className="font-semibold text-text">this photo and your words</strong>{' '}
+                together to the model.
+              </p>
+            </div>
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={<X className="h-5 w-5" aria-hidden />}
+              label="Remove attached photo"
+              className="h-10 w-10 shrink-0 self-start"
+              onClick={() => setPendingImage(null)}
+            />
+          </div>
         </div>
       ) : null}
 

@@ -15,6 +15,8 @@ interface UseSTTOptions {
    * matches tap-to-speak / tap-to-stop on the home mic.
    */
   continuous?: boolean;
+  /** See `RecognitionOptions.allowNetworkRecovery` in speechRecognitionService. */
+  allowNetworkRecovery?: boolean;
 }
 
 const INITIAL: RecognitionResult = {
@@ -55,6 +57,7 @@ export function useSpeechRecognition(opts: UseSTTOptions = {}) {
         lang: opts.lang,
         continuous: opts.continuous !== false,
         interimResults: true,
+        allowNetworkRecovery: opts.allowNetworkRecovery,
       },
       {
         onUpdate: (partial) =>
@@ -67,7 +70,7 @@ export function useSpeechRecognition(opts: UseSTTOptions = {}) {
         },
       },
     );
-  }, [opts.lang, opts.continuous]);
+  }, [opts.lang, opts.continuous, opts.allowNetworkRecovery]);
 
   const stop = useCallback(() => {
     handleRef.current?.stop();

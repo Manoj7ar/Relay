@@ -18,10 +18,11 @@ interface CameraPreviewProps {
  * Small inline preview with capture-for-context action. Only renders when
  * the patient has the vision toggle on and camera permission is granted.
  *
- * The captured frame is stored in `SessionContext.pendingImage`; the next
- * submit() picks it up and passes it (as `imageDataUrl`) into the single
- * `interpret()` call — the Gemma adapter consumes it for multimodal
- * reasoning once wired.
+ * The captured frame is stored in `SessionContext.pendingImage`. After
+ * capture, the live camera stops and the vision toggle turns off; the home
+ * card shows the thumbnail until you send (mic or type) or remove it.
+ * `submit()` merges the photo with speech/text into one multimodal
+ * `interpret()` call for Gemma/Ollama.
  */
 export function CameraPreview({ active, onToggleOff, compact }: CameraPreviewProps) {
   const permissions = usePermissions('camera');
@@ -71,6 +72,8 @@ export function CameraPreview({ active, onToggleOff, compact }: CameraPreviewPro
     const frame = await camera.capture();
     if (frame) {
       setPendingImage({ dataUrl: frame.dataUrl, capturedAt: frame.ts });
+      camera.stop();
+      onToggleOff();
     }
   };
 

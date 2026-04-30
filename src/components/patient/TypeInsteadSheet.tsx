@@ -123,6 +123,14 @@ export function TypeInsteadSheet() {
               </kbd>{' '}
               to hide.
             </p>
+            {state.pendingImage ? (
+              <p className="mb-2 flex items-start gap-1.5 rounded-lg bg-[var(--accent)]/[0.08] px-2 py-1.5 text-[11px] leading-snug text-text">
+                <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
+                Your typed message is sent{' '}
+                <strong className="font-semibold">together with the photo</strong> you
+                captured above.
+              </p>
+            ) : null}
             <textarea
               ref={textareaRef}
               rows={2}

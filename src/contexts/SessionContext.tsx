@@ -326,7 +326,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
           result.visionUsed = true;
         }
         const interp = resultToInterpretation(result);
-        if (visionOn) interp.visionUsed = true;
+        if (imageDataUrl) interp.visionUsed = true;
         const record: InteractionRecord = {
           ...interp,
           actionTaken: interp.actionTaken ?? 'Spoken only',

@@ -48,7 +48,6 @@ export function SymbolBoardOverlay({ open, onClose }: SymbolBoardOverlayProps) {
       >
         {SYMBOL_BOARD.map((tile) => {
           const Icon = tile.icon;
-          const isUrgent = tile.urgencyHint === 'HIGH';
           return (
             <button
               key={tile.id}
@@ -57,8 +56,7 @@ export function SymbolBoardOverlay({ open, onClose }: SymbolBoardOverlayProps) {
               className={cn(
                 'glass flex aspect-square flex-col items-center justify-center gap-2 rounded-[22px] p-2 shadow-sm',
                 'transition-[transform,background-color,box-shadow] duration-200 ease-smooth hover:bg-white/70 hover:shadow-md active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100',
-                isUrgent &&
-                  'border border-[var(--danger)]/60 bg-[var(--danger)]/[0.08] shadow-[0_0_0_3px_rgba(122,43,43,0.18)] ring-4 ring-[var(--danger)]/45',
+                'focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-subtle)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
               )}
             >
               <Icon className="h-7 w-7" aria-hidden />

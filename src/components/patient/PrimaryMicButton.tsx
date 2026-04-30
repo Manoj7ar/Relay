@@ -17,24 +17,45 @@ import {
   transcribeWithLocalStt,
 } from '@/services/localSttService';
 
+/** Skip tiny recorder glitches; real clips from tap-to-speak are usually larger. */
+const MIN_LOCAL_STT_BLOB_BYTES = 320;
+
+function shouldAugmentWithLocalStt(webTranscript: string): boolean {
+  const t = webTranscript.trim();
+  if (!t) return true;
+  if (t.length <= 2) return true;
+  if (/^(.)\1+$/.test(t)) return true;
+  return false;
+}
+
 function speechErrorTitle(error: RecognitionError | null): string {
   if (!error) return 'Speech recognition unavailable';
-  if (error.kind === 'network') return 'Speech recognition needs a connection';
+  if (error.kind === 'network') {
+    return isLocalSttConfigured()
+      ? 'Speech recognition could not complete'
+      : 'Speech recognition needs a connection';
+  }
   if (error.kind === 'permission_denied') return 'Microphone access was blocked';
   if (error.kind === 'audio_capture') return 'Could not capture audio';
   return 'Speech recognition stopped';
 }
 
 function speechErrorHint(error: RecognitionError | null): string {
+  const sidecar =
+    'Confirm `npm run local-stt`, `VITE_RELAY_LOCAL_STT_URL`, and POST `/transcribe` match `localSttService.ts`.';
   if (!error) {
-    return 'Relay could not start speech-to-text in this browser. Try again or use Type instead.';
+    const base =
+      'Relay could not start speech-to-text in this browser. Try again or use Type instead.';
+    return isLocalSttConfigured() ? `${base} ${sidecar}` : base;
   }
   if (error.kind === 'network') {
     return isLocalSttConfigured()
-      ? 'Local STT did not return text. Confirm your sidecar is running and POST /transcribe matches localSttService.ts.'
+      ? `Local STT did not return text. ${sidecar}`
       : 'Built-in speech uses Google’s servers (not your LLM). Set VITE_RELAY_LOCAL_STT_URL in .env.local, restart dev, and run a POST /transcribe server there.';
   }
-  return error.message;
+  if (error.kind === 'permission_denied') return error.message;
+  const base = error.message;
+  return isLocalSttConfigured() ? `${base} ${sidecar}` : base;
 }
 
 export function PrimaryMicButton() {
@@ -49,6 +70,7 @@ export function PrimaryMicButton() {
       : settings.language.primaryLanguage;
   const stt = useSpeechRecognition({
     lang: sttLang,
+    allowNetworkRecovery: isLocalSttConfigured(),
   });
   const [finalizing, setFinalizing] = useState(false);
   const pendingSubmitRef = useRef(false);
@@ -160,13 +182,19 @@ export function PrimaryMicButton() {
 
     const run = async () => {
       let transcript = initialTranscript;
-      if (!transcript && recording && isLocalSttConfigured()) {
+      if (
+        isLocalSttConfigured() &&
+        recording &&
+        recording.size >= MIN_LOCAL_STT_BLOB_BYTES &&
+        shouldAugmentWithLocalStt(transcript)
+      ) {
         try {
-          transcript = (
+          const localText = (
             await transcribeWithLocalStt(recording, sttLang)
           ).trim();
+          if (localText) transcript = localText;
         } catch {
-          /* keep empty */
+          /* keep browser transcript or empty */
         }
       }
 
@@ -205,6 +233,7 @@ export function PrimaryMicButton() {
     stt.reset,
     submit,
     state.visionOn,
+    state.pendingImage,
     settings.language.primaryLanguage,
     settings.language.caregiverLanguage,
     state.sessionInferredSpeaker,
@@ -276,7 +305,11 @@ export function PrimaryMicButton() {
 
       if (speechError || !stt.supported) {
         speechErrorRef.current = null;
-        if (audioBlob && isLocalSttConfigured()) {
+        if (
+          audioBlob &&
+          audioBlob.size >= MIN_LOCAL_STT_BLOB_BYTES &&
+          isLocalSttConfigured()
+        ) {
           try {
             const t = (await transcribeWithLocalStt(audioBlob, sttLang)).trim();
             if (t) {

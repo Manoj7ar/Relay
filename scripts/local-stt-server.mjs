@@ -16,7 +16,7 @@
  *
  * Transcription:
  *   Set RELAY_STT_CMD to any local command that prints a transcript to stdout.
- *   Use {input} and {language} placeholders, e.g. a whisper.cpp wrapper:
+ *   Use {input} and {language} placeholders, e.g.:
  *   RELAY_STT_CMD='./transcribe-local.sh {input} {language}'
  *   If unset, returns placeholder text so you can verify Relay → HTTP wiring.
  *
@@ -125,7 +125,7 @@ async function runLocalSttCommand(inputPath, language) {
 }
 
 const STUB_TEXT =
-  'Local STT server is running. Set RELAY_STT_CMD to a local transcription command (for example a whisper.cpp wrapper) for real transcription.';
+  'Local STT server is running. Set RELAY_STT_CMD to a local transcription command that prints text to stdout for real transcripts.';
 
 const server = http.createServer(async (req, res) => {
   applyCors(res);
@@ -206,10 +206,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
+  const base = `http://127.0.0.1:${PORT}`;
+  const cmd = STT_CMD.trim() ? 'RELAY_STT_CMD=set' : 'RELAY_STT_CMD=unset (stub)';
   console.log(
-    `[relay local-stt] http://127.0.0.1:${PORT}  command=${STT_CMD ? 'configured' : 'stub text'}`,
-  );
-  console.log(
-    `[relay local-stt] GET /health  POST /transcribe  (CORS *)`,
+    `[relay local-stt] ${base}  ${cmd}  GET /health  POST /transcribe  CORS=*`,
   );
 });
