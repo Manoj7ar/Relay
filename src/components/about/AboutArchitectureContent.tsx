@@ -17,9 +17,41 @@ export function AboutArchitectureContent() {
   return (
     <>
       <PageHeader
-        title="Gemma & architecture"
-        subtitle="Browser mic, STT, TTS, and camera on real APIs. One path through GemmaInterpreterAdapter to your Ollama endpoint."
+        title="Relay helps hard-to-understand speech become clear"
+        subtitle="A local-first communication PWA for people with ALS, aphasia, dysarthria, Parkinson's, and caregivers who need the next phrase quickly."
       />
+
+      <Card variant="glass-strong" padded={false} className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+            <HeartHandshake className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-text">
+              Speak, tap a symbol, type, or take a photo. Relay turns that signal
+              into a respectful phrase the caregiver can understand and replay.
+            </p>
+            <p className="text-xs leading-relaxed text-muted">
+              The app is built for stressful, real-world moments: fragmented words,
+              multilingual homes, low dexterity, urgent needs, and offline demos
+              where the model runs on a user-controlled Ollama host.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <Card variant="glass-strong" padded={false} className="p-4">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
+          Local-first promise
+        </div>
+        <ul className="mt-2 list-none space-y-2 p-0 text-xs leading-relaxed text-muted">
+          <li>Core inference goes to the Ollama URL the user configures.</li>
+          <li>Optional STT sidecar is local-only and user configured.</li>
+          <li>No analytics, font CDN, telemetry, or avatar fetches in production.</li>
+          <li>Dictionary, history, voice samples, and exports stay on device unless the user exports them.</li>
+        </ul>
+      </Card>
 
       <Card variant="glass-strong" padded={false} className="p-4">
         <div className="flex items-center gap-2 text-sm font-semibold">
