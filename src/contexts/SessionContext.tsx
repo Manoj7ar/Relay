@@ -39,6 +39,7 @@ import type {
 } from '@/types/session';
 import type { SessionInterpretationError } from '@/types/interpretationError';
 import { sessionErrorFromUnknown } from '@/lib/sessionInterpretationError';
+import { decrementConfirmation } from '@/lib/patientDictionary';
 
 type Action =
   | { type: 'SUSPEND_RELAY' }
@@ -58,6 +59,7 @@ type Action =
   | { type: 'SET_ERROR'; error: SessionInterpretationError | null }
   | { type: 'PUSH_HISTORY'; record: InteractionRecord }
   | { type: 'UPDATE_HISTORY'; id: string; patch: Partial<InteractionRecord> }
+  | { type: 'REMOVE_HISTORY_RECORD'; id: string }
   | { type: 'CLEAR_HISTORY' }
   | { type: 'HYDRATE_HISTORY'; history: InteractionRecord[] };
 
@@ -169,6 +171,15 @@ function reducer(state: SessionState, action: Action): SessionState {
           h.id === action.id ? { ...h, ...action.patch } : h,
         ),
       };
+    case 'REMOVE_HISTORY_RECORD':
+      return {
+        ...state,
+        currentInterpretation:
+          state.currentInterpretation?.id === action.id
+            ? null
+            : state.currentInterpretation,
+        history: state.history.filter((h) => h.id !== action.id),
+      };
     case 'CLEAR_HISTORY':
       return { ...state, history: [], sessionInferredSpeaker: null };
     case 'HYDRATE_HISTORY':
@@ -231,6 +242,7 @@ interface SessionContextValue {
   submit: (req: InferenceRequest) => Promise<InterpretationResult | null>;
   acceptAlternate: (alt: string) => void;
   applyActionTaken: (id: string, actionTaken: string, cancelled?: boolean) => void;
+  undoLastInterpretation: () => Promise<boolean>;
   setInterimTranscript: (text: string) => void;
   setPendingImage: (image: PendingImageContext | null) => void;
   clearCurrent: () => void;
@@ -276,7 +288,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
         return null;
       }
       const visionOn = req.visionOn ?? state.visionOn;
-      const imageDataUrl = state.pendingImage?.dataUrl;
+      const imageDataUrl = req.imageDataUrl ?? state.pendingImage?.dataUrl;
       const patientLanguage =
         req.patientLanguage ?? settings.language.primaryLanguage;
       const caregiverLanguage =
