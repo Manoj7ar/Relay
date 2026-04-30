@@ -207,6 +207,18 @@ export async function incrementConfirmation(id: string): Promise<void> {
   );
 }
 
+export async function decrementConfirmation(id: string): Promise<void> {
+  const current = await getEntry(id);
+  if (!current) return;
+  await withStore<IDBValidKey>('readwrite', (store) =>
+    store.put({
+      ...current,
+      confirmations: Math.max(1, current.confirmations - 1),
+      lastSeenAt: Date.now(),
+    }),
+  );
+}
+
 export async function deleteEntry(id: string): Promise<void> {
   await withStore<undefined>('readwrite', (store) => store.delete(id));
 }
