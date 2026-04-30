@@ -129,6 +129,14 @@ body {
   }
 }
 
+:root[data-low-power='true'] *,
+:root[data-low-power='true'] *::before,
+:root[data-low-power='true'] *::after {
+  animation: none !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
+}
+
 @layer components {
   .glass {
     background: var(--glass-bg);
