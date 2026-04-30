@@ -76,14 +76,14 @@ export function CaregiverNavRow({
     <Link
       to={to}
       className={cn(
-        'glass flex min-h-[52px] items-center gap-3 rounded-xl2 px-3 py-2.5 shadow-sm',
+        'glass flex min-h-[48px] items-center gap-2.5 rounded-xl2 px-3 py-2 shadow-sm',
         'transition-[transform,background-color,box-shadow] duration-fast ease-smooth',
         'hover:bg-white/80 hover:shadow-md',
         'active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100',
         'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
       )}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
