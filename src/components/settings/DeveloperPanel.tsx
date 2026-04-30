@@ -1,9 +1,17 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { RotateCcw } from 'lucide-react';
 import {
   SettingsControlCard,
   SettingsSection,
   SettingsStack,
 } from '@/components/settings/SettingsShell';
+import { PillButton, Toggle } from '@/components/primitives';
+import { useSettings } from '@/contexts/SettingsContext';
+import { useSession } from '@/contexts/SessionContext';
+import { useModelRouting } from '@/contexts/ModelRoutingContext';
+import { addEntry, clearAll as clearPatientDictionary } from '@/lib/patientDictionary';
+import { clearAllSamples } from '@/lib/voiceSamples';
 
 /**
  * Developer / capability-layer info. Surfaces what's wired vs. what's
@@ -11,6 +19,11 @@ import {
  * connected next.
  */
 export function DeveloperPanel() {
+  const { settings, dispatch } = useSettings();
+  const { dispatch: sessionDispatch } = useSession();
+  const { clearLog } = useModelRouting();
+  const [demoResetting, setDemoResetting] = useState(false);
+  const [demoMessage, setDemoMessage] = useState<string | null>(null);
   const rows: { label: string; status: 'real' | 'stub'; detail: string }[] = [
     {
       label: 'Microphone capture',
