@@ -52,11 +52,11 @@ export function CaregiverHubSection({
   children,
 }: PropsWithChildren<{ title: string }>) {
   return (
-    <section className="space-y-2">
+    <section className="space-y-1.5">
       <h2 className="px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
         {title}
       </h2>
-      <div className="flex flex-col gap-1.5">{children}</div>
+      <div className="flex flex-col gap-1">{children}</div>
     </section>
   );
 }
