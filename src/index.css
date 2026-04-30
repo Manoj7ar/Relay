@@ -79,7 +79,8 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   position: relative;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
