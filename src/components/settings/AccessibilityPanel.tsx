@@ -33,6 +33,14 @@ export function AccessibilityPanel() {
               onChange={(v) => dispatch({ type: 'SET_LARGE_TEXT', value: v })}
             />
           </div>
+          <div className="pt-3">
+            <Toggle
+              label="Low-power mode"
+              description="Disables decorative animations and long transitions on older devices."
+              checked={accessibility.lowPower}
+              onChange={(v) => dispatch({ type: 'SET_LOW_POWER', value: v })}
+            />
+          </div>
         </SettingsControlCard>
       </SettingsSection>
 
