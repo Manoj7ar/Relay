@@ -44,6 +44,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         <RelayPausedBanner />
         {children}
       </main>
+      <PerformanceHud />
       <BottomNav />
     </div>
   );
