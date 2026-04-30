@@ -10,6 +10,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Activity, Home, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { RelayPausedBanner } from '@/components/patient/RelayPausedBanner';
+import { PerformanceHud } from '@/components/patient/PerformanceHud';
 import { useSession } from '@/contexts/SessionContext';
 import { useViewportShell } from '@/hooks/useViewportShell';
 import type { PropsWithChildren } from 'react';
