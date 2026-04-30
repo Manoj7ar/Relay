@@ -283,7 +283,11 @@ export function startRecognition(
         return;
       }
 
-      /** Cloud STT failed; do not spin bridged segments — flush so local STT can run. */
+      /**
+       * Cloud STT failed but the app records with MediaRecorder for local STT on stop.
+       * Do not `finishSession()` here — that ended listening after ~1s and tore down the mic
+       * before the user could speak. Stay "listening" until the user calls `stop()` on the handle.
+       */
       if (
         lastErrorKind === 'network' &&
         opts.allowNetworkRecovery &&
@@ -292,9 +296,8 @@ export function startRecognition(
       ) {
         clearBridgeTimer();
         currentRec = null;
-        lastInterim = '';
         bridgeCount = 0;
-        finishSession();
+        callbacks.onUpdate({ status: 'listening', error: null });
         return;
       }
 

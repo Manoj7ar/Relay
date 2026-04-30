@@ -58,8 +58,10 @@ npm run preview      # serve the production build locally
 Relay can POST recorded audio to a **local HTTP sidecar** when browser speech-to-text is empty, unreliable, or unavailable—see `src/services/localSttService.ts` and `scripts/local-stt-server.mjs`.
 
 1. **Start the reference server:** `npm run local-stt` (default `http://127.0.0.1:9000`). Optional: set **`RELAY_STT_CMD`** so `/transcribe` runs your offline command (stdout = transcript); see comments in `scripts/local-stt-server.mjs`.
-2. **Point the app at it:** copy [.env.example](.env.example) values into **`.env.local`**, set **`VITE_RELAY_LOCAL_STT_URL=http://127.0.0.1:9000`**, restart **`npm run dev`**.
+2. **Point the app at it:** copy [.env.example](.env.example) into **`.env.local`**, set **`VITE_RELAY_LOCAL_STT_URL=http://127.0.0.1:9000`**, then **restart** **`npm run dev`** (Vite only reads env on startup).
 3. **Verify:** Home → tap-to-speak; with no real command configured, the sidecar still returns stub text so you can confirm wiring into `submit()`.
+
+**If the UI says “Speech recognition needs a connection”:** the browser blocked Google’s cloud STT. Keep **`npm run local-stt`** running in a second terminal, ensure `.env.local` has the URL above, restart **`npm run dev`**, and hard-refresh the app.
 
 **Trying on a phone:** run `npm run build && npm run preview -- --host`, open the printed URL on the same network, then use **Add to Home Screen** (iOS) or the install prompt (Android).
 
