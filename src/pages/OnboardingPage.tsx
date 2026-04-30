@@ -56,8 +56,15 @@ export function OnboardingPage() {
 
   const finish = useCallback(() => {
     dispatch({ type: 'COMPLETE_ONBOARDING' });
+    if (settings.relayPowerOn) {
+      void seedOnboardingDictionary({
+        profile: settings.profile,
+        patientLanguage: settings.language.primaryLanguage,
+        caregiverLanguage: settings.language.caregiverLanguage,
+      });
+    }
     navigate('/', { replace: true });
-  }, [dispatch, navigate]);
+  }, [dispatch, navigate, settings]);
 
   const saveAndExit = useCallback(() => {
     if (!settings.onboardingCompletedAt) {
