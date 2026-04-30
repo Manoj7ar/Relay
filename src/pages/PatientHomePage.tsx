@@ -46,7 +46,10 @@ export function PatientHomePage() {
           <TranscriptionCard />
         </div>
         <div className="shrink-0 flex flex-col gap-1.5 pb-1">
-          <HomeQuickActionRow onOpenSymbolBoard={() => setBoardOpen(true)} />
+          <HomeQuickActionRow
+            onOpenSymbolBoard={() => setBoardOpen(true)}
+            onPhotoOnly={handlePhotoOnly}
+          />
           <PrimaryMicButton />
           <TypeInsteadSheet />
         </div>
