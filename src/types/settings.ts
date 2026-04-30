@@ -1,6 +1,7 @@
 export interface AccessibilitySettings {
   highContrast: boolean;
   largeText: boolean;
+  lowPower: boolean;
 }
 
 export interface LanguageSettings {
@@ -11,6 +12,10 @@ export interface LanguageSettings {
 /** Ollama HTTP API root (no trailing slash). Empty baseUrl → localhost default at resolve time. */
 export interface OllamaSettings {
   baseUrl: string;
+}
+
+export interface DeveloperSettings {
+  performanceHud: boolean;
 }
 
 export type SetupRole = 'patient' | 'caregiver' | 'unknown';
@@ -55,6 +60,7 @@ export interface SettingsState {
   accessibility: AccessibilitySettings;
   language: LanguageSettings;
   ollama: OllamaSettings;
+  developer: DeveloperSettings;
   profile: ProfileSettings;
   onboardingCompletedAt: number | null;
 }
