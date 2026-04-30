@@ -44,19 +44,30 @@ export function HomeQuickActionRow({
       >
         Symbols
       </PillButton>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(event) => {
+          handlePhoto(event.target.files?.[0]);
+          event.currentTarget.value = '';
+        }}
+      />
       <PillButton
         type="button"
         size="sm"
         variant="glass"
         onClick={() => {
           haptics('tap');
-          navigate('/caregiver');
+          fileRef.current?.click();
         }}
         className={cn('relay-home-pill relay-home-pill-compact min-w-0 flex-1 gap-2')}
-        leftIcon={<ClipboardList className="h-4 w-4" aria-hidden />}
-        aria-label="Open caregiver view — today’s log and handover"
+        leftIcon={<Camera className="h-4 w-4" aria-hidden />}
+        aria-label="Take a photo for Relay to suggest a phrase"
       >
-        Care log
+        Photo
       </PillButton>
     </div>
   );
