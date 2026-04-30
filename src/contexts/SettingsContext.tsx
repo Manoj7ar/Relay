@@ -182,6 +182,14 @@ function hydrate(fallback: SettingsState): SettingsState {
           ? stored.ollama.baseUrl
           : fallback.ollama.baseUrl,
     },
+    developer: {
+      ...fallback.developer,
+      ...(stored.developer ?? {}),
+      performanceHud:
+        typeof stored.developer?.performanceHud === 'boolean'
+          ? stored.developer.performanceHud
+          : fallback.developer.performanceHud,
+    },
     profile: {
       ...DEFAULT_PROFILE,
       ...(stored.profile ?? {}),
@@ -199,19 +207,8 @@ function hydrate(fallback: SettingsState): SettingsState {
   } as SettingsState;
 }
 
-const EMERGENCY_PROXY_LEGACY_KEY = 'relay.emergency.proxyUrl';
-
 export function SettingsProvider({ children }: PropsWithChildren) {
   const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS, hydrate);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.removeItem(EMERGENCY_PROXY_LEGACY_KEY);
-    } catch {
-      // ignore
-    }
-  }, []);
 
   useEffect(() => {
     save(STORAGE_KEY, settings);
@@ -228,7 +225,16 @@ export function SettingsProvider({ children }: PropsWithChildren) {
       '--font-scale',
       settings.accessibility.largeText ? '1.18' : '1',
     );
-  }, [settings.accessibility.highContrast, settings.accessibility.largeText]);
+    if (settings.accessibility.lowPower) {
+      root.setAttribute('data-low-power', 'true');
+    } else {
+      root.removeAttribute('data-low-power');
+    }
+  }, [
+    settings.accessibility.highContrast,
+    settings.accessibility.largeText,
+    settings.accessibility.lowPower,
+  ]);
 
   const value = useMemo(() => ({ settings, dispatch }), [settings]);
 
