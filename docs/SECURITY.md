@@ -10,13 +10,15 @@ Relay is a **static client-side PWA**: there is no Relay-owned backend in this r
 ## Ollama trust
 
 - **Ollama:** whoever controls the configured URL receives **transcripts and optional camera frames** as part of inference. Use HTTPS and a host you trust; see [GEMMA_AND_INTEGRATIONS.md](./GEMMA_AND_INTEGRATIONS.md#ollama-wire-protocol-what-judges-can-grep) for CORS and mixed-content caveats.
+- **Local STT sidecar:** if configured, whoever controls `VITE_RELAY_LOCAL_STT_URL` receives microphone audio clips for transcription. Keep it on loopback or a trusted LAN host.
+- Relay does not intentionally call analytics, font CDNs, telemetry, avatars, or cloud LLMs in production.
 
 ## Content Security Policy (CSP)
 
 For production hosting (nginx, Cloudflare, Vercel static, GitHub Pages behind a proxy), consider a **restrictive** CSP. Exact directives depend on your host (inline scripts, service worker). A conservative starting point for discussion:
 
 - `default-src 'self';`
-- `connect-src 'self' https://YOUR_OLLAMA_HOST wss://...` (enumerate Ollama origins you allow)
+- `connect-src 'self' https://YOUR_OLLAMA_HOST http://127.0.0.1:9000 wss://...` (enumerate Ollama + optional local STT origins you allow)
 - `img-src 'self' data: blob:;`
 - `media-src 'self' blob:;`
 - `worker-src 'self';` (PWA / service worker)
