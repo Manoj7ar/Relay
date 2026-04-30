@@ -225,6 +225,15 @@ export function PatientDictionaryPanel({ compact }: { compact?: boolean }) {
             size="sm"
             variant="glass"
             className="!min-h-9 px-4 text-xs"
+            onClick={handleJsonlExport}
+            leftIcon={<Download className="h-4 w-4" aria-hidden />}
+          >
+            JSONL
+          </PillButton>
+          <PillButton
+            size="sm"
+            variant="glass"
+            className="!min-h-9 px-4 text-xs"
             onClick={handleExport}
             leftIcon={<Download className="h-4 w-4" aria-hidden />}
           >
