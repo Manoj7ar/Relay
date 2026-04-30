@@ -240,10 +240,13 @@ export function TranscriptionCard() {
           </p>
         ) : currentInterpretation ? (
           <div className="min-h-0 overflow-hidden">
-            <StreamingText
-              text={currentInterpretation.primary}
+            <p
               className="line-clamp-4 text-[clamp(1.05rem,4.2vw,1.5rem)] font-semibold leading-snug"
-            />
+              dir="auto"
+              lang={currentInterpretation.detectedLanguage}
+            >
+              {currentInterpretation.primary}
+            </p>
           </div>
         ) : (
           <p className="line-clamp-3 text-center text-[clamp(1rem,3.8vw,1.2rem)] font-medium leading-snug text-muted">
@@ -319,6 +322,19 @@ export function TranscriptionCard() {
               mood={currentInterpretation.mood}
               compact
             />
+            {canUndoLast ? (
+              <button
+                type="button"
+                onClick={() => {
+                  haptics('tap');
+                  void undoLastInterpretation();
+                }}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--danger)]/25 bg-[var(--danger)]/[0.06] px-3 text-xs font-semibold text-[var(--danger)] transition-[background-color,transform] duration-200 ease-smooth hover:bg-[var(--danger)]/[0.1] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100"
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                Not what I meant
+              </button>
+            ) : null}
             <InterpretationAlternates
               alternates={currentInterpretation.alternates}
               onSelect={acceptAlternate}
@@ -356,19 +372,33 @@ export function TranscriptionCard() {
                   </div>
                 </div>
                 {feedback === 'yes' ? (
-                  <button
-                    type="button"
-                    onClick={() => setSaveOpen(true)}
-                    className="mt-1.5 text-xs font-semibold text-[var(--accent)] underline"
-                  >
-                    Save this as a new patient signal
-                  </button>
+                  <div className="mt-1.5 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setSaveOpen(true)}
+                      className="text-xs font-semibold text-[var(--accent)] underline"
+                    >
+                      Save this as a new patient signal
+                    </button>
+                    <p className="text-[11px] leading-snug text-muted">
+                      Saves the patient’s raw signal and Relay’s meaning locally
+                      so Gemma can recognize it next time.
+                    </p>
+                  </div>
                 ) : feedback === 'no' ? (
                   <p className="mt-1.5 text-xs text-muted">
                     Ask the patient or carer, then save the corrected meaning.
                   </p>
                 ) : null}
               </div>
+            ) : null}
+            {saveNotice ? (
+              <p
+                role="status"
+                className="rounded-xl bg-[var(--accent)]/[0.08] px-2 py-1.5 text-xs font-medium text-[var(--accent)]"
+              >
+                {saveNotice}
+              </p>
             ) : null}
             <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
               <span className="inline-flex min-w-0 items-center gap-1 truncate">
@@ -436,6 +466,10 @@ export function TranscriptionCard() {
           meaning: currentInterpretation?.primary,
           contextTags: state.lastInputSnapshot?.contributingChannels ?? [],
           confirmedBy: 'self',
+        }}
+        onSaved={(entry) => {
+          setSaveNotice(`Saved “${entry.meaning}” to this patient’s dictionary.`);
+          setFeedbackSectionHidden(true);
         }}
       />
     </Card>
