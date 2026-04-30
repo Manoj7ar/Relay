@@ -7,13 +7,28 @@ import { PrimaryMicButton } from '@/components/patient/PrimaryMicButton';
 import { HomeQuickActionRow } from '@/components/patient/HomeQuickActionRow';
 import { SymbolBoardOverlay } from '@/components/patient/SymbolBoardOverlay';
 import { TypeInsteadSheet } from '@/components/patient/TypeInsteadSheet';
+import { useSession } from '@/contexts/SessionContext';
 
 export function PatientHomePage() {
   const [boardOpen, setBoardOpen] = useState(false);
   const { settings } = useSettings();
+  const { submit } = useSession();
   useEffect(() => {
     if (!settings.relayPowerOn) setBoardOpen(false);
   }, [settings.relayPowerOn]);
+
+  const handlePhotoOnly = (dataUrl: string) => {
+    if (!settings.relayPowerOn) return;
+    void submit({
+      inputType: 'vision+speech',
+      imageDataUrl: dataUrl,
+      visionOn: true,
+      language: settings.language.primaryLanguage,
+      patientLanguage: settings.language.primaryLanguage,
+      caregiverLanguage: settings.language.caregiverLanguage,
+      speakerRole: 'patient',
+    });
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
