@@ -4,7 +4,7 @@ import { Card, StatusBadge } from '@/components/primitives';
 import { useModelRouting } from '@/contexts/ModelRoutingContext';
 import { formatClock } from '@/lib/time';
 import { cn } from '@/lib/cn';
-import type { ModelId } from '@/types/model';
+import { MODEL_LABELS, type ModelId } from '@/types/model';
 
 const MAX_ENTRIES = 5;
 
@@ -16,6 +16,12 @@ const FILTERS: { value: ModelFilter; label: string }[] = [
   { value: 'E4B', label: 'E4B' },
   { value: '27B', label: '27B' },
 ];
+
+const TIER_BAR: Record<ModelId, string> = {
+  E2B: 'bg-emerald-500',
+  E4B: 'bg-sky-500',
+  '27B': 'bg-violet-500',
+};
 
 interface RoutingLogProps {
   compact?: boolean;
