@@ -11,7 +11,7 @@ This document matches the **canonical implementation-status table** in the repos
 | Capability | How it works |
 |------------|--------------|
 | **Microphone** | `audioCaptureService` — `getUserMedia({ audio })` + `AnalyserNode` RMS level. |
-| **Speech-to-text** | `speechRecognitionService` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Unsupported browsers → **Type instead** sheet. |
+| **Speech-to-text** | `speechRecognitionService` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) plus optional local sidecar via `VITE_RELAY_LOCAL_STT_URL`. Unsupported browsers → **Type instead** sheet. |
 | **Text-to-speech** | `speechSynthesisService` — `window.speechSynthesis` with language-matched voice selection. |
 | **Camera** | `cameraService` — `getUserMedia({ video })` preview + frame capture into `SessionContext.pendingImage` as a data URL. |
 | **Patient Dictionary** | `patientDictionary` — IndexedDB corpus of carer-confirmed signals, meanings, tags, confirmations, and optional image frames. Browsing/import/export does not require Ollama. |
@@ -80,7 +80,7 @@ Implementation lives in [`src/services/interpretation/GemmaInterpreterAdapter.ts
 
 | Aspect | Behavior |
 |--------|----------|
-| **Endpoint** | `POST {ollamaBase}/api/generate` where `ollamaBase` comes from Settings (see `getResolvedOllamaBaseUrl`). |
+| **Endpoint** | `POST {ollamaBase}/api/generate` where `ollamaBase` comes from Settings (see `getResolvedOllamaBaseUrl`). This and the optional local STT sidecar are the only intended production network destinations. |
 | **Streaming** | `stream: true` — response body is **NDJSON** (one JSON object per line); the client accumulates chunks until the stream ends. |
 | **Structured output** | `format: 'json'` so the model is steered toward a single JSON object for interpretation. |
 | **Progressive UI** | While streaming, a forgiving extractor reads the in-progress `"primaryText"` field and calls `onStreamChunk` so the UI can animate text **without** leaking raw JSON. |
