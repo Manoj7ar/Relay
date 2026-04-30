@@ -342,6 +342,7 @@ Common speech patterns to understand:
 - Arabic examples: "ماء" = "I need water", "ألم" = "I am in pain"
 
 Given these concurrent signals and this patient's known local dictionary, infer the most likely single intent. Prefer patient-specific dictionary meanings over generic AAC assumptions when the current input is similar. Be warm and natural, not robotic.
+${photoOnly ? '\nPHOTO-ONLY TASK: infer a concise phrase the patient may want to say from the image context. If uncertain, make the primaryText a gentle suggestion such as "I might need help with this."' : ''}
 
 You MUST output the clarified intent in BOTH configured languages:
 - patientLanguageText: full sentence in patient language (${input.patientLanguage})
@@ -768,7 +769,9 @@ async function interpret(
     dictionaryMatchIds: parsed.dictionaryMatchIds,
     contributingChannels: getContributingChannels(input),
     sourceFragment:
-      input.transcript?.slice(0, 60) ?? input.symbols?.join(', '),
+      input.transcript?.slice(0, 60) ??
+      input.symbols?.join(', ') ??
+      (input.imageDataUrl ? 'Photo only' : undefined),
   };
 }
 
