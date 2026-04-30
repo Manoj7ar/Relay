@@ -1,4 +1,12 @@
-import { BookOpen, Cpu, GitBranch, Plug, WifiOff } from 'lucide-react';
+import {
+  BookOpen,
+  Cpu,
+  GitBranch,
+  HeartHandshake,
+  Plug,
+  ShieldCheck,
+  WifiOff,
+} from 'lucide-react';
 import { Card, PageHeader } from '@/components/primitives';
 import { cn } from '@/lib/cn';
 
