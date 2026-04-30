@@ -13,7 +13,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, IconButton } from '@/components/primitives';
 import { DictionaryEntryFormModal } from '@/components/dictionary/DictionaryEntryFormModal';
 import { InterpretationErrorCallout } from './InterpretationErrorCallout';
-import { StreamingText } from './StreamingText';
 import { ConfidenceMoodRow } from './ConfidenceMoodRow';
 import { InterpretationAlternates } from './InterpretationAlternates';
 import { CameraToggle } from './CameraToggle';
@@ -27,7 +26,8 @@ import { getEntryById } from '@/lib/patientDictionary';
 import type { DictionaryEntry } from '@/types/dictionary';
 
 export function TranscriptionCard() {
-  const { state, acceptAlternate, dispatch, clearError } = useSession();
+  const { state, acceptAlternate, dispatch, clearError, undoLastInterpretation } =
+    useSession();
   const { settings } = useSettings();
   const tts = useSpeechSynthesis();
   const haptics = useHaptics();
@@ -38,6 +38,8 @@ export function TranscriptionCard() {
   /** After voting, section fades out and stays hidden for this interpretation id. */
   const [feedbackSectionFading, setFeedbackSectionFading] = useState(false);
   const [feedbackSectionHidden, setFeedbackSectionHidden] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [undoNow, setUndoNow] = useState(() => Date.now());
   const {
     currentInterpretation,
     isListening,
@@ -94,7 +96,21 @@ export function TranscriptionCard() {
     setFeedback(null);
     setFeedbackSectionFading(false);
     setFeedbackSectionHidden(false);
+    setSaveNotice(null);
   }, [currentInterpretation?.id]);
+
+  useEffect(() => {
+    if (!saveNotice) return undefined;
+    const id = window.setTimeout(() => setSaveNotice(null), 3200);
+    return () => window.clearTimeout(id);
+  }, [saveNotice]);
+
+  useEffect(() => {
+    if (!currentInterpretation) return undefined;
+    setUndoNow(Date.now());
+    const id = window.setInterval(() => setUndoNow(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, [currentInterpretation?.id, currentInterpretation]);
 
   useEffect(() => {
     if (feedback !== 'yes' && feedback !== 'no') return undefined;
@@ -147,6 +163,9 @@ export function TranscriptionCard() {
     }
     return Array.from(new Set(channels));
   }, [currentInterpretation, isListening, isProcessing, visionOn]);
+
+  const canUndoLast =
+    currentInterpretation && undoNow - currentInterpretation.ts <= 8000;
 
   return (
     <Card
