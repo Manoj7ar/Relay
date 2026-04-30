@@ -7,6 +7,15 @@ export interface AccessibilitySettings {
 export interface LanguageSettings {
   primaryLanguage: string;
   caregiverLanguage: string;
+  /**
+   * After each interpretation, update patient/partner language from Gemma's
+   * `detectedLanguage` when the model is confident (helps Arabic ↔ English rooms).
+   */
+  autoAdaptLanguages: boolean;
+  /**
+   * Who usually speaks into this device: steers tie-breaks when Gemma is unsure.
+   */
+  defaultMicSpeaker: 'patient' | 'caregiver';
 }
 
 /** Ollama HTTP API root (no trailing slash). Empty baseUrl → localhost default at resolve time. */
@@ -88,6 +97,8 @@ export const DEFAULT_SETTINGS: SettingsState = {
   language: {
     primaryLanguage: 'en-US',
     caregiverLanguage: 'en-US',
+    autoAdaptLanguages: true,
+    defaultMicSpeaker: 'patient',
   },
   ollama: {
     baseUrl: '',

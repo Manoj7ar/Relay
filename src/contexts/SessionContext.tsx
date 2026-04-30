@@ -24,6 +24,11 @@ import { load, save } from '@/lib/storage';
 import { formatConversationTailForPrompt } from '@/lib/conversationContext';
 import { directionFor } from '@/hooks/useRTL';
 import { useSettings } from '@/contexts/SettingsContext';
+import {
+  normalizeDetectedToSupportedLocale,
+  shouldAutoAdaptFromInterpretation,
+} from '@/lib/languageAdaptation';
+import { sameLanguageFamily } from '@/lib/bilingualHero';
 import { useModelRouting } from './ModelRoutingContext';
 import {
   interpret as runInterpret,
@@ -257,7 +262,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     history: load<InteractionRecord[]>(STORAGE_KEY, []),
   }));
   const { recordInterpretation } = useModelRouting();
-  const { settings } = useSettings();
+  const { settings, dispatch: settingsDispatch } = useSettings();
   const syncedPrimaryRef = useRef(false);
 
   /** Stop capture and processing when Relay master power is turned off. */
@@ -309,7 +314,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
         timeOfDay: req.timeOfDay ?? getTimeOfDay(),
         patientLanguage,
         caregiverLanguage,
-        ...(req.speakerRole !== undefined ? { speakerRole: req.speakerRole } : {}),
+        speakerRole: req.speakerRole ?? settings.language.defaultMicSpeaker,
         sessionLastInferredSpeaker: state.sessionInferredSpeaker,
         ...(conversationTail ? { conversationTail } : {}),
         language: req.language,
@@ -355,6 +360,39 @@ export function SessionProvider({ children }: PropsWithChildren) {
           type: 'SET_SESSION_INFERRED_SPEAKER',
           role: result.inferredSpeaker,
         });
+
+        const langSettings = settings.language;
+        if (
+          shouldAutoAdaptFromInterpretation(
+            langSettings.autoAdaptLanguages,
+            interp.bilingualAmbiguous,
+            result.confidence,
+          )
+        ) {
+          const norm = normalizeDetectedToSupportedLocale(result.detectedLanguage);
+          if (norm) {
+            if (
+              result.inferredSpeaker === 'patient' &&
+              !sameLanguageFamily(norm, langSettings.primaryLanguage)
+            ) {
+              settingsDispatch({ type: 'SET_PRIMARY_LANGUAGE', value: norm });
+              dispatch({
+                type: 'SET_LANGUAGE',
+                language: norm,
+                direction: directionFor(norm),
+              });
+            } else if (
+              result.inferredSpeaker === 'caregiver' &&
+              !sameLanguageFamily(norm, langSettings.caregiverLanguage)
+            ) {
+              settingsDispatch({
+                type: 'SET_CAREGIVER_LANGUAGE',
+                value: norm,
+              });
+            }
+          }
+        }
+
         recordInterpretation(interp, result.routingReason);
         if (state.pendingImage && !req.imageDataUrl) {
           dispatch({ type: 'SET_PENDING_IMAGE', image: null });
@@ -373,6 +411,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
       settings.relayPowerOn,
       settings.language.primaryLanguage,
       settings.language.caregiverLanguage,
+      settings.language.autoAdaptLanguages,
+      settings.language.defaultMicSpeaker,
+      settingsDispatch,
       state.visionOn,
       state.pendingImage,
       state.sessionInferredSpeaker,

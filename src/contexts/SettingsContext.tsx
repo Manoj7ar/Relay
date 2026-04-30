@@ -31,6 +31,9 @@ type Action =
   | { type: 'SET_LOW_POWER'; value: boolean }
   | { type: 'SET_PRIMARY_LANGUAGE'; value: string }
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
+  | { type: 'SET_AUTO_ADAPT_LANGUAGES'; value: boolean }
+  | { type: 'SET_DEFAULT_MIC_SPEAKER'; value: 'patient' | 'caregiver' }
+  | { type: 'SWAP_CONVERSATION_LANGUAGES' }
   | { type: 'SET_SETUP_ROLE'; value: ProfileSettings['setupRole'] }
   | { type: 'SET_PROFILE_FIELD'; field: ProfileStringField; value: string }
   | { type: 'SET_PERSONAL_PHRASES'; value: string[] }
@@ -71,6 +74,25 @@ function reducer(state: SettingsState, action: Action): SettingsState {
       return {
         ...state,
         language: { ...state.language, caregiverLanguage: action.value },
+      };
+    case 'SET_AUTO_ADAPT_LANGUAGES':
+      return {
+        ...state,
+        language: { ...state.language, autoAdaptLanguages: action.value },
+      };
+    case 'SET_DEFAULT_MIC_SPEAKER':
+      return {
+        ...state,
+        language: { ...state.language, defaultMicSpeaker: action.value },
+      };
+    case 'SWAP_CONVERSATION_LANGUAGES':
+      return {
+        ...state,
+        language: {
+          ...state.language,
+          primaryLanguage: state.language.caregiverLanguage,
+          caregiverLanguage: state.language.primaryLanguage,
+        },
       };
     case 'SET_SETUP_ROLE':
       return {

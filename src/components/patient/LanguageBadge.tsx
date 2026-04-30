@@ -6,7 +6,7 @@ interface LanguageBadgeProps {
   language: string;
 }
 
-/** Read-only badge (e.g. caregiver views). For the home header use {@link LanguageSwitcher}. */
+/** Read-only badge (e.g. caregiver views). For the patient home header use the conversation dropdown. */
 export function LanguageBadge({ language }: LanguageBadgeProps) {
   const meta = resolveLanguageDisplay(language);
 

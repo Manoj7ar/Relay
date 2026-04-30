@@ -300,13 +300,19 @@ function buildPrompt(
     !input.symbolIds?.length &&
     !input.gestureHints?.length;
 
+  const micHint =
+    input.speakerRole === 'caregiver'
+      ? '\n- HINT: The mic is usually used by the CAREGIVER on this device; when unsure, lean inferredSpeaker toward "caregiver".'
+      : '\n- HINT: The mic is usually used by the PATIENT on this device; when unsure, lean inferredSpeaker toward "patient".';
+
   const speakerBlock = symbolOnly
     ? '\nINPUT IS SYMBOL BOARD ONLY: the speaker is always the PATIENT. Set inferredSpeaker to "patient".'
     : photoOnly
       ? '\nINPUT IS PHOTO ONLY: the suggested phrase is for the PATIENT. Set inferredSpeaker to "patient".'
-    : `\n${input.conversationTail?.trim() ? `${input.conversationTail.trim()}\n` : ''}Speaker inference (no manual speaker toggle in the app):
-- Decide whether the current spoken or typed input is from the PATIENT (AAC user) or the CAREGIVER/companion, using transcript language, who is being addressed, clinical vs everyday phrasing, and continuity with recent exchanges.
-- You MUST output inferredSpeaker as exactly "patient" or "caregiver".`;
+      : `\n${input.conversationTail?.trim() ? `${input.conversationTail.trim()}\n` : ''}Speaker inference:
+- Decide whether the current spoken or typed input is from the PATIENT (AAC user) or the CAREGIVER/companion, using transcript language, who is being addressed, clinical vs everyday phrasing, and continuity with recent exchanges.${micHint}
+- You MUST output inferredSpeaker as exactly "patient" or "caregiver".
+- detectedLanguage MUST be the BCP-47 tag of the LANGUAGE THE SOURCE SPEAKER actually used (not the translation), e.g. ar, ar-EG, en-US — this drives automatic language pairing in the app.`;
 
   const symbolLine =
     (input.sourceType === 'symbols' || input.symbols?.length) && input.symbols?.length
@@ -348,7 +354,7 @@ You MUST output the clarified intent in BOTH configured languages:
 - patientLanguageText: full sentence in patient language (${input.patientLanguage})
 - caregiverLanguageText: same meaning in caregiver language (${input.caregiverLanguage})
 - primaryText: MUST be an exact duplicate of patientLanguageText (used for streaming previews)
-- detectedLanguage: BCP-47 code for the language of the SOURCE utterance after clarification (patient or caregiver, not the translation)
+- detectedLanguage: BCP-47 code for the SOURCE speaker's language (not the translation) — must align with the words in the transcript
 - inferredSpeaker: "patient" or "caregiver" — who produced the current input (see speaker rules above)
 
 Respond ONLY with valid JSON, no markdown, no explanation:
@@ -725,6 +731,7 @@ async function interpret(
     ? 'patient'
     : (fromModel ??
       transcriptHint ??
+      fromDetection ??
       input.speakerRole ??
       input.sessionLastInferredSpeaker ??
       'patient');
@@ -734,6 +741,7 @@ async function interpret(
     : (fromModel ??
       transcriptHint ??
       fromDetection ??
+      input.speakerRole ??
       input.sessionLastInferredSpeaker ??
       'patient');
 

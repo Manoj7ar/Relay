@@ -6,16 +6,12 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Languages } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
+import { ChevronDown, MessagesSquare } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
-import { directionFor } from '@/hooks/useRTL';
 import { useHaptics } from '@/hooks/useHaptics';
-import {
-  PRIMARY_LANGUAGE_OPTIONS,
-  resolveLanguageDisplay,
-} from '@/lib/relayLanguages';
+import { resolveLanguageDisplay } from '@/lib/relayLanguages';
 import { cn } from '@/lib/cn';
+import { BilingualConversationStrip } from '@/components/patient/BilingualConversationStrip';
 
 interface MenuPosition {
   top: number;
@@ -23,13 +19,12 @@ interface MenuPosition {
   width: number;
 }
 
-const MENU_MAX_WIDTH = 288;
+const MENU_MAX_WIDTH = 360;
 
 function computeMenuPosition(trigger: HTMLElement): MenuPosition {
   const rect = trigger.getBoundingClientRect();
   const vw = window.innerWidth;
   const width = Math.min(MENU_MAX_WIDTH, vw - 16);
-  // Center the menu under the trigger (not right-aligned), then clamp to viewport.
   const triggerCenterX = rect.left + rect.width / 2;
   let left = triggerCenterX - width / 2;
   left = Math.max(8, Math.min(left, vw - width - 8));
@@ -37,21 +32,21 @@ function computeMenuPosition(trigger: HTMLElement): MenuPosition {
   return { top, left, width };
 }
 
+/** Header control: opens conversation / bilingual settings (replaces single-language picker). */
 export function LanguageSwitcher() {
-  const listId = useId();
+  const panelId = useId();
+  const titleId = `${panelId}-title`;
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
-  const { dispatch: sessionDispatch } = useSession();
-  const { settings, dispatch: settingsDispatch } = useSettings();
+  const { settings } = useSettings();
   const haptics = useHaptics();
 
-  const code = settings.language.primaryLanguage;
-  const { flag, short } = resolveLanguageDisplay(code);
-  const primaryLine =
-    PRIMARY_LANGUAGE_OPTIONS.find((o) => o.code === code)?.label ?? short;
+  const primary = resolveLanguageDisplay(settings.language.primaryLanguage);
+  const partner = resolveLanguageDisplay(settings.language.caregiverLanguage);
+  const summaryLine = `${primary.short} ↔ ${partner.short}`;
 
   useLayoutEffect(() => {
     if (!open) {
@@ -81,10 +76,7 @@ export function LanguageSwitcher() {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (
-        rootRef.current?.contains(t) ||
-        menuRef.current?.contains(t)
-      ) {
+      if (rootRef.current?.contains(t) || menuRef.current?.contains(t)) {
         return;
       }
       setOpen(false);
@@ -100,24 +92,14 @@ export function LanguageSwitcher() {
     };
   }, [open]);
 
-  const pick = (next: string) => {
-    haptics('tap');
-    settingsDispatch({ type: 'SET_PRIMARY_LANGUAGE', value: next });
-    sessionDispatch({
-      type: 'SET_LANGUAGE',
-      language: next,
-      direction: directionFor(next),
-    });
-    setOpen(false);
-  };
-
   const menu =
     open && menuPos ? (
       <div
         ref={menuRef}
-        id={listId}
-        role="listbox"
-        aria-labelledby={`${listId}-trigger`}
+        id={panelId}
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby={titleId}
         style={{
           position: 'fixed',
           top: menuPos.top,
@@ -125,47 +107,9 @@ export function LanguageSwitcher() {
           width: menuPos.width,
           zIndex: 200,
         }}
-        className="glass-strong max-h-[min(20rem,55dvh)] overflow-y-auto rounded-xl2 border border-black/10 py-1 shadow-lg"
+        className="glass-strong max-h-[min(32rem,78dvh)] overflow-y-auto rounded-xl2 border border-black/10 px-2 py-2 shadow-lg"
       >
-        <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Speaking language
-        </p>
-        <p className="px-3 pb-2 text-[10px] leading-snug text-muted">
-          Used for mic, typing, and Gemma. Also updates layout for RTL
-          languages.
-        </p>
-        <ul className="border-t border-black/5 pt-1">
-          {PRIMARY_LANGUAGE_OPTIONS.map((opt) => {
-            const selected = opt.code === code;
-            const d = resolveLanguageDisplay(opt.code);
-            return (
-              <li key={opt.code}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  onClick={() => pick(opt.code)}
-                  className={cn(
-                    'flex w-full items-center gap-2 px-3 py-2.5 text-start text-sm transition-colors',
-                    'hover:bg-black/[0.04] active:bg-black/[0.07]',
-                    selected &&
-                      'bg-[var(--accent)]/[0.12] font-medium text-text',
-                  )}
-                >
-                  <span aria-hidden className="shrink-0 text-base">
-                    {d.flag}
-                  </span>
-                  <span className="min-w-0 flex-1 leading-snug">{opt.label}</span>
-                  {selected ? (
-                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-                      Active
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <BilingualConversationStrip embedded titleId={titleId} />
       </div>
     ) : null;
 
@@ -174,16 +118,17 @@ export function LanguageSwitcher() {
       <button
         ref={triggerRef}
         type="button"
-        id={`${listId}-trigger`}
-        aria-haspopup="listbox"
+        id={`${panelId}-trigger`}
+        aria-haspopup="dialog"
         aria-expanded={open}
-        aria-controls={open ? listId : undefined}
+        aria-controls={open ? panelId : undefined}
+        aria-label={`Open conversation settings: ${summaryLine}`}
         onClick={() => {
           haptics('tap');
           setOpen((v) => !v);
         }}
         className={cn(
-          'inline-flex max-w-[min(11rem,42vw)] items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-medium',
+          'inline-flex max-w-[min(12rem,44vw)] items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-medium',
           'backdrop-blur-md transition-[background-color,box-shadow,transform] duration-200 ease-smooth',
           'border-white/80 bg-white/60 text-text hover:bg-white/85 hover:shadow-sm',
           'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
@@ -191,11 +136,17 @@ export function LanguageSwitcher() {
           open && 'bg-white/90 shadow-sm ring-1 ring-[var(--accent)]/25',
         )}
       >
-        <Languages className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-        <span aria-hidden className="shrink-0">
-          {flag}
+        <MessagesSquare className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+        <span aria-hidden className="shrink-0 text-[10px]">
+          {primary.flag}
         </span>
-        <span className="min-w-0 truncate vp-narrow-sr-only">{primaryLine}</span>
+        <span aria-hidden className="shrink-0 text-muted">
+          ↔
+        </span>
+        <span aria-hidden className="shrink-0 text-[10px]">
+          {partner.flag}
+        </span>
+        <span className="min-w-0 truncate vp-narrow-sr-only">{summaryLine}</span>
         <ChevronDown
           className={cn(
             'h-3.5 w-3.5 shrink-0 opacity-60 transition-transform duration-200',
