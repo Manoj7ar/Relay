@@ -190,8 +190,8 @@ const server = http.createServer(async (req, res) => {
     writeFileSync(inPath, parsed.audio);
     if (process.env.RELAY_LOCAL_STT_SILENT === '1') {
       text = '';
-    } else if (whisperOnPath()) {
-      text = await runWhisper(inPath, parsed.language);
+    } else if (STT_CMD.trim()) {
+      text = await runLocalSttCommand(inPath, parsed.language);
     } else {
       text = STUB_TEXT;
     }
@@ -206,11 +206,10 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  const w = whisperOnPath();
   console.log(
-    `[relay local-stt] http://127.0.0.1:${PORT}  whisper=${w ? 'yes' : 'no (stub text)'}`,
+    `[relay local-stt] http://127.0.0.1:${PORT}  command=${STT_CMD ? 'configured' : 'stub text'}`,
   );
   console.log(
-    `[relay local-stt] GET /health  POST /transcribe  (CORS *)  model=${WHISPER_MODEL}`,
+    `[relay local-stt] GET /health  POST /transcribe  (CORS *)`,
   );
 });
