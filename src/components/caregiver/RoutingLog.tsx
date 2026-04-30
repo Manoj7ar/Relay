@@ -98,14 +98,29 @@ export function RoutingLog({ compact }: RoutingLogProps) {
         <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
           {entries.map((entry) => (
             <li key={entry.id}>
-              <Card padded={false} className={compact ? 'p-2' : 'p-3'}>
+              <Card
+                padded={false}
+                className={cn(
+                  'relative overflow-hidden',
+                  compact ? 'p-2 pl-3' : 'p-3 pl-4',
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    'absolute inset-y-0 left-0 w-1',
+                    TIER_BAR[entry.model],
+                  )}
+                />
                 <div className="flex items-center justify-between text-[10px] text-muted">
-                  <span>{formatClock(entry.ts)}</span>
+                  <time dateTime={new Date(entry.ts).toISOString()}>
+                    {formatClock(entry.ts)}
+                  </time>
                   <span>{entry.latencyMs} ms</span>
                 </div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1">
                   <StatusBadge icon={<Cpu className="h-3 w-3" aria-hidden />}>
-                    {entry.model}
+                    {MODEL_LABELS[entry.model].label}
                   </StatusBadge>
                   <StatusBadge className="text-[10px]">
                     {entry.inputType === 'tool' ? (
