@@ -226,12 +226,32 @@ export function PrimaryMicButton() {
     if (!finalizing) return undefined;
     const id = window.setTimeout(() => {
       if (pendingSubmitRef.current || state.isProcessing) return;
+      pendingSubmitRef.current = false;
+      lastRecordingRef.current = null;
       setFinalizing(false);
+      stopRecorderSync();
       mic.stop();
       stt.abort();
+      dispatch({ type: 'STOP_LISTEN' });
+      dispatch({
+        type: 'SET_ERROR',
+        error: {
+          code: 'speech_recognition',
+          title: 'Speech recognition timed out',
+          hint: 'Relay did not receive final text after you stopped speaking. Try again, use Type, or check your local STT sidecar.',
+          technical: 'finalize_timeout',
+        },
+      });
     }, 3500);
     return () => window.clearTimeout(id);
-  }, [finalizing, state.isProcessing, mic.stop, stt.abort]);
+  }, [
+    dispatch,
+    finalizing,
+    state.isProcessing,
+    mic.stop,
+    stt.abort,
+    stopRecorderSync,
+  ]);
 
   const uiState: MicUiState = (() => {
     if (permissions.state === 'denied') return 'permission_denied';
