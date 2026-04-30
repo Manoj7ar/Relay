@@ -293,9 +293,17 @@ function buildPrompt(
 ): string {
   const channels = buildChannelSummary(input);
   const symbolOnly = input.sourceType === 'symbols';
+  const photoOnly =
+    Boolean(input.imageDataUrl) &&
+    !input.transcript &&
+    !input.symbols?.length &&
+    !input.symbolIds?.length &&
+    !input.gestureHints?.length;
 
   const speakerBlock = symbolOnly
     ? '\nINPUT IS SYMBOL BOARD ONLY: the speaker is always the PATIENT. Set inferredSpeaker to "patient".'
+    : photoOnly
+      ? '\nINPUT IS PHOTO ONLY: the suggested phrase is for the PATIENT. Set inferredSpeaker to "patient".'
     : `\n${input.conversationTail?.trim() ? `${input.conversationTail.trim()}\n` : ''}Speaker inference (no manual speaker toggle in the app):
 - Decide whether the current spoken or typed input is from the PATIENT (AAC user) or the CAREGIVER/companion, using transcript language, who is being addressed, clinical vs everyday phrasing, and continuity with recent exchanges.
 - You MUST output inferredSpeaker as exactly "patient" or "caregiver".`;
@@ -307,7 +315,9 @@ function buildPrompt(
 
   const inputLine = input.transcript
     ? `Current transcript (may be fragmented; speaker may be patient OR caregiver): "${input.transcript}"`
-    : 'Patient communicated via symbols only — no spoken input.';
+    : photoOnly
+      ? 'Patient provided a camera frame only — no spoken, typed, or symbol input.'
+      : 'Patient communicated via symbols only — no spoken input.';
 
   const profileBlock = buildProfileBlock();
   const patientSignalBlock = buildPatientSignalBlock(dictionaryEntries);
