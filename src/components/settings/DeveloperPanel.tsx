@@ -150,7 +150,7 @@ export function DeveloperPanel() {
               dispatch({ type: 'SET_PERFORMANCE_HUD', value })
             }
             label="Show performance HUD"
-            description="Displays tier, latency, approximate tokens/sec, and 0 cloud calls."
+            description="Shows tier, latency, and approximate tokens per second for the last run."
           />
         </SettingsControlCard>
       </SettingsSection>

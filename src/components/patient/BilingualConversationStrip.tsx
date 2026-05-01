@@ -40,7 +40,7 @@ export function BilingualConversationStrip({
   return (
     <section
       className={cn(
-        'text-[11px]',
+        'text-[clamp(10px,2.9vw,11px)]',
         embedded
           ? 'mx-0 border-0 bg-transparent px-0 py-0 shadow-none'
           : 'mx-1 rounded-xl2 border border-black/[0.06] bg-white/55 px-2 py-2 backdrop-blur-sm',
@@ -105,9 +105,9 @@ export function BilingualConversationStrip({
               direction: directionFor(lang.caregiverLanguage),
             });
           }}
-          className="inline-flex items-center gap-1 rounded-lg border border-black/10 bg-white/80 px-2 py-1 font-medium text-text hover:bg-white"
+          className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-black/10 bg-white/80 px-2.5 py-2 font-medium text-text hover:bg-white min-[380px]:min-h-9 min-[380px]:px-2 min-[380px]:py-1"
         >
-          <ArrowLeftRight className="h-3 w-3 shrink-0" aria-hidden />
+          <ArrowLeftRight className="h-4 w-4 shrink-0 min-[380px]:h-3 min-[380px]:w-3" aria-hidden />
           Swap languages
         </button>
       </div>
@@ -126,13 +126,14 @@ export function BilingualConversationStrip({
               })
             }
             className={cn(
-              'rounded-md px-2 py-1 font-medium',
+              'rounded-md px-2 py-2 font-medium min-[380px]:py-1',
+              'min-h-11 min-[380px]:min-h-0',
               lang.defaultMicSpeaker === 'patient'
                 ? 'bg-[var(--accent)]/20 text-text'
                 : 'text-muted hover:bg-black/[0.04]',
             )}
           >
-            <Mic className="-mt-0.5 me-0.5 inline h-3 w-3" aria-hidden />
+            <Mic className="-mt-0.5 me-0.5 inline h-4 w-4 min-[380px]:h-3 min-[380px]:w-3" aria-hidden />
             Patient / guest
           </button>
           <button
@@ -144,22 +145,23 @@ export function BilingualConversationStrip({
               })
             }
             className={cn(
-              'rounded-md px-2 py-1 font-medium',
+              'rounded-md px-2 py-2 font-medium min-[380px]:py-1',
+              'min-h-11 min-[380px]:min-h-0',
               lang.defaultMicSpeaker === 'caregiver'
                 ? 'bg-[var(--accent)]/20 text-text'
                 : 'text-muted hover:bg-black/[0.04]',
             )}
           >
-            <Mic className="-mt-0.5 me-0.5 inline h-3 w-3" aria-hidden />
+            <Mic className="-mt-0.5 me-0.5 inline h-4 w-4 min-[380px]:h-3 min-[380px]:w-3" aria-hidden />
             Other person
           </button>
         </div>
       </div>
 
-      <label className="mt-2 flex cursor-pointer items-center gap-1.5">
+      <label className="mt-2 flex min-h-11 cursor-pointer items-center gap-2 min-[380px]:min-h-0">
         <input
           type="checkbox"
-          className="h-3.5 w-3.5 shrink-0 rounded border-black/20"
+          className="h-4 w-4 shrink-0 rounded border-black/20 min-[380px]:h-3.5 min-[380px]:w-3.5"
           checked={lang.autoAdaptLanguages}
           onChange={(e) =>
             settingsDispatch({

@@ -15,7 +15,9 @@ export function PageHeader({ title, subtitle, className }: PageHeaderProps) {
         className,
       )}
     >
-      <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+      <h1 className="text-[clamp(1rem,4.5vw,1.125rem)] font-semibold tracking-tight">
+        {title}
+      </h1>
       {subtitle ? (
         <p className="mt-0.5 line-clamp-2 text-xs text-muted">{subtitle}</p>
       ) : null}

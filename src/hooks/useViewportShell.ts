@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
 /**
- * Tags the document root for responsive density (narrow / short phones, notches)
- * and syncs optional CSS vars used by layout.
+ * Tags the document root for responsive density (narrow / short / landscape,
+ * from visual viewport) and syncs optional CSS vars (keyboard inset, etc.).
  */
 export function useViewportShell() {
   useEffect(() => {
@@ -15,6 +15,8 @@ export function useViewportShell() {
 
       root.dataset.vpNarrow = w < 380 ? 'true' : 'false';
       root.dataset.vpShort = h < 620 ? 'true' : 'false';
+      // Width > height (e.g. landscape); used with [data-vp-landscape] in CSS.
+      root.dataset.vpLandscape = w > h ? 'true' : 'false';
 
       if (vv) {
         const kb = Math.max(

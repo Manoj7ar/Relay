@@ -43,6 +43,13 @@
   --main-pad-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Portrait vs landscape (visual viewport width/height from useViewportShell). */
+:root[data-vp-landscape='true'] .performance-hud {
+  top: max(10px, env(safe-area-inset-top, 0px));
+  bottom: auto;
+  right: max(10px, env(safe-area-inset-right, 0px));
+}
+
 :root[data-contrast='high'] {
   --bg: #ffffff;
   --surface: #ffffff;

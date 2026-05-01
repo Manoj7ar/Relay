@@ -23,12 +23,22 @@ const MENU_MAX_WIDTH = 360;
 
 function computeMenuPosition(trigger: HTMLElement): MenuPosition {
   const rect = trigger.getBoundingClientRect();
-  const vw = window.innerWidth;
+  const vv = window.visualViewport;
+  const vw = vv?.width ?? window.innerWidth;
+  const vh = vv?.height ?? window.innerHeight;
   const width = Math.min(MENU_MAX_WIDTH, vw - 16);
   const triggerCenterX = rect.left + rect.width / 2;
   let left = triggerCenterX - width / 2;
   left = Math.max(8, Math.min(left, vw - width - 8));
-  const top = rect.bottom + 8;
+  const margin = 8;
+  const estimatedMenuHeight = Math.min(520, vh * 0.82);
+  let top = rect.bottom + margin;
+  if (top + estimatedMenuHeight > vh - margin) {
+    top = Math.max(margin, vh - estimatedMenuHeight - margin);
+  }
+  if (top < margin) {
+    top = margin;
+  }
   return { top, left, width };
 }
 
@@ -107,7 +117,7 @@ export function LanguageSwitcher() {
           width: menuPos.width,
           zIndex: 200,
         }}
-        className="glass-strong max-h-[min(32rem,78dvh)] overflow-y-auto rounded-xl2 border border-black/10 px-2 py-2 shadow-lg"
+        className="glass-strong max-h-[min(32rem,min(82dvh,520px))] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl2 border border-black/10 px-2 py-2 shadow-lg max-[379px]:px-2.5 max-[379px]:py-2.5"
       >
         <BilingualConversationStrip embedded titleId={titleId} />
       </div>
@@ -128,7 +138,9 @@ export function LanguageSwitcher() {
           setOpen((v) => !v);
         }}
         className={cn(
-          'inline-flex max-w-[min(12rem,44vw)] items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-medium',
+          'inline-flex max-w-[min(13rem,54vw)] items-center gap-1 rounded-full border font-medium',
+          'min-h-11 gap-1.5 px-2.5 py-2 text-[clamp(10px,2.9vw,11px)]',
+          'min-[380px]:max-w-[min(12rem,44vw)] min-[380px]:min-h-9 min-[380px]:gap-1 min-[380px]:px-2.5 min-[380px]:py-1.5',
           'backdrop-blur-md transition-[background-color,box-shadow,transform] duration-200 ease-smooth',
           'border-white/80 bg-white/60 text-text hover:bg-white/85 hover:shadow-sm',
           'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
@@ -136,7 +148,7 @@ export function LanguageSwitcher() {
           open && 'bg-white/90 shadow-sm ring-1 ring-[var(--accent)]/25',
         )}
       >
-        <MessagesSquare className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+        <MessagesSquare className="h-4 w-4 shrink-0 opacity-70 min-[380px]:h-3.5 min-[380px]:w-3.5" aria-hidden />
         <span aria-hidden className="shrink-0 text-[10px]">
           {primary.flag}
         </span>
@@ -149,7 +161,7 @@ export function LanguageSwitcher() {
         <span className="min-w-0 truncate vp-narrow-sr-only">{summaryLine}</span>
         <ChevronDown
           className={cn(
-            'h-3.5 w-3.5 shrink-0 opacity-60 transition-transform duration-200',
+            'h-4 w-4 shrink-0 opacity-60 transition-transform duration-200 min-[380px]:h-3.5 min-[380px]:w-3.5',
             open && 'rotate-180',
           )}
           aria-hidden

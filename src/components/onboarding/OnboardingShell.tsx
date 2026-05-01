@@ -92,8 +92,10 @@ export function OnboardingShell({
         ) : null}
         <div
           className={cn(
-            'flex w-full items-center',
-            onBack ? 'gap-2' : 'justify-center',
+            'flex w-full items-stretch gap-2',
+            onBack
+              ? 'max-[419px]:flex-col max-[419px]:gap-3 min-[420px]:flex-row min-[420px]:items-center'
+              : 'justify-center',
           )}
         >
           {onBack ? (
@@ -126,7 +128,7 @@ export function OnboardingShell({
                 <ArrowRight className="h-4 w-4" aria-hidden />
               )
             }
-            className={onBack ? 'min-w-0 flex-1' : undefined}
+            className={onBack ? 'min-w-0 flex-1 max-[419px]:w-full max-[419px]:flex-none' : undefined}
           >
             {continueLabel ?? (isFinalStep ? 'Finish' : 'Continue')}
           </PillButton>

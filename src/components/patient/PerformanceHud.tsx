@@ -27,10 +27,10 @@ export function PerformanceHud() {
   return (
     <aside
       aria-label="Performance HUD"
-      className="pointer-events-none fixed bottom-[calc(88px+env(safe-area-inset-bottom,0px))] right-[max(12px,env(safe-area-inset-right))] z-40 w-[164px] rounded-2xl border border-black/10 bg-white/85 p-2 text-[10px] text-text shadow-lg backdrop-blur-md"
+      className="performance-hud pointer-events-none fixed bottom-[calc(88px+env(safe-area-inset-bottom,0px))] right-[max(12px,env(safe-area-inset-right))] top-auto z-40 w-[min(164px,calc(100vw-1.5rem))] rounded-2xl border border-black/10 bg-white/85 p-2 text-[clamp(9px,2.6vw,10px)] text-text shadow-lg backdrop-blur-md"
     >
-      <div className="mb-1 flex items-center gap-1.5 font-semibold">
-        <Cpu className="h-3.5 w-3.5" aria-hidden />
+      <div className="mb-1 flex items-center gap-1 font-semibold min-[380px]:gap-1.5">
+        <Cpu className="h-3 w-3 shrink-0 min-[380px]:h-3.5 min-[380px]:w-3.5" aria-hidden />
         Local perf
       </div>
       <dl className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5">
@@ -40,8 +40,6 @@ export function PerformanceHud() {
         <dd className="tabular-nums">{latencyMs || '—'} ms</dd>
         <dt className="text-muted">Tok/sec est.</dt>
         <dd className="tabular-nums">{tokensPerSec || '—'}</dd>
-        <dt className="text-muted">Cloud calls</dt>
-        <dd className="font-semibold">0</dd>
       </dl>
     </aside>
   );

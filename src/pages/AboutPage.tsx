@@ -7,7 +7,7 @@ export function AboutPage() {
       <AboutArchitectureContent />
       <Link
         to="/settings"
-        className="mt-1 text-center text-sm font-medium text-[var(--accent)]"
+        className="mt-1 inline-flex min-h-11 w-full items-center justify-center rounded-xl py-3 text-center text-sm font-medium text-[var(--accent)] transition-colors hover:bg-black/[0.04] min-[380px]:min-h-0 min-[380px]:py-2"
       >
         ← Back to Settings
       </Link>

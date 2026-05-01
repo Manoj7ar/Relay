@@ -28,19 +28,23 @@ export function SettingsSubpageHeader({
   subtitle?: string;
 }) {
   return (
-    <header className="shrink-0 border-b border-black/[0.06] pb-3 pt-0.5">
+    <header className="shrink-0 border-b border-black/[0.06] pb-3 pt-[max(env(safe-area-inset-top),6px)]">
       <Link
         to="/settings"
+        aria-label="Back to settings"
         className={cn(
-          'inline-flex items-center gap-1 rounded-lg py-1 text-sm font-medium text-[var(--accent)]',
+          'inline-flex min-h-[44px] min-w-0 items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium text-[var(--accent)]',
           'transition-[color,background-color] duration-fast ease-smooth',
           'hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
+          'min-[380px]:min-h-0 min-[380px]:px-0 min-[380px]:py-1',
         )}
       >
-        <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
-        Back to settings
+        <ChevronLeft className="h-5 w-5 shrink-0 min-[380px]:h-4 min-[380px]:w-4" aria-hidden />
+        <span className="vp-narrow-sr-only">Back to settings</span>
       </Link>
-      <h1 className="mt-3 text-xl font-bold tracking-tight text-text">{title}</h1>
+      <h1 className="mt-3 text-[clamp(1.125rem,4.2vw,1.25rem)] font-bold tracking-tight text-text">
+        {title}
+      </h1>
       {subtitle ? (
         <p className="mt-1 text-xs leading-relaxed text-muted">{subtitle}</p>
       ) : null}
