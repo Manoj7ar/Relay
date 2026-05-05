@@ -40,8 +40,8 @@ export function StepPhrases({ setupRole, phrases, onChange }: StepPhrasesProps) 
     <div className="space-y-3">
       <p className="text-sm text-muted">
         {isSelf
-          ? 'Add up to 5 things you say often. Relay passes them to Gemma as context so interpretations match how you usually talk.'
-          : 'Add up to 5 things they say most days. They are included when Gemma interprets so tone and intent stay familiar.'}
+          ? 'Add up to 5 things you say often. Relay passes them to Ollama as context so interpretations match how you usually talk.'
+          : 'Add up to 5 things they say most days. They are included when Ollama interprets so tone and intent stay familiar.'}
       </p>
 
       {phrases.length === 0 ? (

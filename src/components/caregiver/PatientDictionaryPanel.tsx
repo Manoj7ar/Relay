@@ -324,7 +324,7 @@ export function PatientDictionaryPanel({ compact }: { compact?: boolean }) {
             <p className="text-xs font-medium text-text">No signals saved yet</p>
             <p className="max-w-[280px] text-[11px] leading-snug text-muted">
               Add carer-confirmed meanings here. They stay on this device and are
-              injected into Gemma prompts as the patient's own corpus.
+              injected into Ollama prompts as the patient's own corpus.
             </p>
           </Card>
         )}

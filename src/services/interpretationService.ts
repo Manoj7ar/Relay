@@ -1,11 +1,9 @@
 /**
  * Single "raw input → interpreted phrase" entry point.
  *
- * All UI + contexts call `interpret(input)`. The implementation is whatever
- * the single adapter does — `GemmaInterpreterAdapter` calling **Ollama**.
- * The returned shape is aligned to Gemma's JSON contract so the UI stays stable.
- *
- * See docs/GEMMA_AND_INTEGRATIONS.md.
+ * All UI + contexts call `interpret(input)`. This build routes patient
+ * interpretation through **Ollama** (OpenAI-compatible chat). The returned shape
+ * stays aligned to Relay's JSON contract so the UI stays stable.
  */
 
 import type { Mood, Urgency } from '@/types/model';
@@ -22,6 +20,7 @@ export interface InterpretationInput {
   symbols?: string[];
   symbolIds?: string[];
   imageDataUrl?: string;
+  audioDataUrl?: string;
   gestureHints?: string[];
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
   recentEntries?: DictionaryEntry[];
@@ -30,7 +29,7 @@ export interface InterpretationInput {
   /** BCP-47 caregiver language from settings (parallel translation). */
   caregiverLanguage: string;
   /**
-   * Explicit speaker override (e.g. symbol board). When omitted, Gemma +
+   * Explicit speaker override (e.g. symbol board). When omitted, the model +
    * transcript heuristics + session continuity infer the speaker.
    */
   speakerRole?: BilingualSpeakerRole;
@@ -48,6 +47,11 @@ export interface InterpretationInput {
    * through this callback — callers can safely pipe it into UI.
    */
   onStreamChunk?: (partialPrimaryText: string) => void;
+  /**
+   * Photo of board/menu/schedule: model returns structured environment fields
+   * in addition to the usual bilingual phrase.
+   */
+  environmentHelper?: boolean;
 }
 
 export interface InterpretationResult {
@@ -68,10 +72,10 @@ export interface InterpretationResult {
   ttsLang: string;
   /** Model could not confidently match detectedLanguage to either configured language. */
   bilingualAmbiguous: boolean;
-  /** E2B / E4B / 27B — populated by the real adapter. */
+  /** Hosted adapter id — `OLLAMA` for this build. */
   sourceModel: string;
   sourceType: InterpretationSourceType;
-  /** For the routing log (tier codes E2B / E4B / 27B). */
+  /** For the routing log. */
   routingReason: string;
   latencyMs: number;
   visionUsed: boolean;
@@ -81,6 +85,11 @@ export interface InterpretationResult {
   sourceFragment?: string;
   /** Resolved speaker for this turn (persistence + follow-on recognition). */
   inferredSpeaker: BilingualSpeakerRole;
+  /** True when `environmentHelper` photo analysis ran. */
+  environmentScan?: boolean;
+  environmentSummary?: string;
+  environmentSuggestedPhrases?: string[];
+  environmentScheduleHints?: string[];
 }
 
 export interface InterpreterAdapter {
@@ -88,16 +97,8 @@ export interface InterpreterAdapter {
   interpret(input: InterpretationInput): Promise<InterpretationResult>;
 }
 
-/**
- * The one and only adapter. Replace the body of
- * `GemmaInterpreterAdapter.interpret` with a real Gemma 4 call and every
- * input source (mic → STT, typed, symbols, camera frame)
- * starts producing real results without any UI change.
- */
-const adapter: InterpreterAdapter = GemmaInterpreterAdapter;
-
 export async function interpret(
   input: InterpretationInput,
 ): Promise<InterpretationResult> {
-  return adapter.interpret(input);
+  return GemmaInterpreterAdapter.interpret(input);
 }

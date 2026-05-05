@@ -12,16 +12,22 @@ type ModelFilter = 'all' | ModelId;
 
 const FILTERS: { value: ModelFilter; label: string }[] = [
   { value: 'all', label: 'All' },
+  { value: 'OLLAMA', label: 'Ollama' },
   { value: 'E2B', label: 'E2B' },
   { value: 'E4B', label: 'E4B' },
   { value: '27B', label: '27B' },
 ];
 
 const TIER_BAR: Record<ModelId, string> = {
+  OLLAMA: 'bg-[var(--accent)]',
   E2B: 'bg-emerald-500',
   E4B: 'bg-sky-500',
   '27B': 'bg-violet-500',
 };
+
+function tierBarClass(model: string): string {
+  return (TIER_BAR as Record<string, string>)[model] ?? 'bg-zinc-400';
+}
 
 interface RoutingLogProps {
   compact?: boolean;
@@ -109,7 +115,7 @@ export function RoutingLog({ compact }: RoutingLogProps) {
                   aria-hidden
                   className={cn(
                     'absolute inset-y-0 left-0 w-1',
-                    TIER_BAR[entry.model],
+                    tierBarClass(entry.model),
                   )}
                 />
                 <div className="flex items-center justify-between text-[10px] text-muted">
@@ -120,7 +126,7 @@ export function RoutingLog({ compact }: RoutingLogProps) {
                 </div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1">
                   <StatusBadge icon={<Cpu className="h-3 w-3" aria-hidden />}>
-                    {MODEL_LABELS[entry.model].label}
+                    {MODEL_LABELS[entry.model]?.label ?? entry.model}
                   </StatusBadge>
                   <StatusBadge className="text-[10px]">
                     {entry.inputType === 'tool' ? (

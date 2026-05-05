@@ -8,6 +8,12 @@ export interface HandoverNote {
   patternsDetected: string[];
   flagsForNextCarer: string[];
   suggestedFollowUps: string[];
+  /** What helped today: pace, symbols vs speech, successful phrasing. */
+  communicationNotes: string[];
+  /** Non-clinical operational hints for the next shift. */
+  accessibilityFlagsForNextCarer: string[];
+  /** Short lines in the resident's voice tone for continuity. */
+  residentPhrasedPriorities: string[];
 }
 
 export type HandoverToolStatus = 'called' | 'completed' | 'failed';
@@ -20,8 +26,10 @@ export interface HandoverToolEvent {
   summary: string;
 }
 
+export type HandoverNoteExportSchema = 'relay.handoverNote.v1' | 'relay.handoverNote.v2';
+
 export interface HandoverNoteExport {
-  schema: 'relay.handoverNote.v1';
+  schema: HandoverNoteExportSchema;
   exportedAt: string;
   note: HandoverNote;
 }

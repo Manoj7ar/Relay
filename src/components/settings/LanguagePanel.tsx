@@ -1,7 +1,10 @@
+import { useMemo, useState } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useSession } from '@/contexts/SessionContext';
 import { directionFor } from '@/hooks/useRTL';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { PRIMARY_LANGUAGE_OPTIONS } from '@/lib/relayLanguages';
+import { filterVoicesForLanguageTags } from '@/services/speechSynthesisService';
 import { cn } from '@/lib/cn';
 import {
   SettingsControlCard,
@@ -12,6 +15,33 @@ import {
 export function LanguagePanel() {
   const { settings, dispatch } = useSettings();
   const { state, dispatch: sessionDispatch } = useSession();
+  const tts = useSpeechSynthesis();
+  const [showAllTtsVoices, setShowAllTtsVoices] = useState(false);
+
+  const ttsVoiceOptions = useMemo(() => {
+    const { primaryLanguage, caregiverLanguage } = settings.language;
+    const filtered = filterVoicesForLanguageTags(tts.voices, [
+      primaryLanguage,
+      caregiverLanguage,
+    ]);
+    const list =
+      showAllTtsVoices || filtered.length === 0 ? tts.voices : filtered;
+    return [...list].sort((a, b) => {
+      const byLang = a.lang.localeCompare(b.lang);
+      if (byLang !== 0) return byLang;
+      return a.name.localeCompare(b.name);
+    });
+  }, [
+    tts.voices,
+    settings.language.primaryLanguage,
+    settings.language.caregiverLanguage,
+    showAllTtsVoices,
+  ]);
+
+  const savedTtsUri = settings.language.ttsVoiceUri;
+  const savedVoiceMissing =
+    Boolean(savedTtsUri) &&
+    !tts.voices.some((v) => v.voiceURI === savedTtsUri);
 
   return (
     <SettingsStack>
@@ -150,6 +180,63 @@ export function LanguagePanel() {
               conversation menu.
             </p>
           </div>
+
+          <label className="block text-xs">
+            <span className="mb-1.5 block font-medium text-text">
+              Spoken output voice
+            </span>
+            <select
+              className="control-select"
+              value={savedTtsUri ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                dispatch({
+                  type: 'SET_TTS_VOICE_URI',
+                  value: v.length ? v : null,
+                });
+              }}
+            >
+              <option value="">Automatic (best match)</option>
+              {savedVoiceMissing && savedTtsUri ? (
+                <option value={savedTtsUri}>
+                  Previously selected (not in current list)
+                </option>
+              ) : null}
+              {ttsVoiceOptions.map((v) => (
+                <option key={v.voiceURI} value={v.voiceURI}>
+                  {v.name} ({v.lang})
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[11px] text-muted">
+              Uses the device browser voices. Automatic picks a higher-quality
+              voice when your OS offers several for the same language.
+            </p>
+          </label>
+
+          {tts.voices.length > 0 &&
+          filterVoicesForLanguageTags(tts.voices, [
+            settings.language.primaryLanguage,
+            settings.language.caregiverLanguage,
+          ]).length < tts.voices.length ? (
+            <label className="flex cursor-pointer items-start gap-2 text-xs">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-black/20"
+                checked={showAllTtsVoices}
+                onChange={(e) => setShowAllTtsVoices(e.target.checked)}
+              />
+              <span>
+                <span className="font-medium text-text">
+                  Show all installed voices
+                </span>
+                <span className="mt-0.5 block text-muted">
+                  Off by default: list is limited to your primary and partner
+                  languages.
+                </span>
+              </span>
+            </label>
+          ) : null}
         </SettingsControlCard>
       </SettingsSection>
     </SettingsStack>

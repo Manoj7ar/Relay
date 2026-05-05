@@ -19,10 +19,10 @@ const sizeMap: Record<Size, string> = {
 };
 
 const variantMap: Record<Variant, string> = {
-  glass: 'glass shadow-sm hover:bg-white/70 hover:shadow-md',
+  glass: 'glass glass-rich shadow-glass hover:bg-white/75 hover:shadow-glass-strong hover-glass-shine active:glass-press',
   solid:
-    'bg-[var(--accent)] text-white shadow-sm hover:bg-[var(--accent-strong)] hover:shadow-md',
-  ghost: 'bg-transparent shadow-none hover:bg-black/5 hover:shadow-sm',
+    'bg-[var(--accent)] text-white shadow-glass hover:bg-[var(--accent-strong)] hover:shadow-glass-strong hover-glass-shine',
+  ghost: 'glass-subtle shadow-none hover:bg-white/40 hover:shadow-glass active:glass-press',
 };
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
@@ -37,9 +37,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         title={label}
         className={cn(
           'inline-flex items-center justify-center rounded-full',
-          'transition-[color,background-color,box-shadow,transform,filter] duration-fast ease-smooth',
-          'active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100',
+          'transition-all duration-fast ease-smooth',
+          'active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100',
           'disabled:pointer-events-none disabled:opacity-40 disabled:active:scale-100',
+          'relative overflow-hidden',
           sizeMap[size],
           variantMap[variant],
           className,

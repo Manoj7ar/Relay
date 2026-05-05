@@ -34,7 +34,7 @@ export function PerformanceHud() {
         Local perf
       </div>
       <dl className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5">
-        <dt className="text-muted">Tier</dt>
+        <dt className="text-muted">Model</dt>
         <dd className="font-semibold">{model}</dd>
         <dt className="text-muted">Latency</dt>
         <dd className="tabular-nums">{latencyMs || '—'} ms</dd>

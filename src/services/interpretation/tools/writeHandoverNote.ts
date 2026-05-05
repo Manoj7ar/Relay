@@ -24,6 +24,9 @@ export const writeHandoverNote: RelayTool<
       'patternsDetected',
       'flagsForNextCarer',
       'suggestedFollowUps',
+      'communicationNotes',
+      'accessibilityFlagsForNextCarer',
+      'residentPhrasedPriorities',
     ],
     properties: {
       shiftStart: { type: 'number' },
@@ -43,6 +46,12 @@ export const writeHandoverNote: RelayTool<
       patternsDetected: { type: 'array', items: { type: 'string' } },
       flagsForNextCarer: { type: 'array', items: { type: 'string' } },
       suggestedFollowUps: { type: 'array', items: { type: 'string' } },
+      communicationNotes: { type: 'array', items: { type: 'string' } },
+      accessibilityFlagsForNextCarer: {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      residentPhrasedPriorities: { type: 'array', items: { type: 'string' } },
     },
   },
   handler: async (args, context) => {
@@ -59,6 +68,11 @@ export const writeHandoverNote: RelayTool<
       patternsDetected: toStringArray(args.patternsDetected),
       flagsForNextCarer: toStringArray(args.flagsForNextCarer),
       suggestedFollowUps: toStringArray(args.suggestedFollowUps),
+      communicationNotes: toStringArray(args.communicationNotes),
+      accessibilityFlagsForNextCarer: toStringArray(
+        args.accessibilityFlagsForNextCarer,
+      ),
+      residentPhrasedPriorities: toStringArray(args.residentPhrasedPriorities),
     };
     return putHandoverNote(note);
   },

@@ -1,5 +1,25 @@
 import type { HandoverNote, HandoverNoteExport } from '@/types/handover';
 
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((x): x is string => typeof x === 'string')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Normalize notes stored before v2 fields existed. */
+export function normalizeHandoverNote(raw: HandoverNote): HandoverNote {
+  return {
+    ...raw,
+    communicationNotes: toStringArray(raw.communicationNotes),
+    accessibilityFlagsForNextCarer: toStringArray(
+      raw.accessibilityFlagsForNextCarer,
+    ),
+    residentPhrasedPriorities: toStringArray(raw.residentPhrasedPriorities),
+  };
+}
+
 const DB_NAME = 'relay_handover_notes';
 const DB_VERSION = 1;
 const STORE = 'notes';
@@ -52,15 +72,18 @@ function withStore<T>(
 }
 
 export async function putHandoverNote(note: HandoverNote): Promise<HandoverNote> {
-  await withStore<IDBValidKey>('readwrite', (store) => store.put(note));
-  return note;
+  const normalized = normalizeHandoverNote(note);
+  await withStore<IDBValidKey>('readwrite', (store) => store.put(normalized));
+  return normalized;
 }
 
 export async function listHandoverNotes(): Promise<HandoverNote[]> {
   const notes = await withStore<HandoverNote[]>('readonly', (store) =>
     store.getAll(),
   );
-  return [...notes].sort((a, b) => b.shiftEnd - a.shiftEnd);
+  return [...notes]
+    .map((n) => normalizeHandoverNote(n))
+    .sort((a, b) => b.shiftEnd - a.shiftEnd);
 }
 
 export function handoverNoteToMarkdown(note: HandoverNote): string {
@@ -98,15 +121,30 @@ export function handoverNoteToMarkdown(note: HandoverNote): string {
     ...(note.suggestedFollowUps.length
       ? note.suggestedFollowUps.map((item) => `- ${item}`)
       : ['- None recorded.']),
+    '',
+    `## Communication (what worked today)`,
+    ...(note.communicationNotes.length
+      ? note.communicationNotes.map((item) => `- ${item}`)
+      : ['- None recorded.']),
+    '',
+    `## Accessibility / operational flags for next carer`,
+    ...(note.accessibilityFlagsForNextCarer.length
+      ? note.accessibilityFlagsForNextCarer.map((item) => `- ${item}`)
+      : ['- None recorded.']),
+    '',
+    `## Resident-voiced priorities`,
+    ...(note.residentPhrasedPriorities.length
+      ? note.residentPhrasedPriorities.map((item) => `- ${item}`)
+      : ['- None recorded.']),
   ];
   return lines.join('\n');
 }
 
 export function exportHandoverNoteJson(note: HandoverNote): string {
   const payload: HandoverNoteExport = {
-    schema: 'relay.handoverNote.v1',
+    schema: 'relay.handoverNote.v2',
     exportedAt: new Date().toISOString(),
-    note,
+    note: normalizeHandoverNote(note),
   };
   return JSON.stringify(payload, null, 2);
 }

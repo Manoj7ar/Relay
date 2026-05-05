@@ -32,7 +32,7 @@ const STORAGE_KEY = 'relay.routing.log';
 const MAX_LOG = 50;
 
 export function ModelRoutingProvider({ children }: PropsWithChildren) {
-  const [currentModel, setCurrentModel] = useState<ModelId>('E2B');
+  const [currentModel, setCurrentModel] = useState<ModelId>('OLLAMA');
   const [routingLog, setRoutingLog] = useState<RoutingLogEntry[]>(() =>
     load<RoutingLogEntry[]>(STORAGE_KEY, []),
   );
@@ -51,7 +51,7 @@ export function ModelRoutingProvider({ children }: PropsWithChildren) {
   );
 
   const recordToolInvocation = useCallback((event: HandoverToolEvent) => {
-    setCurrentModel('27B');
+    setCurrentModel('OLLAMA');
     const entry = routingEntryFromToolEvent(event);
     setRoutingLog((prev) => [entry, ...prev].slice(0, MAX_LOG));
   }, []);

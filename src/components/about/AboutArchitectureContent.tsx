@@ -33,8 +33,8 @@ export function AboutArchitectureContent() {
             </p>
             <p className="text-xs leading-relaxed text-muted">
               The app is built for stressful, real-world moments: fragmented words,
-              multilingual homes, low dexterity, urgent needs, and offline demos
-              where the model runs on a user-controlled Ollama host.
+              multilingual homes, low dexterity, urgent needs, and this local
+              test build where AI calls route through Ollama.
             </p>
           </div>
         </div>
@@ -46,8 +46,14 @@ export function AboutArchitectureContent() {
           Local-first promise
         </div>
         <ul className="mt-2 list-none space-y-2 p-0 text-xs leading-relaxed text-muted">
-          <li>Core inference goes to the Ollama URL the user configures.</li>
-          <li>Optional STT sidecar is local-only and user configured.</li>
+          <li>Core inference uses the configured Ollama API key.</li>
+          <li>
+            Tap-to-speak records audio, sends it to Ollama speech-to-text (Whisper),
+            then sends the transcript to Ollama chat for intent. Optional local STT
+            sidecar is used if Whisper returns nothing and{' '}
+            <code className="rounded bg-black/5 px-1">VITE_RELAY_LOCAL_STT_URL</code>{' '}
+            is set.
+          </li>
           <li>No analytics, font CDN, telemetry, or avatar fetches in production.</li>
           <li>Dictionary, history, voice samples, and exports stay on device unless the user exports them.</li>
         </ul>
@@ -67,7 +73,7 @@ export function AboutArchitectureContent() {
           <li>
             <span className="font-medium text-text">Through — </span>
             <code className="rounded bg-black/5 px-1">interpret()</code>, adapter,
-            router tier, then Ollama (URL in Settings).
+            Ollama adapter, then the configured Ollama model.
           </li>
           <li>
             <span className="font-medium text-text">Out — </span>
@@ -80,28 +86,23 @@ export function AboutArchitectureContent() {
       <Card variant="glass-strong" padded={false} className="p-4">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Cpu className="h-4 w-4 shrink-0" aria-hidden />
-          Model tiers
+          Test model
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2">
           <div className={cn(inner)}>
-            <p className="text-sm font-bold text-text">E2B</p>
-            <p className="mt-1 text-[11px] text-muted">Short speech, low latency.</p>
-          </div>
-          <div className={cn(inner)}>
-            <p className="text-sm font-bold text-text">E4B</p>
-            <p className="mt-1 text-[11px] text-muted">Symbols, expanded phrasing.</p>
-          </div>
-          <div className={cn(inner)}>
-            <p className="text-sm font-bold text-text">27B</p>
+            <p className="text-sm font-bold text-text">Ollama</p>
             <p className="mt-1 text-[11px] text-muted">
-              Multimodal, high urgency, safety-critical.
+              Chat models handle symbols, text, and photos; vision uses a
+              multimodal model when a frame is attached; tap-to-speak uses Whisper
+              for transcription then chat for phrasing.
             </p>
           </div>
         </div>
         <p className="mt-2 text-[11px] text-muted">
-          Routing in{' '}
-          <code className="rounded bg-black/5 px-1">chooseModel</code> ·{' '}
-          <code className="rounded bg-black/5 px-1">modelRouter.ts</code>
+          Local-only test path in{' '}
+          <code className="rounded bg-black/5 px-1">
+            GemmaInterpreterAdapter.ts
+          </code>
         </p>
       </Card>
 
@@ -120,7 +121,7 @@ export function AboutArchitectureContent() {
             <WifiOff className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text" aria-hidden />
             <span>
               <span className="font-medium text-text">Offline — </span>
-              PWA shell (Workbox); local Ollama keeps the loop edge-first.
+              PWA shell (Workbox); Ollama inference requires network access.
             </span>
           </li>
           <li className="flex gap-2">

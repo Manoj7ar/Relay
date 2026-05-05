@@ -1,5 +1,4 @@
 import { Flame } from 'lucide-react';
-import { ConnectionBadge } from './ConnectionBadge';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -46,7 +45,6 @@ export function TopStatusBar() {
         </div>
         <div className="flex min-w-0 items-center gap-1 min-[380px]:gap-1.5 overflow-x-auto scrollbar-none">
           <LanguageSwitcher />
-          <ConnectionBadge />
         </div>
       </div>
     </header>

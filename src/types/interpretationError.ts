@@ -1,6 +1,7 @@
 /** Shown in TranscriptionCard when interpretation fails (replaces one long string). */
 export type InterpretationErrorCode =
   | 'ollama_unreachable'
+  | 'ollama_unreachable'
   | 'speech_recognition'
   | 'unknown';
 

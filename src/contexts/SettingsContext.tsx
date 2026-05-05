@@ -33,6 +33,7 @@ type Action =
   | { type: 'SET_CAREGIVER_LANGUAGE'; value: string }
   | { type: 'SET_AUTO_ADAPT_LANGUAGES'; value: boolean }
   | { type: 'SET_DEFAULT_MIC_SPEAKER'; value: 'patient' | 'caregiver' }
+  | { type: 'SET_TTS_VOICE_URI'; value: string | null }
   | { type: 'SWAP_CONVERSATION_LANGUAGES' }
   | { type: 'SET_SETUP_ROLE'; value: ProfileSettings['setupRole'] }
   | { type: 'SET_PROFILE_FIELD'; field: ProfileStringField; value: string }
@@ -84,6 +85,11 @@ function reducer(state: SettingsState, action: Action): SettingsState {
       return {
         ...state,
         language: { ...state.language, defaultMicSpeaker: action.value },
+      };
+    case 'SET_TTS_VOICE_URI':
+      return {
+        ...state,
+        language: { ...state.language, ttsVoiceUri: action.value },
       };
     case 'SWAP_CONVERSATION_LANGUAGES':
       return {

@@ -121,7 +121,7 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 - **iOS Safari**: `SpeechRecognition` is partially supported on 14.5+; some versions return `not-allowed` unless served over HTTPS.
 - **Firefox desktop**: `SpeechRecognition` not implemented — the Type-instead sheet is the primary input.
 - **Android Chrome**: Most complete path; supports continuous STT, full TTS voice list.
-- **All browsers**: `speechSynthesis.getVoices()` is async; the service resolves after `voiceschanged`.
+- **All browsers**: `speechSynthesis.getVoices()` is async; the service resolves after `voiceschanged`. Default voice choice ranks OS voices (e.g. Enhanced / Premium in the name); users can override in **Settings → Language**.
 
 ## Wired vs stub today
 
@@ -129,7 +129,7 @@ Also exports `logEntryFromInterpretation` used by `ModelRoutingContext` to popul
 |------|-------|---------------|
 | Mic permission + capture | Real `getUserMedia` + analyser level | — |
 | Speech-to-text | Real Web Speech API where supported | `speechRecognitionService` |
-| Text-to-speech | Real `speechSynthesis` | — |
+| Text-to-speech | Real `speechSynthesis` (ranked + optional `ttsVoiceUri` in settings) | — |
 | Camera preview + frame capture | Real `getUserMedia({ video })`; frame stored on session | Fed into `interpret()` as `imageDataUrl` |
 | Routing decision | Real `chooseModel` | Swap to Cactus if desired |
 | Interpretation | **Ollama** via `GemmaInterpreterAdapter`; **error** if unreachable | `GemmaInterpreterAdapter.ts` |

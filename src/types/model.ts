@@ -1,4 +1,4 @@
-export type ModelId = 'E2B' | 'E4B' | '27B';
+export type ModelId = 'E2B' | 'E4B' | '27B' | 'OLLAMA';
 
 export type InputType = 'speech' | 'symbols' | 'vision+speech' | 'text' | 'compound';
 
@@ -15,6 +15,7 @@ export interface InferenceRequest {
   symbolIds?: string[];
   imageRef?: string;
   imageDataUrl?: string;
+  audioDataUrl?: string;
   gestureHints?: string[];
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
   language?: string;
@@ -23,6 +24,8 @@ export interface InferenceRequest {
   speakerRole?: InferenceSpeakerRole;
   visionOn?: boolean;
   urgencyHint?: Urgency;
+  /** Board / menu / schedule photo mode (structured environment output). */
+  environmentHelper?: boolean;
 }
 
 export interface Interpretation {
@@ -52,6 +55,10 @@ export interface Interpretation {
   sourceFragment?: string;
   /** Who spoke for this turn (model + heuristics + session); used for follow-on STT and prompts. */
   inferredSpeaker?: InferenceSpeakerRole;
+  environmentScan?: boolean;
+  environmentSummary?: string;
+  environmentSuggestedPhrases?: string[];
+  environmentScheduleHints?: string[];
 }
 
 export interface RoutingLogEntry {
@@ -72,6 +79,11 @@ export interface ModelLabel {
 }
 
 export const MODEL_LABELS: Record<ModelId, ModelLabel> = {
+  OLLAMA: {
+    id: 'OLLAMA',
+    label: 'Ollama',
+    description: 'Hosted Ollama chat (OpenAI-compatible) for interpretation.',
+  },
   E2B: {
     id: 'E2B',
     label: 'E2B — real time',

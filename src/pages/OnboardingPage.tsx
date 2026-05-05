@@ -128,7 +128,7 @@ export function OnboardingPage() {
       case 'lang-caregiver':
         return 'Pick primary and caregiver languages, plus who supports day-to-day care.';
       case 'phrases':
-        return 'Common phrases help Gemma understand how you usually speak.';
+        return 'Common phrases help Ollama understand how you usually speak.';
       case 'a11y-done':
         return 'Two quick display toggles, then you are all set.';
     }

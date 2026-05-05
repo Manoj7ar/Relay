@@ -12,7 +12,7 @@ This document matches the **canonical implementation-status table** in the repos
 |------------|--------------|
 | **Microphone** | `audioCaptureService` — `getUserMedia({ audio })` + `AnalyserNode` RMS level. |
 | **Speech-to-text** | `speechRecognitionService` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) plus optional local sidecar via `VITE_RELAY_LOCAL_STT_URL`. Unsupported browsers → **Type instead** sheet. |
-| **Text-to-speech** | `speechSynthesisService` — `window.speechSynthesis` with language-matched voice selection. |
+| **Text-to-speech** | `speechSynthesisService` — `window.speechSynthesis` with quality-ranked language match and an optional user-picked voice (Settings → Language). |
 | **Camera** | `cameraService` — `getUserMedia({ video })` preview + frame capture into `SessionContext.pendingImage` as a data URL. |
 | **Patient Dictionary** | `patientDictionary` — IndexedDB corpus of carer-confirmed signals, meanings, tags, confirmations, and optional image frames. Browsing/import/export does not require Ollama. |
 | **Permissions** | `permissionsService` — `navigator.permissions` + `getUserMedia` with clear denied / unavailable handling. |

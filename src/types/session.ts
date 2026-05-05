@@ -11,6 +11,7 @@ export interface InteractionRecord extends Interpretation {
   sourceType?: InterpretationSourceType;
   symbolIds?: string[];
   imageDataUrl?: string;
+  audioDataUrl?: string;
 }
 
 export interface PendingImageContext {
@@ -25,6 +26,7 @@ export interface LastInputSnapshot {
   symbols?: string[];
   symbolIds?: string[];
   imageDataUrl?: string;
+  audioDataUrl?: string;
   contributingChannels: string[];
 }
 
@@ -49,4 +51,9 @@ export interface SessionState {
   lastInputSnapshot: LastInputSnapshot | null;
   /** Last interpretation error (title + hint; optional technical in UI). */
   lastError: SessionInterpretationError | null;
+  /**
+   * Wall-clock ms of the last successful Ollama interpretation (patient flow).
+   * Keeps the connection badge aligned when the periodic health probe fails briefly.
+   */
+  lastCloudAiSuccessAt: number | null;
 }

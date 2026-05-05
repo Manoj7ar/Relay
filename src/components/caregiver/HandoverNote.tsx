@@ -157,7 +157,7 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
         </PillButton>
       </div>
       <p className="text-[11px] leading-snug text-muted">
-        Uses Gemma tool calling against local session history, dictionary deltas,
+        Uses Ollama tool calling against local session history, dictionary deltas,
         alert log, routing log, and a rule-based pattern tool.
       </p>
       {toolEvents.length ? (
@@ -181,6 +181,43 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
           className="rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-2.5 py-2 text-xs text-text"
         >
           {error}
+        </div>
+      ) : null}
+      {note &&
+      (note.communicationNotes.length > 0 ||
+        note.accessibilityFlagsForNextCarer.length > 0 ||
+        note.residentPhrasedPriorities.length > 0) ? (
+        <div className="space-y-2 rounded-xl2 border border-black/[0.06] bg-black/[0.03] p-2.5 text-xs leading-snug">
+          {note.communicationNotes.length > 0 ? (
+            <div>
+              <p className="mb-0.5 font-semibold text-text">Communication</p>
+              <ul className="list-inside list-disc text-muted">
+                {note.communicationNotes.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {note.accessibilityFlagsForNextCarer.length > 0 ? (
+            <div>
+              <p className="mb-0.5 font-semibold text-text">Next shift flags</p>
+              <ul className="list-inside list-disc text-muted">
+                {note.accessibilityFlagsForNextCarer.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {note.residentPhrasedPriorities.length > 0 ? (
+            <div>
+              <p className="mb-0.5 font-semibold text-text">Resident priorities</p>
+              <ul className="list-inside list-disc text-muted">
+                {note.residentPhrasedPriorities.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
       <textarea

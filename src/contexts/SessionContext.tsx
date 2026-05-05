@@ -2,9 +2,9 @@
  * Session state: interpretations, history, listening/processing.
  *
  * All "raw input → interpreted phrase" calls go through
- * `interpretationService.interpret`, which delegates to
- * `GemmaInterpreterAdapter`. When the backend is unreachable, interpret()
- * throws `GemmaNotConnectedError`; we surface `state.lastError` (title + hint +
+ * `interpretationService.interpret` (Ollama). When the
+ * provider is unreachable, interpret() throws the provider error; we surface
+ * `state.lastError` (title + hint +
  * optional technical) so the
  * UI can show an honest "not connected" state instead of a fake answer.
  *
@@ -82,6 +82,7 @@ const INITIAL: SessionState = {
   pendingImage: null,
   lastInputSnapshot: null,
   lastError: null,
+  lastCloudAiSuccessAt: null,
 };
 
 function reducer(state: SessionState, action: Action): SessionState {
@@ -128,6 +129,10 @@ function reducer(state: SessionState, action: Action): SessionState {
         ),
         interimTranscript: '',
         lastError: null,
+        lastCloudAiSuccessAt:
+          action.interpretation.model === 'OLLAMA'
+            ? Date.now()
+            : state.lastCloudAiSuccessAt,
       };
     case 'APPLY_ALTERNATE':
       if (!state.currentInterpretation) return state;
@@ -219,18 +224,24 @@ function resultToInterpretation(result: InterpretationResult): Interpretation {
     ttsLang: result.ttsLang,
     bilingualAmbiguous: result.bilingualAmbiguous,
     inferredSpeaker: result.inferredSpeaker,
-    model: isModelId(result.sourceModel) ? result.sourceModel : 'E2B',
+    model: isModelId(result.sourceModel) ? result.sourceModel : 'OLLAMA',
     latencyMs: result.latencyMs,
     inputType,
     visionUsed: result.visionUsed,
     dictionaryMatchIds: result.dictionaryMatchIds,
     contributingChannels: result.contributingChannels,
     sourceFragment: result.sourceFragment,
+    environmentScan: result.environmentScan,
+    environmentSummary: result.environmentSummary,
+    environmentSuggestedPhrases: result.environmentSuggestedPhrases,
+    environmentScheduleHints: result.environmentScheduleHints,
   };
 }
 
 function isModelId(value: string): value is ModelId {
-  return value === 'E2B' || value === 'E4B' || value === '27B';
+  return (
+    value === 'E2B' || value === 'E4B' || value === '27B' || value === 'OLLAMA'
+  );
 }
 
 function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
@@ -310,6 +321,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
         symbols: req.symbols,
         symbolIds: req.symbolIds,
         imageDataUrl,
+        audioDataUrl: req.audioDataUrl,
         gestureHints: req.gestureHints,
         timeOfDay: req.timeOfDay ?? getTimeOfDay(),
         patientLanguage,
@@ -319,6 +331,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
         ...(conversationTail ? { conversationTail } : {}),
         language: req.language,
         urgencyHint: req.urgencyHint,
+        environmentHelper: req.environmentHelper,
         onStreamChunk: (partial) => {
           dispatch({ type: 'SET_INTERIM', text: partial });
         },
@@ -351,6 +364,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             symbols: input.symbols,
             symbolIds: input.symbolIds,
             imageDataUrl,
+            audioDataUrl: req.audioDataUrl,
             contributingChannels: result.contributingChannels,
           },
         });

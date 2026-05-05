@@ -9,10 +9,10 @@ export function LocalInferencePanel({ embedded }: { embedded?: boolean }) {
         <ShieldCheck className="h-5 w-5" aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-semibold">0 cloud calls</p>
+        <p className="text-sm font-semibold">Ollama</p>
         <p className="text-xs leading-snug text-muted">
-          Interpretation uses your configured Gemma on Ollama. Relay does not send
-          transcripts to a cloud model for the primary path.
+          Relay routes AI features through Ollama. Tap-to-speak uses Ollama Whisper
+          (speech-to-text) then Ollama chat for interpretation.
         </p>
       </div>
     </div>
@@ -24,7 +24,7 @@ export function LocalInferencePanel({ embedded }: { embedded?: boolean }) {
 
   return (
     <Card padded={false} className="min-h-0 space-y-2 p-3">
-      <p className="text-xs font-semibold">Local inference</p>
+      <p className="text-xs font-semibold">Ollama inference</p>
       {body}
     </Card>
   );

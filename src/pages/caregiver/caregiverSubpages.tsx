@@ -8,6 +8,7 @@ import {
   CaregiverScreen,
   CaregiverSubpageHeader,
 } from '@/components/caregiver/CaregiverShell';
+import { SessionInsightCard } from '@/components/caregiver/SessionInsightCard';
 import { Card } from '@/components/primitives';
 import { useCaregiverSessionSlices } from '@/hooks/useCaregiverSessionSlices';
 
@@ -26,6 +27,7 @@ export function CaregiverTodayPage() {
           subtitle="Interpretations from today with mood and urgency."
         />
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-8 pt-3">
+          <SessionInsightCard />
           {visibleToday.length ? (
             <>
               {visibleToday.map((r, i) => (

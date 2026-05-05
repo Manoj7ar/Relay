@@ -18,11 +18,12 @@ export function Chip({
       type="button"
       className={cn(
         'inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 py-2 text-sm font-medium',
-        'glass transition-[color,background-color,box-shadow,transform] duration-200 ease-smooth',
-        'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
+        'transition-all duration-fast ease-smooth',
+        'active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100',
+        'relative overflow-hidden',
         selected
-          ? 'bg-[var(--accent)] text-white shadow-sm hover:bg-[var(--accent-strong)] hover:shadow-md'
-          : 'hover:bg-white/70 hover:shadow-sm',
+          ? 'bg-[var(--accent)] text-white border border-white/10 shadow-glass hover:bg-[var(--accent-strong)] hover:shadow-glass-strong hover-glass-shine'
+          : 'glass glass-rich text-text hover:bg-white/75 hover:shadow-glass-strong hover-glass-shine active:glass-press',
         className,
       )}
       aria-pressed={selected}

@@ -90,12 +90,16 @@ export function useSpeechSynthesis() {
     setState((prev) => ({ ...prev, paused: false }));
   }, []);
 
-  const replay = useCallback(() => {
-    if (!state.lastSpokenText) return;
-    void speak(state.lastSpokenText, {
-      lang: state.lastSpokenLang ?? undefined,
-    });
-  }, [speak, state.lastSpokenText, state.lastSpokenLang]);
+  const replay = useCallback(
+    (opts?: Pick<SpeakOptions, 'voiceURI' | 'lang'>) => {
+      if (!state.lastSpokenText) return;
+      void speak(state.lastSpokenText, {
+        lang: opts?.lang ?? state.lastSpokenLang ?? undefined,
+        voiceURI: opts?.voiceURI,
+      });
+    },
+    [speak, state.lastSpokenText, state.lastSpokenLang],
+  );
 
   return {
     speaking: state.speaking,

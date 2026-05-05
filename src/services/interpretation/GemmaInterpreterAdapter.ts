@@ -185,6 +185,7 @@ function inferSignalModality(input: InterpretationInput): SignalModality {
   const channels = [
     input.transcript ? 'transcript' : null,
     input.imageDataUrl ? 'image' : null,
+    input.audioDataUrl ? 'audio' : null,
     input.symbolIds?.length || input.symbols?.length ? 'symbols' : null,
     input.gestureHints?.length ? 'gestures' : null,
   ].filter(Boolean);
@@ -214,7 +215,7 @@ function compactDictionaryEntries(entries: DictionaryEntry[]) {
   }));
 }
 
-async function loadRelevantDictionaryEntries(
+export async function loadRelevantDictionaryEntries(
   input: InterpretationInput,
 ): Promise<DictionaryEntry[]> {
   if (input.recentEntries) {
@@ -256,9 +257,12 @@ function normalizeInferredSpeaker(
   return undefined;
 }
 
-function buildChannelSummary(input: InterpretationInput): string[] {
+export function buildChannelSummary(input: InterpretationInput): string[] {
   const channels: string[] = [];
   if (input.transcript) channels.push(`speech transcript: "${input.transcript}"`);
+  if (input.audioDataUrl && !input.transcript?.trim()) {
+    channels.push('speech audio: included with this request');
+  }
   if (input.symbols?.length || input.symbolIds?.length) {
     channels.push(
       `symbols: ${JSON.stringify({
@@ -277,9 +281,9 @@ function buildChannelSummary(input: InterpretationInput): string[] {
   return channels;
 }
 
-function getContributingChannels(input: InterpretationInput): string[] {
+export function getContributingChannels(input: InterpretationInput): string[] {
   const channels: string[] = [];
-  if (input.transcript) channels.push('speech');
+  if (input.transcript || input.audioDataUrl) channels.push('speech');
   if (input.symbols?.length || input.symbolIds?.length) channels.push('symbols');
   if (input.imageDataUrl) channels.push('camera');
   if (input.gestureHints?.length) channels.push('gesture');
@@ -287,7 +291,7 @@ function getContributingChannels(input: InterpretationInput): string[] {
   return channels;
 }
 
-function buildPrompt(
+export function buildPrompt(
   input: InterpretationInput,
   dictionaryEntries: DictionaryEntry[],
 ): string {
@@ -321,6 +325,8 @@ function buildPrompt(
 
   const inputLine = input.transcript
     ? `Current transcript (may be fragmented; speaker may be patient OR caregiver): "${input.transcript}"`
+    : input.audioDataUrl
+      ? 'Current speech audio clip is attached; transcribe it and infer the patient intent.'
     : photoOnly
       ? 'Patient provided a camera frame only — no spoken, typed, or symbol input.'
       : 'Patient communicated via symbols only — no spoken input.';
@@ -338,6 +344,8 @@ Patient context:
 
 Concurrent signal channels captured at ${new Date().toISOString()}:
 ${channels.length > 0 ? channels.map((channel) => `- ${channel}`).join('\n') : `- ${inputLine}`}
+
+If speech audio is attached, first transcribe it internally, then use the transcription with the same rules below.
 
 Common speech patterns to understand:
 - Dropped syllables: "wan" = "want", "coff" = "coffee", "wah" = "water"
@@ -395,6 +403,9 @@ interface GemmaRawResponse {
   detectedLanguage?: string;
   translation?: string;
   dictionaryMatchIds?: unknown[];
+  environmentSummary?: string;
+  environmentSuggestedPhrases?: unknown[];
+  environmentScheduleHints?: unknown[];
 }
 
 const VALID_URGENCY: ReadonlySet<string> = new Set([
@@ -409,7 +420,7 @@ const VALID_MOOD: ReadonlySet<string> = new Set([
   'in-pain',
 ]);
 
-interface ParsedFields {
+export interface ParsedFields {
   patientLanguageText: string;
   caregiverLanguageText: string;
   inferredSpeakerModel?: 'patient' | 'caregiver';
@@ -419,9 +430,25 @@ interface ParsedFields {
   mood: Mood;
   detectedLanguage: string;
   dictionaryMatchIds: string[];
+  environmentSummary: string;
+  environmentSuggestedPhrases: string[];
+  environmentScheduleHints: string[];
 }
 
-function parseGemmaResponse(
+function parseStringArrayField(value: unknown, maxItems: number, maxLen: number): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const x of value) {
+    if (typeof x !== 'string') continue;
+    const t = x.trim();
+    if (!t) continue;
+    out.push(t.length > maxLen ? `${t.slice(0, maxLen - 1)}…` : t);
+    if (out.length >= maxItems) break;
+  }
+  return out;
+}
+
+export function parseGemmaResponse(
   raw: string,
   input: InterpretationInput,
   allowedDictionaryIds: ReadonlySet<string>,
@@ -434,7 +461,7 @@ function parseGemmaResponse(
       .trim();
     parsed = JSON.parse(clean) as GemmaRawResponse;
   } catch {
-    const fallback = raw.slice(0, 200) || 'Message received.';
+    const fallback = userFacingFallbackFromUnparsedInterpretationJson(raw);
     return {
       patientLanguageText: fallback,
       caregiverLanguageText: fallback,
@@ -445,6 +472,9 @@ function parseGemmaResponse(
       mood: 'calm',
       detectedLanguage: input.language ?? 'en-US',
       dictionaryMatchIds: [],
+      environmentSummary: '',
+      environmentSuggestedPhrases: [],
+      environmentScheduleHints: [],
     };
   }
 
@@ -498,6 +528,20 @@ function parseGemmaResponse(
           )
           .slice(0, 5)
       : [],
+    environmentSummary:
+      typeof parsed.environmentSummary === 'string'
+        ? parsed.environmentSummary.trim().slice(0, 600)
+        : '',
+    environmentSuggestedPhrases: parseStringArrayField(
+      parsed.environmentSuggestedPhrases,
+      6,
+      120,
+    ),
+    environmentScheduleHints: parseStringArrayField(
+      parsed.environmentScheduleHints,
+      8,
+      100,
+    ),
   };
 }
 
@@ -506,7 +550,7 @@ function parseGemmaResponse(
  * Given a partial JSON buffer such as `{"primaryText":"I want co` it returns
  * `I want co`. Handles escaped quotes conservatively.
  */
-function extractPartialString(
+export function extractPartialString(
   buffer: string,
   fieldName: string,
 ): string | undefined {
@@ -545,7 +589,26 @@ function extractPartialString(
   return out;
 }
 
-function stripDataUrlPrefix(dataUrl: string): string | undefined {
+/** When full JSON.parse fails, never surface raw JSON; try the same progressive extractors as streaming. */
+function userFacingFallbackFromUnparsedInterpretationJson(raw: string): string {
+  const cleaned = raw
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+  for (const field of [
+    'patientLanguageText',
+    'primaryText',
+    'caregiverLanguageText',
+  ] as const) {
+    const extracted = extractPartialString(cleaned, field);
+    if (extracted !== undefined && extracted.trim().length > 0) {
+      return extracted.trim();
+    }
+  }
+  return 'Message received.';
+}
+
+export function stripDataUrlPrefix(dataUrl: string): string | undefined {
   const commaIdx = dataUrl.indexOf(',');
   if (commaIdx === -1) return undefined;
   const base64 = dataUrl.slice(commaIdx + 1);
@@ -656,7 +719,7 @@ async function callOllamaStreaming(
   return full;
 }
 
-function buildInferenceRequest(input: InterpretationInput) {
+export function buildInferenceRequest(input: InterpretationInput) {
   const channelCount = getContributingChannels(input).filter(
     (channel) => channel !== 'time',
   ).length;
@@ -676,6 +739,7 @@ function buildInferenceRequest(input: InterpretationInput) {
     transcript: input.transcript,
     symbols: input.symbols,
     symbolIds: input.symbolIds,
+    audioDataUrl: input.audioDataUrl,
     gestureHints: input.gestureHints,
     timeOfDay: input.timeOfDay,
     visionOn: Boolean(input.imageDataUrl),
@@ -754,6 +818,13 @@ async function interpret(
     speakerRole: tieBreakSpeaker,
   });
 
+  const envMode =
+    Boolean(input.environmentHelper) &&
+    Boolean(input.imageDataUrl?.trim()) &&
+    !input.transcript?.trim() &&
+    !input.symbols?.length &&
+    !input.symbolIds?.length;
+
   return {
     id: uid('interp'),
     ts: Date.now(),
@@ -780,6 +851,14 @@ async function interpret(
       input.transcript?.slice(0, 60) ??
       input.symbols?.join(', ') ??
       (input.imageDataUrl ? 'Photo only' : undefined),
+    ...(envMode
+      ? {
+          environmentScan: true,
+          environmentSummary: parsed.environmentSummary,
+          environmentSuggestedPhrases: parsed.environmentSuggestedPhrases,
+          environmentScheduleHints: parsed.environmentScheduleHints,
+        }
+      : {}),
   };
 }
 

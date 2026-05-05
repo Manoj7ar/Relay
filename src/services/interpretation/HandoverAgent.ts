@@ -1,21 +1,22 @@
 import { uid } from '@/lib/id';
-import { getOllamaModelTagForTier } from '@/lib/ollamaModelConfig';
-import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
+import { getOllamaModel } from '@/lib/ollamaConfig';
 import type { HandoverNote, HandoverToolEvent } from '@/types/handover';
 import type { RoutingLogEntry } from '@/types/model';
-import { GemmaNotConnectedError } from './GemmaInterpreterAdapter';
+import {
+  completeOllamaChatCompletion,
+  type OllamaChatRequestMessage,
+} from './ollamaApi';
 import { getTool, relayTools } from './tools/registry';
 import type { RelayToolContext } from './tools/types';
 
-const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_TOOL_ROUNDS = 8;
 
 export class HandoverToolCapabilityError extends Error {
   constructor(detail?: string) {
     super(
       [
-        'The selected Gemma/Ollama model did not complete the handover tool-calling flow.',
-        'Use a local model tag that supports Ollama chat tools, then try again.',
+        'The Ollama model did not complete the handover tool-calling flow.',
+        'Confirm VITE_RELAY_OLLAMA_BASE_URL and that the model supports tool calling, then try again.',
         detail,
       ]
         .filter(Boolean)
@@ -27,25 +28,6 @@ export class HandoverToolCapabilityError extends Error {
 
 interface GenerateHandoverInput extends RelayToolContext {
   onToolEvent?: (event: HandoverToolEvent) => void;
-}
-
-interface OllamaToolCall {
-  function?: {
-    name?: string;
-    arguments?: unknown;
-  };
-}
-
-interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
-  tool_name?: string;
-  tool_calls?: OllamaToolCall[];
-}
-
-interface OllamaChatResponse {
-  message?: OllamaMessage;
-  error?: string;
 }
 
 function emit(
@@ -63,9 +45,9 @@ function emit(
   });
 }
 
-function toolsForOllama() {
+function toolsForOpenAI() {
   return relayTools.map((tool) => ({
-    type: 'function',
+    type: 'function' as const,
     function: {
       name: tool.name,
       description: tool.description,
@@ -85,47 +67,12 @@ function normalizeToolArgs(value: unknown): unknown {
   return value ?? {};
 }
 
-async function callOllamaChat(
-  ollamaBase: string,
-  model: string,
-  messages: OllamaMessage[],
-): Promise<OllamaChatResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${ollamaBase}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model,
-        stream: false,
-        tools: toolsForOllama(),
-        messages,
-      }),
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => `HTTP ${res.status}`);
-      if (detail.toLowerCase().includes('tool')) {
-        throw new HandoverToolCapabilityError(detail);
-      }
-      throw new GemmaNotConnectedError(ollamaBase, `HTTP ${res.status}: ${detail}`);
-    }
-    return (await res.json()) as OllamaChatResponse;
-  } catch (err) {
-    if (
-      err instanceof GemmaNotConnectedError ||
-      err instanceof HandoverToolCapabilityError
-    ) {
-      throw err;
-    }
-    throw new GemmaNotConnectedError(
-      ollamaBase,
-      err instanceof Error ? err.message : undefined,
-    );
-  } finally {
-    clearTimeout(timeoutId);
-  }
+function stringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((x): x is string => typeof x === 'string')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function parseFinalNote(content: string): HandoverNote | null {
@@ -144,7 +91,14 @@ function parseFinalNote(content: string): HandoverNote | null {
       Array.isArray(parsed.flagsForNextCarer) &&
       Array.isArray(parsed.suggestedFollowUps)
     ) {
-      return parsed as HandoverNote;
+      return {
+        ...(parsed as HandoverNote),
+        communicationNotes: stringArray(parsed.communicationNotes),
+        accessibilityFlagsForNextCarer: stringArray(
+          parsed.accessibilityFlagsForNextCarer,
+        ),
+        residentPhrasedPriorities: stringArray(parsed.residentPhrasedPriorities),
+      };
     }
   } catch {
     return null;
@@ -159,60 +113,85 @@ export async function generateHandoverNote({
   routingLog,
   onToolEvent,
 }: GenerateHandoverInput): Promise<HandoverNote> {
-  const ollamaBase = getResolvedOllamaBaseUrl();
-  const model = getOllamaModelTagForTier('27B');
   const context: RelayToolContext = {
     shiftStart,
     shiftEnd,
     sessionHistory,
     routingLog,
   };
-  const messages: OllamaMessage[] = [
+
+  const messages: OllamaChatRequestMessage[] = [
     {
       role: 'system',
       content:
-        'You are Relay handover agent. You must call the provided tools to inspect session history, dictionary deltas, alerts, routing, and patterns before writing the final note. Do not invent events. Persist the note by calling write_handover_note.',
+        'You are the Relay handover agent. You must call the provided tools to inspect session history, dictionary deltas, alerts, routing, and patterns before writing the final note. Do not invent clinical events or diagnoses. Ground communicationNotes and residentPhrasedPriorities in observed interpretations and dictionary tools (pace, symbols vs speech, successful phrasing). accessibilityFlagsForNextCarer must be non-clinical operational hints only. Finish by calling write_handover_note with every required field including communicationNotes, accessibilityFlagsForNextCarer, residentPhrasedPriorities (arrays of strings; use [] if none).',
     },
     {
       role: 'user',
-      content: `Generate a structured handover note for ${new Date(
-        shiftStart,
-      ).toISOString()} through ${new Date(
+      content: `You are Relay handover agent using ${getOllamaModel()}.
+
+Generate a structured handover note for ${new Date(shiftStart).toISOString()} through ${new Date(
         shiftEnd,
-      ).toISOString()}. Final response must be the exact JSON returned by write_handover_note.`,
+      ).toISOString()}. Persist the note by calling write_handover_note with the exact fields that tool requires, including communication-centered arrays.`,
     },
   ];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-    const response = await callOllamaChat(ollamaBase, model, messages);
-    if (response.error) throw new HandoverToolCapabilityError(response.error);
-    const message = response.message;
-    if (!message) throw new HandoverToolCapabilityError('No chat message returned.');
+    const message = await completeOllamaChatCompletion({
+      model: getOllamaModel(),
+      messages,
+      tools: toolsForOpenAI(),
+      tool_choice: 'auto',
+      temperature: 0.2,
+      max_tokens: 900,
+    });
 
-    messages.push(message);
+    messages.push({
+      role: 'assistant',
+      content: message.content ?? null,
+      tool_calls: message.tool_calls?.map((tc) => ({
+        id: tc.id,
+        type: 'function' as const,
+        function: {
+          name: tc.function.name,
+          arguments: tc.function.arguments ?? '{}',
+        },
+      })),
+    });
+
     const calls = message.tool_calls ?? [];
     if (!calls.length) {
-      const note = parseFinalNote(message.content);
+      const note = parseFinalNote(message.content ?? '');
       if (note) return note;
       throw new HandoverToolCapabilityError(
-        'The model returned no tool calls and no structured note.',
+        'Ollama returned no tool calls and no structured note.',
       );
     }
 
-    for (const call of calls) {
-      const name = call.function?.name;
+    for (const tc of calls) {
+      const name = tc.function.name;
       if (!name) continue;
       const tool = getTool(name);
       if (!tool) throw new HandoverToolCapabilityError(`Unknown tool: ${name}`);
 
+      let args: unknown = {};
+      try {
+        args = tc.function.arguments
+          ? (JSON.parse(tc.function.arguments) as unknown)
+          : {};
+      } catch {
+        args = {};
+      }
+
       emit(onToolEvent, name, 'called', `Calling ${name}`);
       try {
-        const result = await tool.handler(normalizeToolArgs(call.function?.arguments), context);
+        const result = await tool.handler(normalizeToolArgs(args), context);
         emit(onToolEvent, name, 'completed', `Completed ${name}`);
         messages.push({
           role: 'tool',
-          tool_name: name,
-          content: JSON.stringify(result),
+          tool_call_id: tc.id,
+          content:
+            typeof result === 'string' ? result : JSON.stringify(result ?? null),
         });
         if (name === 'write_handover_note') {
           return result as HandoverNote;
@@ -235,7 +214,7 @@ export function routingEntryFromToolEvent(
     id: uid('rlog'),
     ts: event.ts,
     inputType: 'tool',
-    model: '27B',
+    model: 'OLLAMA',
     latencyMs: 0,
     reason: `${event.status}: ${event.summary}`,
     visionUsed: false,

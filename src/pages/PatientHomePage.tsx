@@ -6,6 +6,8 @@ import { TranscriptionCard } from '@/components/patient/TranscriptionCard';
 import { PrimaryMicButton } from '@/components/patient/PrimaryMicButton';
 import { HomeQuickActionRow } from '@/components/patient/HomeQuickActionRow';
 import { SymbolBoardOverlay } from '@/components/patient/SymbolBoardOverlay';
+import { EnvironmentScanPanel } from '@/components/patient/EnvironmentScanPanel';
+import { PredictivePhraseRow } from '@/components/patient/PredictivePhraseRow';
 import { TypeInsteadSheet } from '@/components/patient/TypeInsteadSheet';
 import { useSession } from '@/contexts/SessionContext';
 
@@ -30,6 +32,20 @@ export function PatientHomePage() {
     });
   };
 
+  const handleEnvironmentPhoto = (dataUrl: string) => {
+    if (!settings.relayPowerOn) return;
+    void submit({
+      inputType: 'vision+speech',
+      imageDataUrl: dataUrl,
+      visionOn: true,
+      environmentHelper: true,
+      language: settings.language.primaryLanguage,
+      patientLanguage: settings.language.primaryLanguage,
+      caregiverLanguage: settings.language.caregiverLanguage,
+      speakerRole: 'patient',
+    });
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
       <div className="shrink-0">
@@ -44,11 +60,14 @@ export function PatientHomePage() {
       >
         <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 min-[380px]:px-2.5">
           <TranscriptionCard />
+          <EnvironmentScanPanel />
+          <PredictivePhraseRow />
         </div>
         <div className="shrink-0 flex flex-col gap-1.5 pb-1">
           <HomeQuickActionRow
             onOpenSymbolBoard={() => setBoardOpen(true)}
             onPhotoOnly={handlePhotoOnly}
+            onEnvironmentPhoto={handleEnvironmentPhoto}
           />
           <PrimaryMicButton />
           <TypeInsteadSheet />

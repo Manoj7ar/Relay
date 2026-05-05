@@ -6,79 +6,33 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { useHaptics } from '@/hooks/useHaptics';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useMicrophone } from '@/hooks/useMicrophone';
-import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import type { RecognitionError } from '@/services/speechRecognitionService';
 import { MIC_COPY, type MicUiState } from '@/lib/micStateCopy';
-import { pickSourceLanguageHint } from '@/lib/transcriptSpeakerHint';
 import { pickMediaRecorderMimeType } from '@/lib/mediaRecorderMime';
 import { cn } from '@/lib/cn';
-import {
-  isLocalSttConfigured,
-  transcribeWithLocalStt,
-} from '@/services/localSttService';
+import { transcribeTapToSpeak } from '@/services/interpretation/localTranscription';
 
 /** Skip tiny recorder glitches; real clips from tap-to-speak are usually larger. */
-const MIN_LOCAL_STT_BLOB_BYTES = 320;
+const MIN_RECORDED_AUDIO_BLOB_BYTES = 320;
 
-function shouldAugmentWithLocalStt(webTranscript: string): boolean {
-  const t = webTranscript.trim();
-  if (!t) return true;
-  if (t.length <= 2) return true;
-  if (/^(.)\1+$/.test(t)) return true;
-  return false;
-}
-
-function speechErrorTitle(error: RecognitionError | null): string {
-  if (!error) return 'Speech recognition unavailable';
-  if (error.kind === 'network') {
-    return isLocalSttConfigured()
-      ? 'Speech recognition could not complete'
-      : 'Speech recognition needs a connection';
-  }
-  if (error.kind === 'permission_denied') return 'Microphone access was blocked';
-  if (error.kind === 'audio_capture') return 'Could not capture audio';
-  return 'Speech recognition stopped';
-}
-
-function speechErrorHint(error: RecognitionError | null): string {
-  const sidecar =
-    'Confirm `npm run local-stt`, `VITE_RELAY_LOCAL_STT_URL`, and POST `/transcribe` match `localSttService.ts`.';
-  if (!error) {
-    const base =
-      'Relay could not start speech-to-text in this browser. Try again or use Type instead.';
-    return isLocalSttConfigured() ? `${base} ${sidecar}` : base;
-  }
-  if (error.kind === 'network') {
-    return isLocalSttConfigured()
-      ? `Local STT did not return text. ${sidecar}`
-      : 'Built-in speech uses Google’s servers (not your LLM). Set VITE_RELAY_LOCAL_STT_URL in .env.local, restart dev, and run a POST /transcribe server there.';
-  }
-  if (error.kind === 'permission_denied') return error.message;
-  const base = error.message;
-  return isLocalSttConfigured() ? `${base} ${sidecar}` : base;
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read audio.'));
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.readAsDataURL(blob);
+  });
 }
 
 export function PrimaryMicButton() {
-  const { state, dispatch, submit, setInterimTranscript } = useSession();
+  const { state, dispatch, submit } = useSession();
   const { settings } = useSettings();
   const haptics = useHaptics();
   const permissions = usePermissions('microphone');
   const mic = useMicrophone();
-  const sttLang =
-    state.sessionInferredSpeaker === 'caregiver'
-      ? settings.language.caregiverLanguage
-      : settings.language.primaryLanguage;
-  const stt = useSpeechRecognition({
-    lang: sttLang,
-    allowNetworkRecovery: isLocalSttConfigured(),
-  });
   const [finalizing, setFinalizing] = useState(false);
   const pendingSubmitRef = useRef(false);
-  const speechErrorRef = useRef<RecognitionError | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  /** Blob from the last listen session (filled on stop, consumed when `stt.finalized` runs). */
-  const lastRecordingRef = useRef<Blob | null>(null);
 
   const stopRecorderSync = useCallback(() => {
     const r = recorderRef.current;
@@ -94,9 +48,9 @@ export function PrimaryMicButton() {
   }, []);
 
   const startRecorder = useCallback(
-    (stream: MediaStream) => {
+    (stream: MediaStream): boolean => {
       stopRecorderSync();
-      if (typeof MediaRecorder === 'undefined') return;
+      if (typeof MediaRecorder === 'undefined') return false;
       const mime = pickMediaRecorderMimeType();
       try {
         const r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -106,8 +60,10 @@ export function PrimaryMicButton() {
         };
         r.start(250);
         recorderRef.current = r;
+        return true;
       } catch {
         /* MediaRecorder unsupported or bad mime */
+        return false;
       }
     },
     [stopRecorderSync],
@@ -149,142 +105,18 @@ export function PrimaryMicButton() {
     });
   }, []);
 
-  useEffect(() => {
-    setInterimTranscript(stt.interimTranscript);
-  }, [stt.interimTranscript, setInterimTranscript]);
-
-  /** Full teardown: recognition + media stream + session listening flag. */
+  /** Full teardown: recorder + media stream + session listening flag. */
   const stopAll = useCallback(() => {
     stopRecorderSync();
-    stt.stop();
     mic.stop();
     dispatch({ type: 'STOP_LISTEN' });
-  }, [dispatch, mic.stop, stt.stop, stopRecorderSync]);
-
-  /**
-   * End the "listening" UX and stop recognition, but keep the mic stream open
-   * briefly. Stopping the MediaStream in the same tick as `SpeechRecognition.stop()`
-   * often prevents Chrome from emitting final results, so `onFinal` never runs.
-   */
-  const stopRecognitionKeepMic = useCallback(() => {
-    stt.stop();
-    dispatch({ type: 'STOP_LISTEN' });
-  }, [dispatch, stt.stop]);
-
-  useEffect(() => {
-    if (!stt.finalized) return;
-    if (pendingSubmitRef.current) return;
-    pendingSubmitRef.current = true;
-
-    const recording = lastRecordingRef.current;
-    lastRecordingRef.current = null;
-    const initialTranscript = stt.finalized.transcript.trim();
-
-    const run = async () => {
-      let transcript = initialTranscript;
-      if (
-        isLocalSttConfigured() &&
-        recording &&
-        recording.size >= MIN_LOCAL_STT_BLOB_BYTES &&
-        shouldAugmentWithLocalStt(transcript)
-      ) {
-        try {
-          const localText = (
-            await transcribeWithLocalStt(recording, sttLang)
-          ).trim();
-          if (localText) transcript = localText;
-        } catch {
-          /* keep browser transcript or empty */
-        }
-      }
-
-      stopAll();
-      stt.reset();
-
-      if (!transcript) {
-        pendingSubmitRef.current = false;
-        setFinalizing(false);
-        return;
-      }
-
-      setFinalizing(true);
-      const languageHint = pickSourceLanguageHint(
-        transcript,
-        settings.language.primaryLanguage,
-        settings.language.caregiverLanguage,
-        state.sessionInferredSpeaker,
-      );
-      void submit({
-        inputType: state.visionOn ? 'vision+speech' : 'speech',
-        transcript,
-        visionOn: state.visionOn,
-        language: languageHint,
-        patientLanguage: settings.language.primaryLanguage,
-        caregiverLanguage: settings.language.caregiverLanguage,
-      }).finally(() => {
-        pendingSubmitRef.current = false;
-        setFinalizing(false);
-      });
-    };
-
-    void run();
-  }, [
-    stt.finalized,
-    stt.reset,
-    submit,
-    state.visionOn,
-    state.pendingImage,
-    settings.language.primaryLanguage,
-    settings.language.caregiverLanguage,
-    state.sessionInferredSpeaker,
-    stopAll,
-    sttLang,
-  ]);
+  }, [dispatch, mic.stop, stopRecorderSync]);
 
   useEffect(() => () => stopRecorderSync(), [stopRecorderSync]);
 
-  useEffect(() => {
-    if (stt.status !== 'error') return;
-    setFinalizing(false);
-    speechErrorRef.current = stt.error;
-    stt.abort();
-  }, [stt.abort, stt.error, stt.status]);
-
-  /** If Web Speech never delivers `onend`/`onFinal`, avoid a stuck "Interpreting…" pill. */
-  useEffect(() => {
-    if (!finalizing) return undefined;
-    const id = window.setTimeout(() => {
-      if (pendingSubmitRef.current || state.isProcessing) return;
-      pendingSubmitRef.current = false;
-      lastRecordingRef.current = null;
-      setFinalizing(false);
-      stopRecorderSync();
-      mic.stop();
-      stt.abort();
-      dispatch({ type: 'STOP_LISTEN' });
-      dispatch({
-        type: 'SET_ERROR',
-        error: {
-          code: 'speech_recognition',
-          title: 'Speech recognition timed out',
-          hint: 'Relay did not receive final text after you stopped speaking. Try again, use Type, or check your local STT sidecar.',
-          technical: 'finalize_timeout',
-        },
-      });
-    }, 3500);
-    return () => window.clearTimeout(id);
-  }, [
-    dispatch,
-    finalizing,
-    state.isProcessing,
-    mic.stop,
-    stt.abort,
-    stopRecorderSync,
-  ]);
-
   const uiState: MicUiState = (() => {
     if (permissions.state === 'denied') return 'permission_denied';
-    if (!mic.supported && !stt.supported) return 'unsupported_browser';
+    if (!mic.supported || typeof MediaRecorder === 'undefined') return 'unsupported_browser';
     if (permissions.requesting || mic.state === 'requesting_permission') {
       return 'requesting_permission';
     }
@@ -300,73 +132,71 @@ export function PrimaryMicButton() {
     haptics('tap');
 
     if (state.isListening) {
-      const speechError = speechErrorRef.current;
       const audioBlob = await stopRecorder();
+      stopAll();
 
-      if (speechError || !stt.supported) {
-        speechErrorRef.current = null;
-        if (
-          audioBlob &&
-          audioBlob.size >= MIN_LOCAL_STT_BLOB_BYTES &&
-          isLocalSttConfigured()
-        ) {
-          try {
-            const t = (await transcribeWithLocalStt(audioBlob, sttLang)).trim();
-            if (t) {
-              setFinalizing(true);
-              pendingSubmitRef.current = true;
-              stopAll();
-              stt.reset();
-              const languageHint = pickSourceLanguageHint(
-                t,
-                settings.language.primaryLanguage,
-                settings.language.caregiverLanguage,
-                state.sessionInferredSpeaker,
-              );
-              void submit({
-                inputType: state.visionOn ? 'vision+speech' : 'speech',
-                transcript: t,
-                visionOn: state.visionOn,
-                language: languageHint,
-                patientLanguage: settings.language.primaryLanguage,
-                caregiverLanguage: settings.language.caregiverLanguage,
-              }).finally(() => {
-                pendingSubmitRef.current = false;
-                setFinalizing(false);
-              });
-              return;
-            }
-          } catch {
-            /* fall through to session error */
-          }
-        }
+      if (!audioBlob || audioBlob.size < MIN_RECORDED_AUDIO_BLOB_BYTES) {
         setFinalizing(false);
-        stopAll();
-        stt.reset();
         dispatch({
           type: 'SET_ERROR',
           error: {
             code: 'speech_recognition',
-            title: speechErrorTitle(speechError),
-            hint: speechErrorHint(speechError),
-            technical: speechError?.kind,
+            title: 'No speech audio captured',
+            hint: 'Try again, hold the button session a little longer, or use Type instead.',
+            technical: audioBlob ? `audio_size:${audioBlob.size}` : 'audio_blob_missing',
           },
         });
         return;
       }
 
-      lastRecordingRef.current = audioBlob;
       setFinalizing(true);
-      stopRecognitionKeepMic();
+      pendingSubmitRef.current = true;
+      try {
+        const transcript = await transcribeTapToSpeak(
+          audioBlob,
+          settings.language.primaryLanguage,
+        );
+        if (!transcript.trim()) {
+          dispatch({
+            type: 'SET_ERROR',
+            error: {
+              code: 'speech_recognition',
+              title: 'Could not transcribe audio',
+              hint: 'Check your Ollama API key and network, configure local STT (VITE_RELAY_LOCAL_STT_URL), or use Type instead.',
+            },
+          });
+          return;
+        }
+        const audioDataUrl = await blobToDataUrl(audioBlob);
+        await submit({
+          inputType: state.visionOn ? 'vision+speech' : 'speech',
+          transcript: transcript.trim(),
+          audioDataUrl,
+          visionOn: state.visionOn,
+          language: settings.language.primaryLanguage,
+          patientLanguage: settings.language.primaryLanguage,
+          caregiverLanguage: settings.language.caregiverLanguage,
+        });
+      } catch (err) {
+        dispatch({
+          type: 'SET_ERROR',
+          error: {
+            code: 'speech_recognition',
+            title: 'Could not prepare audio',
+            hint: err instanceof Error ? err.message : 'Try again or use Type instead.',
+          },
+        });
+      } finally {
+        pendingSubmitRef.current = false;
+        setFinalizing(false);
+      }
       return;
     }
 
     if (uiState === 'processing') return;
 
     pendingSubmitRef.current = false;
-    speechErrorRef.current = null;
     setFinalizing(false);
-    stt.reset();
 
     if (permissions.state !== 'granted') {
       const granted = await permissions.request();
@@ -375,12 +205,19 @@ export function PrimaryMicButton() {
 
     const handle = await mic.start();
     if (!handle) return;
-    startRecorder(handle.stream);
-    dispatch({ type: 'START_LISTEN' });
-
-    if (stt.supported) {
-      stt.start();
+    if (!startRecorder(handle.stream)) {
+      mic.stop();
+      dispatch({
+        type: 'SET_ERROR',
+        error: {
+          code: 'speech_recognition',
+          title: 'Audio recording is unavailable',
+          hint: 'This browser cannot record audio for Ollama. Use Type instead.',
+        },
+      });
+      return;
     }
+    dispatch({ type: 'START_LISTEN' });
   };
 
   const disabled =

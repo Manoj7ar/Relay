@@ -40,27 +40,25 @@ export function Toggle({
         }}
         className={cn(
           'relative isolate h-11 w-14 shrink-0 rounded-full p-0.5',
-          'border border-black/10 shadow-inner transition-[background-color,box-shadow,border-color] duration-300 ease-out',
+          'glass-toggle transition-all duration-300 ease-smooth',
           'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
           'enabled:active:scale-[0.96] motion-reduce:transition-none motion-reduce:enabled:active:scale-100',
           checked
-            ? 'border-black/15 bg-[var(--accent)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]'
-            : 'bg-black/[0.06] shadow-[inset_0_1px_3px_rgba(0,0,0,0.08)]',
+            ? 'glass-toggle-active'
+            : 'glass-toggle-inactive',
         )}
       >
         <span
           aria-hidden
           className={cn(
-            'pointer-events-none absolute top-1/2 size-8 -translate-y-1/2 rounded-full bg-white',
-            'shadow-[0_1px_3px_rgba(0,0,0,0.18),0_1px_1px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.06]',
-            'transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.35,0.64,1)]',
+            'pointer-events-none absolute top-1/2 size-8 -translate-y-1/2 rounded-full',
+            'glass-toggle-thumb transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.35,0.64,1)]',
             'motion-reduce:transition-none motion-reduce:duration-0',
             'start-0.5',
             checked
               ? 'translate-x-[1.25rem] rtl:-translate-x-[1.25rem]'
               : 'translate-x-0',
-            checked &&
-              'shadow-[0_2px_6px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.35)_inset]',
+            checked && 'glass-toggle-thumb-active',
           )}
         />
       </button>

@@ -39,7 +39,8 @@ export function DeveloperPanel() {
     {
       label: 'Text-to-speech',
       status: 'real',
-      detail: 'window.speechSynthesis with language-matched voice.',
+      detail:
+        'window.speechSynthesis — ranked voice match; optional user voice in Language settings.',
     },
     {
       label: 'Camera capture',
@@ -53,10 +54,10 @@ export function DeveloperPanel() {
         'navigator.permissions (with graceful fallback) + denied recovery copy.',
     },
     {
-      label: 'Gemma 4 interpretation',
+      label: 'Ollama interpretation',
       status: 'real',
       detail:
-        'GemmaInterpreterAdapter — Ollama POST /api/generate; GemmaNotConnectedError when unreachable.',
+        'GemmaInterpreterAdapter — OpenAI-compatible chat completions (stream + JSON); GemmaNotConnectedError when unreachable.',
     },
   ];
 
@@ -150,7 +151,7 @@ export function DeveloperPanel() {
               dispatch({ type: 'SET_PERFORMANCE_HUD', value })
             }
             label="Show performance HUD"
-            description="Shows tier, latency, and approximate tokens per second for the last run."
+            description="Shows Ollama latency and approximate tokens per second for the last run."
           />
         </SettingsControlCard>
       </SettingsSection>

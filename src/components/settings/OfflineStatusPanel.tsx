@@ -22,8 +22,8 @@ export function OfflineStatusPanel({ embedded }: { embedded?: boolean }) {
         <p className="inline-flex items-center gap-1 text-xs text-muted">
           <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {online
-            ? 'Internet available; remote Ollama possible if configured.'
-            : 'No internet; local or LAN Ollama still works when reachable.'}
+            ? 'Internet available for Ollama.'
+            : 'No internet; Ollama inference will not be reachable.'}
         </p>
       </div>
     </div>

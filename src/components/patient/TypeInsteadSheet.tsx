@@ -7,8 +7,8 @@ import { pickSourceLanguageHint } from '@/lib/transcriptSpeakerHint';
 import { cn } from '@/lib/cn';
 
 /**
- * Manual text fallback when SpeechRecognition is unsupported or the user
- * prefers to type. Expands **inline** under the mic (no modal) so the rest
+ * Manual text fallback when recording is unavailable or the user prefers to type.
+ * Expands **inline** under the mic (no modal) so the rest
  * of the home screen stays visible while composing.
  */
 export function TypeInsteadSheet() {

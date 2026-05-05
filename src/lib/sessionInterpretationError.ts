@@ -1,5 +1,5 @@
 import type { SessionInterpretationError } from '@/types/interpretationError';
-import { GemmaNotConnectedError } from '@/services/interpretation/GemmaInterpreterAdapter';
+import { GemmaNotConnectedError } from '@/lib/ollamaConfig';
 
 export function sessionErrorFromUnknown(
   err: unknown,

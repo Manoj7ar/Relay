@@ -4,18 +4,15 @@ import {
   Cpu,
   ImageIcon,
   RotateCcw,
-  Sparkles,
   Square,
-  ThumbsDown,
-  ThumbsUp,
   Volume2,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, IconButton } from '@/components/primitives';
-import { DictionaryEntryFormModal } from '@/components/dictionary/DictionaryEntryFormModal';
 import { InterpretationErrorCallout } from './InterpretationErrorCallout';
 import { ConfidenceMoodRow } from './ConfidenceMoodRow';
+import { BilingualCoachStrip } from './BilingualCoachStrip';
 import { InterpretationAlternates } from './InterpretationAlternates';
 import { CameraToggle } from './CameraToggle';
 import { CameraPreview } from './CameraPreview';
@@ -24,8 +21,10 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/cn';
+import { readbackTextAndLang } from '@/lib/ttsReadback';
 import { getEntryById } from '@/lib/patientDictionary';
 import type { DictionaryEntry } from '@/types/dictionary';
+import { MODEL_LABELS } from '@/types/model';
 
 export function TranscriptionCard() {
   const {
@@ -39,14 +38,8 @@ export function TranscriptionCard() {
   const { settings } = useSettings();
   const tts = useSpeechSynthesis();
   const haptics = useHaptics();
-  const [saveOpen, setSaveOpen] = useState(false);
   const [matchedEntries, setMatchedEntries] = useState<DictionaryEntry[]>([]);
   const [matchesOpen, setMatchesOpen] = useState(false);
-  const [feedback, setFeedback] = useState<'yes' | 'no' | null>(null);
-  /** After voting, section fades out and stays hidden for this interpretation id. */
-  const [feedbackSectionFading, setFeedbackSectionFading] = useState(false);
-  const [feedbackSectionHidden, setFeedbackSectionHidden] = useState(false);
-  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [undoNow, setUndoNow] = useState(() => Date.now());
   const {
     currentInterpretation,
@@ -59,17 +52,55 @@ export function TranscriptionCard() {
 
   const lastSpokenIdRef = useRef<string | null>(null);
 
+  const handleSelectAlternate = useCallback(
+    (alt: string) => {
+      if (!settings.relayPowerOn || !currentInterpretation) return;
+      const { lang } = readbackTextAndLang(
+        currentInterpretation,
+        settings.language.primaryLanguage,
+        settings.language.caregiverLanguage,
+      );
+      acceptAlternate(alt);
+      haptics('tap');
+      void tts.speak(alt, {
+        lang,
+        voiceURI: settings.language.ttsVoiceUri,
+      });
+    },
+    [
+      settings.relayPowerOn,
+      settings.language.primaryLanguage,
+      settings.language.caregiverLanguage,
+      settings.language.ttsVoiceUri,
+      currentInterpretation,
+      acceptAlternate,
+      haptics,
+      tts,
+    ],
+  );
+
   useEffect(() => {
     if (!currentInterpretation) return;
     if (lastSpokenIdRef.current === currentInterpretation.id) return;
     lastSpokenIdRef.current = currentInterpretation.id;
     haptics('tap');
-    void tts.speak(currentInterpretation.primary, {
-      lang:
-        currentInterpretation.ttsLang ??
-        currentInterpretation.detectedLanguage,
+    const { text, lang } = readbackTextAndLang(
+      currentInterpretation,
+      settings.language.primaryLanguage,
+      settings.language.caregiverLanguage,
+    );
+    void tts.speak(text, {
+      lang,
+      voiceURI: settings.language.ttsVoiceUri,
     });
-  }, [currentInterpretation, tts, haptics]);
+  }, [
+    currentInterpretation,
+    tts,
+    haptics,
+    settings.language.primaryLanguage,
+    settings.language.caregiverLanguage,
+    settings.language.ttsVoiceUri,
+  ]);
 
   const partnerSubtitleLang = useMemo(() => {
     const interp = currentInterpretation;
@@ -101,45 +132,11 @@ export function TranscriptionCard() {
   }, [currentInterpretation?.dictionaryMatchIds, currentInterpretation?.id]);
 
   useEffect(() => {
-    setFeedback(null);
-    setFeedbackSectionFading(false);
-    setFeedbackSectionHidden(false);
-    setSaveNotice(null);
-  }, [currentInterpretation?.id]);
-
-  useEffect(() => {
-    if (!saveNotice) return undefined;
-    const id = window.setTimeout(() => setSaveNotice(null), 3200);
-    return () => window.clearTimeout(id);
-  }, [saveNotice]);
-
-  useEffect(() => {
     if (!currentInterpretation) return undefined;
     setUndoNow(Date.now());
     const id = window.setInterval(() => setUndoNow(Date.now()), 500);
     return () => window.clearInterval(id);
   }, [currentInterpretation?.id, currentInterpretation]);
-
-  useEffect(() => {
-    if (feedback !== 'yes' && feedback !== 'no') return undefined;
-    const reduceMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fadeMs = reduceMotion ? 0 : 320;
-    const fadeTimer = window.setTimeout(
-      () => setFeedbackSectionFading(true),
-      3000,
-    );
-    const hideTimer = window.setTimeout(() => {
-      setFeedbackSectionHidden(true);
-      setFeedbackSectionFading(false);
-      setFeedback(null);
-    }, 3000 + fadeMs);
-    return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(hideTimer);
-    };
-  }, [feedback]);
 
   const placeholderTitle = isListening
     ? 'Listening…'
@@ -154,30 +151,6 @@ export function TranscriptionCard() {
     return null;
   }, [isListening, isProcessing, interimTranscript]);
 
-  const activeChannels = useMemo(() => {
-    const ch = currentInterpretation?.contributingChannels ?? [];
-    const channels: string[] = [];
-    if (isListening || isProcessing || ch.includes('speech')) {
-      channels.push('speech');
-    }
-    if (visionOn || state.pendingImage || ch.includes('camera')) {
-      channels.push('camera');
-    }
-    if (ch.includes('symbols')) {
-      channels.push('symbols');
-    }
-    if (ch.includes('gesture')) {
-      channels.push('gesture');
-    }
-    return Array.from(new Set(channels));
-  }, [
-    currentInterpretation,
-    isListening,
-    isProcessing,
-    visionOn,
-    state.pendingImage,
-  ]);
-
   const canUndoLast =
     currentInterpretation && undoNow - currentInterpretation.ts <= 8000;
 
@@ -190,11 +163,7 @@ export function TranscriptionCard() {
         'px-4 pb-3 pt-3 sm:px-5 sm:pb-4 sm:pt-3.5',
       )}
     >
-      <div className="flex shrink-0 items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
-          Interpretation
-        </div>
+      <div className="flex shrink-0 items-start justify-end gap-2">
         <div className="flex items-center gap-2">
           {tts.speaking ? (
             <button
@@ -267,15 +236,6 @@ export function TranscriptionCard() {
         </div>
       ) : null}
 
-      {activeChannels.length > 1 ? (
-        <div className="mt-1.5 shrink-0 rounded-xl2 border border-[var(--accent)]/20 bg-[var(--accent)]/[0.07] px-3 py-2 text-xs">
-          <p className="font-semibold text-text">Compound input</p>
-          <p className="mt-0.5 text-muted">
-            Fusing {activeChannels.join(' + ')} into one intent.
-          </p>
-        </div>
-      ) : null}
-
       <div className="my-2 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-2">
         {liveText ? (
           <p
@@ -314,12 +274,13 @@ export function TranscriptionCard() {
           </p>
         ) : null}
         {currentInterpretation?.bilingualAmbiguous ? (
-          <p
-            role="status"
-            className="mt-1 rounded-lg bg-black/[0.05] px-2 py-1 text-center text-[11px] text-muted"
-          >
-            Language uncertain — using mic attribution. Check both lines above.
-          </p>
+          <BilingualCoachStrip
+            interpretationId={currentInterpretation.id}
+            patientLanguage={settings.language.primaryLanguage}
+            caregiverLanguage={settings.language.caregiverLanguage}
+            primaryLine={currentInterpretation.primary}
+            partnerLine={currentInterpretation.translation}
+          />
         ) : null}
       </div>
 
@@ -387,75 +348,21 @@ export function TranscriptionCard() {
             ) : null}
             <InterpretationAlternates
               alternates={currentInterpretation.alternates}
-              onSelect={acceptAlternate}
+              onSelect={handleSelectAlternate}
             />
-            {!feedbackSectionHidden ? (
-              <div
-                className={cn(
-                  'rounded-xl2 border border-black/5 bg-black/[0.03] p-2',
-                  'transition-opacity duration-300 ease-out motion-reduce:duration-150',
-                  feedbackSectionFading &&
-                    'pointer-events-none opacity-0 motion-reduce:opacity-0',
-                )}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium">Was this right?</p>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      aria-pressed={feedback === 'yes'}
-                      onClick={() => setFeedback('yes')}
-                      className="inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-medium hover:bg-black/5 aria-pressed:bg-[var(--accent)] aria-pressed:text-white"
-                    >
-                      <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={feedback === 'no'}
-                      onClick={() => setFeedback('no')}
-                      className="inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-medium hover:bg-black/5 aria-pressed:bg-[var(--danger)] aria-pressed:text-white"
-                    >
-                      <ThumbsDown className="h-3.5 w-3.5" aria-hidden />
-                      No
-                    </button>
-                  </div>
-                </div>
-                {feedback === 'yes' ? (
-                  <div className="mt-1.5 space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => setSaveOpen(true)}
-                      className="text-xs font-semibold text-[var(--accent)] underline"
-                    >
-                      Save this as a new patient signal
-                    </button>
-                    <p className="text-[11px] leading-snug text-muted">
-                      Saves the patient’s raw signal and Relay’s meaning locally
-                      so Gemma can recognize it next time.
-                    </p>
-                  </div>
-                ) : feedback === 'no' ? (
-                  <p className="mt-1.5 text-xs text-muted">
-                    Ask the patient or carer, then save the corrected meaning.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            {saveNotice ? (
-              <p
-                role="status"
-                className="rounded-xl bg-[var(--accent)]/[0.08] px-2 py-1.5 text-xs font-medium text-[var(--accent)]"
-              >
-                {saveNotice}
-              </p>
-            ) : null}
             <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
               <span className="inline-flex min-w-0 items-center gap-1 truncate">
                 <Cpu className="h-3 w-3 shrink-0" aria-hidden />
                 <span className="truncate">
-                  Gemma
-                  {currentInterpretation.visionUsed ? ' · vision' : ''}
+                  {[
+                    currentInterpretation.model !== 'OLLAMA'
+                      ? MODEL_LABELS[currentInterpretation.model]?.label ??
+                        'AI'
+                      : '',
+                    currentInterpretation.visionUsed ? 'vision' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </span>
               </span>
               <span className="flex items-center gap-2">
@@ -467,7 +374,11 @@ export function TranscriptionCard() {
                     size="sm"
                     variant="glass"
                     className="!h-7 !w-7"
-                    onClick={tts.replay}
+                    onClick={() =>
+                      tts.replay({
+                        voiceURI: settings.language.ttsVoiceUri ?? undefined,
+                      })
+                    }
                     disabled={tts.speaking}
                     label="Replay spoken message"
                     icon={
@@ -496,32 +407,6 @@ export function TranscriptionCard() {
           </p>
         ) : null}
       </div>
-      <DictionaryEntryFormModal
-        open={saveOpen}
-        onClose={() => setSaveOpen(false)}
-        title="Save new patient signal"
-        initial={{
-          modality:
-            state.lastInputSnapshot?.contributingChannels.length &&
-            state.lastInputSnapshot.contributingChannels.length > 1
-              ? 'compound'
-              : state.lastInputSnapshot?.symbolIds?.length
-                ? 'symbol'
-                : state.lastInputSnapshot?.imageDataUrl
-                  ? 'gesture'
-                  : 'partial_word',
-          rawTranscript: state.lastInputSnapshot?.transcript,
-          symbolIds: state.lastInputSnapshot?.symbolIds,
-          imageDataUrl: state.lastInputSnapshot?.imageDataUrl,
-          meaning: currentInterpretation?.primary,
-          contextTags: state.lastInputSnapshot?.contributingChannels ?? [],
-          confirmedBy: 'self',
-        }}
-        onSaved={(entry) => {
-          setSaveNotice(`Saved “${entry.meaning}” to this patient’s dictionary.`);
-          setFeedbackSectionHidden(true);
-        }}
-      />
     </Card>
   );
 }

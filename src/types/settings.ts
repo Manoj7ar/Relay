@@ -16,6 +16,11 @@ export interface LanguageSettings {
    * Who usually speaks into this device: steers tie-breaks when Gemma is unsure.
    */
   defaultMicSpeaker: 'patient' | 'caregiver';
+  /**
+   * OS `SpeechSynthesisVoice.voiceURI` for read-back, or null for automatic
+   * (best ranked match for the utterance language).
+   */
+  ttsVoiceUri: string | null;
 }
 
 /** Ollama HTTP API root (no trailing slash). Empty baseUrl → localhost default at resolve time. */
@@ -99,6 +104,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
     caregiverLanguage: 'en-US',
     autoAdaptLanguages: true,
     defaultMicSpeaker: 'patient',
+    ttsVoiceUri: null,
   },
   ollama: {
     baseUrl: '',
