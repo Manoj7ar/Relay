@@ -8,6 +8,24 @@ export type Mood = 'calm' | 'distressed' | 'frustrated' | 'in-pain';
 
 export type InferenceSpeakerRole = 'patient' | 'caregiver';
 
+/** Token / timing readout from Ollama or Ollama for the interpretation card pill. */
+export interface InferenceTelemetry {
+  provider: 'ollama' | 'ollama';
+  /** Model id string, e.g. chat model id or Ollama tag. */
+  modelLabel: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  /** Generation time only (excludes prompt eval), in ms. */
+  completionMs?: number;
+  /** Wall-clock from request start to last byte, in ms. */
+  wallClockMs: number;
+  /** Output tokens per second when completion timing is available. */
+  tokensPerSecond?: number;
+  /** Token counts inferred from prompt/output length when the provider omitted usage. */
+  tokenCountsApproximate?: boolean;
+}
+
 export interface InferenceRequest {
   inputType: InputType;
   transcript?: string;
@@ -59,6 +77,7 @@ export interface Interpretation {
   environmentSummary?: string;
   environmentSuggestedPhrases?: string[];
   environmentScheduleHints?: string[];
+  telemetry?: InferenceTelemetry;
 }
 
 export interface RoutingLogEntry {

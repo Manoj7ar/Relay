@@ -1,35 +1,33 @@
 import {
   BookOpen,
   Camera,
-  Cpu,
   ImageIcon,
   RotateCcw,
   Square,
   Volume2,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, IconButton } from '@/components/primitives';
 import { InterpretationErrorCallout } from './InterpretationErrorCallout';
 import { ConfidenceMoodRow } from './ConfidenceMoodRow';
 import { BilingualCoachStrip } from './BilingualCoachStrip';
-import { InterpretationAlternates } from './InterpretationAlternates';
+import { TelemetryPill } from './TelemetryPill';
 import { CameraToggle } from './CameraToggle';
 import { CameraPreview } from './CameraPreview';
 import { useSession } from '@/contexts/SessionContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useHaptics } from '@/hooks/useHaptics';
+import { useTranscriptStack } from '@/hooks/useTranscriptStack';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/cn';
 import { readbackTextAndLang } from '@/lib/ttsReadback';
 import { getEntryById } from '@/lib/patientDictionary';
 import type { DictionaryEntry } from '@/types/dictionary';
-import { MODEL_LABELS } from '@/types/model';
 
 export function TranscriptionCard() {
   const {
     state,
-    acceptAlternate,
     dispatch,
     clearError,
     undoLastInterpretation,
@@ -50,34 +48,21 @@ export function TranscriptionCard() {
     lastError,
   } = state;
 
-  const lastSpokenIdRef = useRef<string | null>(null);
+  const sessionTokensUsed = useMemo(() => {
+    return state.history.reduce((acc, h) => {
+      const t = h.telemetry;
+      if (!t) return acc;
+      if (t.totalTokens != null) return acc + t.totalTokens;
+      if (t.promptTokens != null && t.completionTokens != null) {
+        return acc + t.promptTokens + t.completionTokens;
+      }
+      if (t.completionTokens != null) return acc + t.completionTokens;
+      if (t.promptTokens != null) return acc + t.promptTokens;
+      return acc;
+    }, 0);
+  }, [state.history]);
 
-  const handleSelectAlternate = useCallback(
-    (alt: string) => {
-      if (!settings.relayPowerOn || !currentInterpretation) return;
-      const { lang } = readbackTextAndLang(
-        currentInterpretation,
-        settings.language.primaryLanguage,
-        settings.language.caregiverLanguage,
-      );
-      acceptAlternate(alt);
-      haptics('tap');
-      void tts.speak(alt, {
-        lang,
-        voiceURI: settings.language.ttsVoiceUri,
-      });
-    },
-    [
-      settings.relayPowerOn,
-      settings.language.primaryLanguage,
-      settings.language.caregiverLanguage,
-      settings.language.ttsVoiceUri,
-      currentInterpretation,
-      acceptAlternate,
-      haptics,
-      tts,
-    ],
-  );
+  const lastSpokenIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!currentInterpretation) return;
@@ -150,6 +135,19 @@ export function TranscriptionCard() {
     }
     return null;
   }, [isListening, isProcessing, interimTranscript]);
+
+  const transcriptStack = useTranscriptStack({
+    interpretation: currentInterpretation,
+    historyLength: state.history.length,
+    isListening,
+    isProcessing,
+  });
+
+  const showTranscriptCarousel =
+    Boolean(transcriptStack.curr) &&
+    !liveText &&
+    !isListening &&
+    !isProcessing;
 
   const canUndoLast =
     currentInterpretation && undoNow - currentInterpretation.ts <= 8000;
@@ -236,7 +234,7 @@ export function TranscriptionCard() {
         </div>
       ) : null}
 
-      <div className="my-2 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-2">
+      <div className="relative my-2 flex min-h-0 flex-1 flex-col justify-center overflow-hidden py-2">
         {liveText ? (
           <p
             aria-live="polite"
@@ -248,15 +246,53 @@ export function TranscriptionCard() {
               className="ms-1 inline-block h-[0.9em] w-[0.5ch] translate-y-[2px] animate-pulse rounded-[2px] bg-[var(--accent)]/80"
             />
           </p>
-        ) : currentInterpretation ? (
-          <div className="min-h-0 overflow-hidden">
-            <p
-              className="line-clamp-4 text-[clamp(1.05rem,4.2vw,1.5rem)] font-semibold leading-snug"
-              dir="auto"
-              lang={currentInterpretation.detectedLanguage}
-            >
-              {currentInterpretation.primary}
-            </p>
+        ) : showTranscriptCarousel && transcriptStack.curr ? (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            {transcriptStack.departing ? (
+              <div
+                key={`departing-${transcriptStack.departing.id}`}
+                className="motion-safe:animate-transcript-out motion-reduce:animate-none shrink-0"
+              >
+                <p
+                  className="line-clamp-2 text-sm font-medium leading-snug text-muted/70"
+                  dir="auto"
+                  lang={transcriptStack.departing.detectedLanguage}
+                >
+                  {transcriptStack.departing.primary}
+                </p>
+              </div>
+            ) : null}
+            {transcriptStack.prev ? (
+              <div
+                key={`prev-${transcriptStack.prev.id}`}
+                className="motion-safe:animate-transcript-demote motion-reduce:animate-none shrink-0 border-b border-black/5 pb-1"
+              >
+                <span className="sr-only">Previously: </span>
+                <div className="flex min-w-0 items-start gap-1.5">
+                  <span
+                    className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted"
+                    aria-hidden
+                  />
+                  <p
+                    className="line-clamp-2 min-w-0 text-sm font-medium leading-snug text-muted"
+                    dir="auto"
+                    lang={transcriptStack.prev.detectedLanguage}
+                  >
+                    {transcriptStack.prev.primary}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            <div className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
+              <p
+                key={transcriptStack.curr.id}
+                className="motion-safe:animate-slide-up motion-reduce:animate-none line-clamp-4 text-[clamp(1.05rem,4.2vw,1.5rem)] font-semibold leading-snug"
+                dir="auto"
+                lang={transcriptStack.curr.detectedLanguage}
+              >
+                {transcriptStack.curr.primary}
+              </p>
+            </div>
           </div>
         ) : (
           <p className="line-clamp-3 text-center text-[clamp(1rem,3.8vw,1.2rem)] font-medium leading-snug text-muted">
@@ -284,9 +320,30 @@ export function TranscriptionCard() {
         ) : null}
       </div>
 
-      <div className="shrink-0 space-y-1.5">
+      <div className="mt-8 shrink-0 space-y-1.5 sm:mt-10">
         {lastError ? (
           <InterpretationErrorCallout error={lastError} onDismiss={clearError} />
+        ) : null}
+        {isProcessing && state.requestStartedAt != null ? (
+          <TelemetryPill
+            processing
+            startedAt={state.requestStartedAt}
+            sessionTokensUsed={sessionTokensUsed}
+          />
+        ) : currentInterpretation &&
+          (currentInterpretation.telemetry != null ||
+            currentInterpretation.latencyMs != null) ? (
+          <TelemetryPill
+            processing={false}
+            startedAt={null}
+            telemetry={currentInterpretation.telemetry ?? undefined}
+            fallbackLatencyMs={
+              currentInterpretation.telemetry
+                ? undefined
+                : currentInterpretation.latencyMs
+            }
+            sessionTokensUsed={sessionTokensUsed}
+          />
         ) : null}
         {currentInterpretation ? (
           <>
@@ -327,12 +384,43 @@ export function TranscriptionCard() {
                 ) : null}
               </div>
             ) : null}
-            <ConfidenceMoodRow
-              confidence={currentInterpretation.confidence}
-              urgency={currentInterpretation.urgency}
-              mood={currentInterpretation.mood}
-              compact
-            />
+            <div
+              className={cn(
+                'flex min-h-8 w-full min-w-0 items-center gap-2',
+                tts.supported && tts.lastSpokenText
+                  ? 'justify-between'
+                  : 'justify-start',
+              )}
+            >
+              <ConfidenceMoodRow
+                confidence={currentInterpretation.confidence}
+                urgency={currentInterpretation.urgency}
+                mood={currentInterpretation.mood}
+                compact
+                className="min-w-0 justify-start"
+              />
+              {tts.supported && tts.lastSpokenText ? (
+                <IconButton
+                  size="sm"
+                  variant="glass"
+                  className="!h-7 !w-7 shrink-0 self-center"
+                  onClick={() =>
+                    tts.replay({
+                      voiceURI: settings.language.ttsVoiceUri ?? undefined,
+                    })
+                  }
+                  disabled={tts.speaking}
+                  label="Replay spoken message"
+                  icon={
+                    tts.speaking ? (
+                      <Volume2 className="h-3.5 w-3.5" aria-hidden />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                    )
+                  }
+                />
+              ) : null}
+            </div>
             {canUndoLast ? (
               <button
                 type="button"
@@ -345,60 +433,6 @@ export function TranscriptionCard() {
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                 Not what I meant
               </button>
-            ) : null}
-            <InterpretationAlternates
-              alternates={currentInterpretation.alternates}
-              onSelect={handleSelectAlternate}
-            />
-            <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
-              <span className="inline-flex min-w-0 items-center gap-1 truncate">
-                <Cpu className="h-3 w-3 shrink-0" aria-hidden />
-                <span className="truncate">
-                  {[
-                    currentInterpretation.model !== 'OLLAMA'
-                      ? MODEL_LABELS[currentInterpretation.model]?.label ??
-                        'AI'
-                      : '',
-                    currentInterpretation.visionUsed ? 'vision' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="shrink-0 tabular-nums">
-                  {currentInterpretation.latencyMs} ms
-                </span>
-                {tts.supported && tts.lastSpokenText ? (
-                  <IconButton
-                    size="sm"
-                    variant="glass"
-                    className="!h-7 !w-7"
-                    onClick={() =>
-                      tts.replay({
-                        voiceURI: settings.language.ttsVoiceUri ?? undefined,
-                      })
-                    }
-                    disabled={tts.speaking}
-                    label="Replay spoken message"
-                    icon={
-                      tts.speaking ? (
-                        <Volume2 className="h-3.5 w-3.5" aria-hidden />
-                      ) : (
-                        <RotateCcw className="h-3.5 w-3.5" aria-hidden />
-                      )
-                    }
-                  />
-                ) : null}
-              </span>
-            </div>
-            {(currentInterpretation.contributingChannels ?? []).length ? (
-              <p className="text-[10px] text-muted">
-                Channels:{' '}
-                {currentInterpretation.contributingChannels
-                  .map((channel) => channel.replace('_', ' '))
-                  .join(', ')}
-              </p>
             ) : null}
           </>
         ) : !lastError ? (

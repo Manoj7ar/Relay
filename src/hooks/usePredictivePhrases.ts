@@ -5,6 +5,10 @@ import { formatConversationTailForPrompt } from '@/lib/conversationContext';
 import { isOllamaConfigured } from '@/lib/ollamaConfig';
 import { fetchPredictivePhrases } from '@/services/interpretation/predictivePhrases';
 
+const TOP_N = 3;
+const DEBOUNCE_INTERIM_MS = 420;
+const DEBOUNCE_HISTORY_MS = 650;
+
 function timeOfDayLabel(): 'morning' | 'afternoon' | 'evening' | 'night' {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return 'morning';
@@ -26,7 +30,7 @@ export function usePredictivePhrases() {
       settings.profile.personalPhrases
         .map((p) => p.trim())
         .filter(Boolean)
-        .slice(0, 5),
+        .slice(0, TOP_N),
     [settings.profile.personalPhrases],
   );
 
@@ -52,6 +56,11 @@ export function usePredictivePhrases() {
 
     const tail = formatConversationTailForPrompt(state.history);
     const last = state.history[0];
+    const partial =
+      state.isListening && state.interimTranscript.trim()
+        ? state.interimTranscript.trim()
+        : undefined;
+    const delay = partial ? DEBOUNCE_INTERIM_MS : DEBOUNCE_HISTORY_MS;
     const runId = ++abortRef.current;
 
     const timer = window.setTimeout(() => {
@@ -65,10 +74,15 @@ export function usePredictivePhrases() {
         patientLanguage: settings.language.primaryLanguage,
         caregiverLanguage: settings.language.caregiverLanguage,
         timeOfDay: timeOfDayLabel(),
+        partialTranscript: partial,
       })
         .then((next) => {
           if (abortRef.current !== runId) return;
-          setPhrases(next.length > 0 ? next : staticPhrases);
+          const trimmed = next
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .slice(0, TOP_N);
+          setPhrases(trimmed.length > 0 ? trimmed : staticPhrases);
         })
         .catch(() => {
           if (abortRef.current !== runId) return;
@@ -77,7 +91,7 @@ export function usePredictivePhrases() {
         .finally(() => {
           if (abortRef.current === runId) setLoading(false);
         });
-    }, 650);
+    }, delay);
 
     return () => {
       window.clearTimeout(timer);
@@ -90,6 +104,8 @@ export function usePredictivePhrases() {
     settings.language.primaryLanguage,
     settings.language.caregiverLanguage,
     state.isProcessing,
+    state.isListening,
+    state.interimTranscript,
     state.history,
     staticPhrases,
   ]);

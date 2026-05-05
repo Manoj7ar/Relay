@@ -35,7 +35,7 @@ import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
 import { incrementConfirmation, listEntries } from '@/lib/patientDictionary';
 import { applyUrgencyGuard } from '@/lib/urgencyGuard';
 import type { DictionaryEntry, SignalModality } from '@/types/dictionary';
-import type { Mood, Urgency } from '@/types/model';
+import type { InferenceTelemetry, Mood, Urgency } from '@/types/model';
 import { chooseModel, type RoutingDecision } from '../modelRouter';
 import type {
   InterpretationInput,
@@ -624,13 +624,23 @@ interface OllamaGenerateRequest {
   images?: string[];
 }
 
+/** Final-line stats from Ollama `/api/generate` NDJSON stream (`done: true`). */
+export interface OllamaStreamStats {
+  prompt_eval_count?: number;
+  eval_count?: number;
+  /** Nanoseconds spent generating output tokens. */
+  eval_duration?: number;
+  prompt_eval_duration?: number;
+  total_duration?: number;
+}
+
 async function callOllamaStreaming(
   ollamaBase: string,
   modelName: string,
   prompt: string,
   onChunk: ((partialPrimaryText: string) => void) | undefined,
   imageDataUrl: string | undefined,
-): Promise<string> {
+): Promise<{ full: string; stats?: OllamaStreamStats }> {
   const body: OllamaGenerateRequest = {
     model: modelName,
     prompt,
@@ -673,6 +683,7 @@ async function callOllamaStreaming(
   let full = '';
   let pending = '';
   let lastPushed = '';
+  let finalStats: OllamaStreamStats | undefined;
 
   try {
     while (true) {
@@ -689,7 +700,21 @@ async function callOllamaStreaming(
             const parsed = JSON.parse(line) as {
               response?: string;
               done?: boolean;
+              prompt_eval_count?: number;
+              eval_count?: number;
+              eval_duration?: number;
+              prompt_eval_duration?: number;
+              total_duration?: number;
             };
+            if (parsed.done === true) {
+              finalStats = {
+                prompt_eval_count: parsed.prompt_eval_count,
+                eval_count: parsed.eval_count,
+                eval_duration: parsed.eval_duration,
+                prompt_eval_duration: parsed.prompt_eval_duration,
+                total_duration: parsed.total_duration,
+              };
+            }
             if (typeof parsed.response === 'string') {
               full += parsed.response;
               if (onChunk) {
@@ -716,7 +741,7 @@ async function callOllamaStreaming(
     clearTimeout(timeoutId);
   }
 
-  return full;
+  return { full, stats: finalStats };
 }
 
 export function buildInferenceRequest(input: InterpretationInput) {
@@ -760,7 +785,7 @@ async function interpret(
   const prompt = buildPrompt(input, dictionaryEntries);
   const t0 = Date.now();
 
-  const rawResponse = await callOllamaStreaming(
+  const { full: rawResponse, stats } = await callOllamaStreaming(
     ollamaBase,
     modelName,
     prompt,
@@ -768,6 +793,33 @@ async function interpret(
     input.imageDataUrl,
   );
   const latencyMs = Date.now() - t0;
+
+  const completionMsNs = stats?.eval_duration;
+  const completionMs =
+    completionMsNs != null && completionMsNs > 0 ? completionMsNs / 1e6 : undefined;
+  const completionTokens = stats?.eval_count;
+  const promptTokens = stats?.prompt_eval_count;
+  let tokensPerSecond: number | undefined;
+  if (
+    completionTokens != null &&
+    completionMs != null &&
+    completionMs > 0
+  ) {
+    tokensPerSecond = (completionTokens / completionMs) * 1000;
+  }
+  const telemetry: InferenceTelemetry = {
+    provider: 'ollama',
+    modelLabel: modelName,
+    promptTokens,
+    completionTokens,
+    totalTokens:
+      promptTokens != null && completionTokens != null
+        ? promptTokens + completionTokens
+        : undefined,
+    completionMs: completionMs != null ? Math.round(completionMs) : undefined,
+    wallClockMs: latencyMs,
+    tokensPerSecond,
+  };
 
   const parsed = parseGemmaResponse(rawResponse, input, allowedDictionaryIds);
   const guardedUrgency = applyUrgencyGuard(parsed.urgency, input.transcript);
@@ -847,6 +899,7 @@ async function interpret(
     visionUsed: Boolean(input.imageDataUrl),
     dictionaryMatchIds: parsed.dictionaryMatchIds,
     contributingChannels: getContributingChannels(input),
+    telemetry,
     sourceFragment:
       input.transcript?.slice(0, 60) ??
       input.symbols?.join(', ') ??

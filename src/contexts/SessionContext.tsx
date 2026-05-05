@@ -83,6 +83,7 @@ const INITIAL: SessionState = {
   lastInputSnapshot: null,
   lastError: null,
   lastCloudAiSuccessAt: null,
+  requestStartedAt: null,
 };
 
 function reducer(state: SessionState, action: Action): SessionState {
@@ -95,6 +96,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         interimTranscript: '',
         pendingImage: null,
         sessionInferredSpeaker: null,
+        requestStartedAt: null,
       };
     case 'SET_SESSION_INFERRED_SPEAKER':
       return { ...state, sessionInferredSpeaker: action.role };
@@ -117,6 +119,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         isListening: false,
         interimTranscript: '',
         lastError: null,
+        requestStartedAt: Date.now(),
       };
     case 'SET_INTERPRETATION':
       return {
@@ -129,6 +132,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         ),
         interimTranscript: '',
         lastError: null,
+        requestStartedAt: null,
         lastCloudAiSuccessAt:
           action.interpretation.model === 'OLLAMA'
             ? Date.now()
@@ -169,9 +173,15 @@ function reducer(state: SessionState, action: Action): SessionState {
         currentInterpretation: null,
         isProcessing: false,
         interimTranscript: '',
+        requestStartedAt: null,
       };
     case 'SET_ERROR':
-      return { ...state, lastError: action.error, isProcessing: false };
+      return {
+        ...state,
+        lastError: action.error,
+        isProcessing: false,
+        requestStartedAt: null,
+      };
     case 'PUSH_HISTORY':
       return { ...state, history: [action.record, ...state.history].slice(0, 100) };
     case 'UPDATE_HISTORY':
@@ -235,6 +245,7 @@ function resultToInterpretation(result: InterpretationResult): Interpretation {
     environmentSummary: result.environmentSummary,
     environmentSuggestedPhrases: result.environmentSuggestedPhrases,
     environmentScheduleHints: result.environmentScheduleHints,
+    telemetry: result.telemetry,
   };
 }
 

@@ -51,7 +51,7 @@ export const MIC_COPY: Record<MicUiState, MicCopy> = {
   },
   transcript_ready: {
     label: 'Tap to speak again',
-    hint: 'Confirm or choose an alternate below.',
+    hint: 'Confirm or tap a suggestion below.',
     ariaLabel: 'Start a new message',
   },
   speaking: {

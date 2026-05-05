@@ -6,7 +6,7 @@
  * stays aligned to Relay's JSON contract so the UI stays stable.
  */
 
-import type { Mood, Urgency } from '@/types/model';
+import type { InferenceTelemetry, Mood, Urgency } from '@/types/model';
 import type { DictionaryEntry } from '@/types/dictionary';
 import { GemmaInterpreterAdapter } from './interpretation/GemmaInterpreterAdapter';
 
@@ -90,7 +90,10 @@ export interface InterpretationResult {
   environmentSummary?: string;
   environmentSuggestedPhrases?: string[];
   environmentScheduleHints?: string[];
+  telemetry?: InferenceTelemetry;
 }
+
+export type { InferenceTelemetry };
 
 export interface InterpreterAdapter {
   readonly id: string;

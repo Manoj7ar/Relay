@@ -56,4 +56,6 @@ export interface SessionState {
    * Keeps the connection badge aligned when the periodic health probe fails briefly.
    */
   lastCloudAiSuccessAt: number | null;
+  /** Set when an interpretation request starts; drives the live timer pill. */
+  requestStartedAt: number | null;
 }

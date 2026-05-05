@@ -55,6 +55,10 @@ export default {
         'route-fade': 'routeFade 200ms var(--ease-out) both',
         'scale-in': 'scaleIn 200ms var(--ease-out) both',
         'slide-up': 'slideUp 280ms var(--ease-out) both',
+        'transcript-out':
+          'transcriptOut 360ms var(--ease-out) forwards',
+        'transcript-demote':
+          'transcriptDemote 500ms var(--ease-out) both',
         'sheet-in': 'sheetIn 260ms var(--ease-out) both',
         pulse2: 'pulse2 1.6s ease-in-out infinite',
         'listen-glow': 'listenGlow 1.85s ease-in-out infinite',
@@ -84,6 +88,14 @@ export default {
         slideUp: {
           '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        transcriptOut: {
+          '0%': { opacity: '0.6', transform: 'translateY(0)' },
+          '100%': { opacity: '0', transform: 'translateY(-12px)' },
+        },
+        transcriptDemote: {
+          '0%': { opacity: '1', transform: 'translateY(40%) scale(1.06)' },
+          '100%': { opacity: '0.6', transform: 'translateY(0) scale(1)' },
         },
         sheetIn: {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
