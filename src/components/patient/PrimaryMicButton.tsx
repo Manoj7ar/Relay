@@ -162,7 +162,7 @@ export function PrimaryMicButton() {
             error: {
               code: 'speech_recognition',
               title: 'Could not transcribe audio',
-              hint: 'Check your Ollama API key and network, configure local STT (VITE_RELAY_LOCAL_STT_URL), or use Type instead.',
+              hint: 'Configure the local STT sidecar (set VITE_RELAY_LOCAL_STT_URL and run npm run local-stt), or use Type instead.',
             },
           });
           return;
@@ -212,7 +212,7 @@ export function PrimaryMicButton() {
         error: {
           code: 'speech_recognition',
           title: 'Audio recording is unavailable',
-          hint: 'This browser cannot record audio for Ollama. Use Type instead.',
+          hint: 'This browser cannot record audio for the local STT sidecar. Use Type instead.',
         },
       });
       return;

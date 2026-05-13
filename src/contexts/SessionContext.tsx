@@ -2,11 +2,10 @@
  * Session state: interpretations, history, listening/processing.
  *
  * All "raw input → interpreted phrase" calls go through
- * `interpretationService.interpret` (Ollama). When the
- * provider is unreachable, interpret() throws the provider error; we surface
- * `state.lastError` (title + hint +
- * optional technical) so the
- * UI can show an honest "not connected" state instead of a fake answer.
+ * `interpretationService.interpret` (local Ollama / Gemma). When Ollama is
+ * unreachable, interpret() throws `GemmaNotConnectedError`; we surface
+ * `state.lastError` (title + hint + optional technical) so the UI can show an
+ * honest "not connected" state instead of a fake answer.
  *
  * See docs/ARCHITECTURE.md + docs/GEMMA_AND_INTEGRATIONS.md.
  */
@@ -82,7 +81,7 @@ const INITIAL: SessionState = {
   pendingImage: null,
   lastInputSnapshot: null,
   lastError: null,
-  lastCloudAiSuccessAt: null,
+  lastInterpretationSuccessAt: null,
   requestStartedAt: null,
 };
 
@@ -133,10 +132,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         interimTranscript: '',
         lastError: null,
         requestStartedAt: null,
-        lastCloudAiSuccessAt:
-          action.interpretation.model === 'OLLAMA'
-            ? Date.now()
-            : state.lastCloudAiSuccessAt,
+        lastInterpretationSuccessAt: Date.now(),
       };
     case 'APPLY_ALTERNATE':
       if (!state.currentInterpretation) return state;
@@ -234,7 +230,7 @@ function resultToInterpretation(result: InterpretationResult): Interpretation {
     ttsLang: result.ttsLang,
     bilingualAmbiguous: result.bilingualAmbiguous,
     inferredSpeaker: result.inferredSpeaker,
-    model: isModelId(result.sourceModel) ? result.sourceModel : 'OLLAMA',
+    model: isModelId(result.sourceModel) ? result.sourceModel : 'E2B',
     latencyMs: result.latencyMs,
     inputType,
     visionUsed: result.visionUsed,
@@ -250,9 +246,7 @@ function resultToInterpretation(result: InterpretationResult): Interpretation {
 }
 
 function isModelId(value: string): value is ModelId {
-  return (
-    value === 'E2B' || value === 'E4B' || value === '27B' || value === 'OLLAMA'
-  );
+  return value === 'E2B' || value === 'E4B' || value === '27B';
 }
 
 function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {

@@ -3,7 +3,6 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { useSession } from '@/contexts/SessionContext';
 import { useHaptics } from '@/hooks/useHaptics';
 import { usePredictivePhrases } from '@/hooks/usePredictivePhrases';
-import { isOllamaConfigured } from '@/lib/ollamaConfig';
 import { cn } from '@/lib/cn';
 
 const TOP = 3;
@@ -146,11 +145,6 @@ export function PredictivePhraseRow() {
             </button>
           ))}
         </div>
-        {!isOllamaConfigured() && top.length > 0 ? (
-          <p className="mt-2 px-0.5 text-center text-[10px] leading-snug text-muted">
-            Add VITE_RELAY_OLLAMA_BASE_URL for AI suggestions; showing your shortcuts only.
-          </p>
-        ) : null}
       </div>
     </section>
   );

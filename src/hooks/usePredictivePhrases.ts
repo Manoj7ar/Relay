@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useSession } from '@/contexts/SessionContext';
 import { formatConversationTailForPrompt } from '@/lib/conversationContext';
-import { isOllamaConfigured } from '@/lib/ollamaConfig';
 import { fetchPredictivePhrases } from '@/services/interpretation/predictivePhrases';
 
 const TOP_N = 3;
@@ -45,11 +44,6 @@ export function usePredictivePhrases() {
     }
 
     if (!latestId) {
-      setPhrases(staticPhrases);
-      return;
-    }
-
-    if (!isOllamaConfigured()) {
       setPhrases(staticPhrases);
       return;
     }

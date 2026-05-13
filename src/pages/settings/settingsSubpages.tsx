@@ -67,13 +67,13 @@ export function SettingsModelsPage() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <SettingsSubpageHeader
           title="Models & connectivity"
-          subtitle="Network status, Ollama model, and a quick connection test."
+          subtitle="Local Ollama server, model tiers, and a quick connection test."
         />
         <div className="min-h-0 flex-1 overflow-y-auto pb-8 pt-3">
           <SettingsStack>
             <SettingsSection
               title="Connectivity"
-              description="Whether the device sees the internet for Ollama."
+              description="Whether the browser can reach the Ollama host (localhost or LAN)."
             >
               <OfflineStatusPanel embedded />
             </SettingsSection>
@@ -97,7 +97,7 @@ export function SettingsRoutingPage() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <SettingsSubpageHeader
           title="Routing log"
-          subtitle="Recent Ollama interpretation and tool calls for debugging."
+          subtitle="Recent Ollama interpretations and handover tool steps, for debugging."
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-6 pt-3">
           <RoutingLog compact />

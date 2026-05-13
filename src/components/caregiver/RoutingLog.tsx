@@ -12,14 +12,12 @@ type ModelFilter = 'all' | ModelId;
 
 const FILTERS: { value: ModelFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'OLLAMA', label: 'Ollama' },
   { value: 'E2B', label: 'E2B' },
   { value: 'E4B', label: 'E4B' },
   { value: '27B', label: '27B' },
 ];
 
 const TIER_BAR: Record<ModelId, string> = {
-  OLLAMA: 'bg-[var(--accent)]',
   E2B: 'bg-emerald-500',
   E4B: 'bg-sky-500',
   '27B': 'bg-violet-500',

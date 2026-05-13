@@ -12,112 +12,127 @@ import {
   SettingsStack,
 } from '@/components/settings/SettingsShell';
 import {
-  DEFAULT_OLLAMA_MODEL,
-  DEFAULT_OLLAMA_STT_MODEL,
-  DEFAULT_OLLAMA_VISION_MODEL,
-  GemmaNotConnectedError,
-  getOllamaModel,
-  getOllamaSttModel,
-  getOllamaVisionModel,
-  isOllamaConfigured,
-} from '@/lib/ollamaConfig';
-import { checkOllamaModel } from '@/services/interpretation/ollamaApi';
+  OLLAMA_MODEL_DEFAULT_TAG,
+  getOllamaModelTagForTier,
+  readOllamaModelOverrideRaw,
+} from '@/lib/ollamaModelConfig';
+import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
 
 type TestStatus =
   | { kind: 'idle' }
   | { kind: 'checking' }
-  | { kind: 'ok' }
+  | { kind: 'ok'; tags: string[] }
   | { kind: 'fail'; message: string };
+
+const TIER_LABELS: Record<'E2B' | 'E4B' | '27B', string> = {
+  E2B: 'Real-time tier',
+  E4B: 'Fine-tuned tier',
+  '27B': 'Reasoning / vision tier',
+};
+
+interface OllamaTagsResponse {
+  models?: Array<{ name?: string }>;
+}
+
+async function probeOllama(baseUrl: string): Promise<string[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const res = await fetch(`${baseUrl}/api/tags`, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const body = (await res.json()) as OllamaTagsResponse;
+    const tags = (body.models ?? [])
+      .map((entry) => (entry.name ?? '').trim())
+      .filter(Boolean);
+    return tags;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export function ModelConfigPanel() {
   const [status, setStatus] = useState<TestStatus>({ kind: 'idle' });
-  const model = getOllamaModel();
-  const visionModel = getOllamaVisionModel();
-  const sttModel = getOllamaSttModel();
-  const configured = isOllamaConfigured();
+  const baseUrl = getResolvedOllamaBaseUrl();
+  const fastTag = getOllamaModelTagForTier('E2B');
+  const fineTag = getOllamaModelTagForTier('E4B');
+  const reasoningTag = getOllamaModelTagForTier('27B');
 
   useEffect(() => {
     setStatus({ kind: 'idle' });
-  }, [model, visionModel, sttModel, configured]);
+  }, [baseUrl, fastTag, fineTag, reasoningTag]);
 
   const testOllama = useCallback(async () => {
     setStatus({ kind: 'checking' });
     try {
-      await checkOllamaModel();
-      setStatus({ kind: 'ok' });
+      const tags = await probeOllama(baseUrl);
+      setStatus({ kind: 'ok', tags });
     } catch (err) {
       const message =
-        err instanceof GemmaNotConnectedError
-          ? err.surface.hint ?? err.surface.title
-          : err instanceof Error
-            ? err.message
-            : 'Ollama is not reachable.';
+        err instanceof Error
+          ? err.message
+          : 'Ollama is not reachable.';
       setStatus({ kind: 'fail', message });
     }
-  }, []);
+  }, [baseUrl]);
+
+  const tiers: Array<['E2B' | 'E4B' | '27B', string, string]> = [
+    ['E2B', TIER_LABELS.E2B, fastTag],
+    ['E4B', TIER_LABELS.E4B, fineTag],
+    ['27B', TIER_LABELS['27B'], reasoningTag],
+  ];
 
   return (
     <SettingsStack className="text-sm">
       <SettingsSection
-        title="Ollama"
-        description="Patient interpretation and caregiver handover use Ollama (OpenAI-compatible API). Dev server proxies /__ollama to localhost:11434."
+        title="Local Ollama"
+        description="Patient interpretation, predictive phrases, bilingual coach, session insight, and the caregiver handover all run against your local Ollama server. No cloud LLM is contacted."
       >
         <SettingsControlCard className="space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-text">
             <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Model
+            Server URL
           </div>
           <p className="break-words font-mono text-[11px] leading-snug text-text">
-            {model}
+            {baseUrl}
           </p>
           <p className="text-[10px] leading-snug text-muted">
-            {model === DEFAULT_OLLAMA_MODEL
-              ? 'Default unless VITE_RELAY_OLLAMA_MODEL is set.'
-              : 'From VITE_RELAY_OLLAMA_MODEL in .env.local.'}
+            Resolved from Settings → Models &amp; connectivity, or the built-in
+            localhost default.
           </p>
-          <div className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-text">
-            <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Vision model
-          </div>
-          <p className="break-words font-mono text-[11px] leading-snug text-text">
-            {visionModel}
-          </p>
-          <p className="text-[10px] leading-snug text-muted">
-            Used when a photo is sent with the message. Override with{' '}
-            <code className="rounded bg-black/5 px-1">VITE_RELAY_OLLAMA_VISION_MODEL</code>
-            {visionModel === DEFAULT_OLLAMA_VISION_MODEL
-              ? ' (shown value is the built-in default).'
-              : ' in .env.local.'}
-          </p>
-          <div className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-text">
-            <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Speech-to-text (tap mic)
-          </div>
-          <p className="break-words font-mono text-[11px] leading-snug text-text">
-            {sttModel}
-          </p>
-          <p className="text-[10px] leading-snug text-muted">
-            Ollama Whisper before chat interpret. Override with{' '}
-            <code className="rounded bg-black/5 px-1">VITE_RELAY_LOCAL_STT_MODEL</code>
-            {sttModel === DEFAULT_OLLAMA_STT_MODEL
-              ? ' (built-in default).'
-              : ' in .env.local.'}
-          </p>
-          {!configured ? (
-            <p className="rounded-xl2 border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] p-2 text-[11px] leading-snug text-[var(--danger)]">
-              Set <code className="rounded bg-black/5 px-1">VITE_RELAY_OLLAMA_BASE_URL</code> in{' '}
-              <code className="rounded bg-black/5 px-1">.env.local</code> and restart{' '}
-              <code className="rounded bg-black/5 px-1">npm run dev</code>.
-            </p>
-          ) : null}
         </SettingsControlCard>
+
+        {tiers.map(([tier, label, tag]) => {
+          const overridden = readOllamaModelOverrideRaw(tier).trim().length > 0;
+          return (
+            <SettingsControlCard key={tier} className="space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-text">
+                <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {label}
+              </div>
+              <p className="break-words font-mono text-[11px] leading-snug text-text">
+                {tag}
+              </p>
+              <p className="text-[10px] leading-snug text-muted">
+                {overridden
+                  ? `Override stored locally; default is ${OLLAMA_MODEL_DEFAULT_TAG[tier]}.`
+                  : 'Default tag — pull this image with `ollama pull` to enable this tier.'}
+              </p>
+            </SettingsControlCard>
+          );
+        })}
       </SettingsSection>
 
       <SettingsSection title="Connection test">
         <SettingsControlCard className="space-y-2">
           <p className="text-[10px] leading-snug text-muted">
-            Sends a tiny text-only request using your <strong className="font-semibold">text</strong>{' '}
-            model ({model}). It does not exercise the vision model.
+            Pings <code className="rounded bg-black/5 px-1">/api/tags</code> on
+            your Ollama server and lists installed model tags so you can confirm
+            the tags above are pulled.
           </p>
           <PillButton
             size="sm"
@@ -142,7 +157,9 @@ export function ModelConfigPanel() {
                 Ollama reachable
               </p>
               <p className="mt-1 break-words font-mono text-[10px] text-muted">
-                {model}
+                {status.tags.length > 0
+                  ? status.tags.join(', ')
+                  : 'No models pulled yet — run `ollama pull <tag>`.'}
               </p>
             </div>
           ) : status.kind === 'fail' ? (
@@ -152,6 +169,11 @@ export function ModelConfigPanel() {
                 Ollama not ready
               </p>
               <p className="mt-1 text-text">{status.message}</p>
+              <p className="mt-1 text-[10px] text-muted">
+                Make sure <code className="rounded bg-black/5 px-1">ollama serve</code>{' '}
+                is running and that this browser can reach{' '}
+                <code className="rounded bg-black/5 px-1">{baseUrl}</code>.
+              </p>
             </div>
           ) : null}
         </SettingsControlCard>

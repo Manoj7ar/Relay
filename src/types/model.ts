@@ -1,4 +1,4 @@
-export type ModelId = 'E2B' | 'E4B' | '27B' | 'OLLAMA';
+export type ModelId = 'E2B' | 'E4B' | '27B';
 
 export type InputType = 'speech' | 'symbols' | 'vision+speech' | 'text' | 'compound';
 
@@ -8,10 +8,10 @@ export type Mood = 'calm' | 'distressed' | 'frustrated' | 'in-pain';
 
 export type InferenceSpeakerRole = 'patient' | 'caregiver';
 
-/** Token / timing readout from Ollama or Ollama for the interpretation card pill. */
+/** Token / timing readout from local Ollama for the interpretation card pill. */
 export interface InferenceTelemetry {
-  provider: 'ollama' | 'ollama';
-  /** Model id string, e.g. chat model id or Ollama tag. */
+  provider: 'ollama';
+  /** Model id string, e.g. Ollama image tag. */
   modelLabel: string;
   promptTokens?: number;
   completionTokens?: number;
@@ -98,11 +98,6 @@ export interface ModelLabel {
 }
 
 export const MODEL_LABELS: Record<ModelId, ModelLabel> = {
-  OLLAMA: {
-    id: 'OLLAMA',
-    label: 'Ollama',
-    description: 'Hosted Ollama chat (OpenAI-compatible) for interpretation.',
-  },
   E2B: {
     id: 'E2B',
     label: 'E2B — real time',

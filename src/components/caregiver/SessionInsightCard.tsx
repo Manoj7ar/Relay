@@ -5,7 +5,6 @@ import { useCaregiverSessionSlices } from '@/hooks/useCaregiverSessionSlices';
 import { sessionErrorFromUnknown } from '@/lib/sessionInterpretationError';
 import { generateSessionInsight } from '@/services/caregiver/sessionInsight';
 import type { SessionInsightPayload } from '@/types/relayAi';
-import { isOllamaConfigured } from '@/lib/ollamaConfig';
 
 export function SessionInsightCard() {
   const { today, distressPattern } = useCaregiverSessionSlices();
@@ -19,10 +18,6 @@ export function SessionInsightCard() {
   const highCount = today.filter((h) => h.urgency === 'HIGH').length;
 
   const run = useCallback(async () => {
-      if (!isOllamaConfigured()) {
-        setError('Add VITE_RELAY_OLLAMA_BASE_URL to enable session insights.');
-        return;
-      }
       setLoading(true);
       setError(null);
       try {

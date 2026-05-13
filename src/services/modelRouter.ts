@@ -16,10 +16,8 @@ import type {
   RoutingLogEntry,
 } from '@/types/model';
 
-type RoutedGemmaModelId = Exclude<ModelId, 'OLLAMA'>;
-
 export interface RoutingDecision {
-  model: RoutedGemmaModelId;
+  model: ModelId;
   reason: string;
 }
 

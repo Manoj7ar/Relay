@@ -1,6 +1,6 @@
 import type { ModelId } from '@/types/model';
 
-type OllamaTier = Exclude<ModelId, 'OLLAMA'>;
+type OllamaTier = ModelId;
 
 /** localStorage keys for optional per-tier Ollama image tags. */
 export const OLLAMA_MODEL_STORAGE_KEY: Record<OllamaTier, string> = {

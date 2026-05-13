@@ -1,7 +1,9 @@
-import { GemmaNotConnectedError } from '@/lib/ollamaConfig';
 import type { InteractionRecord } from '@/types/session';
 import type { SessionInsightPayload } from '@/types/relayAi';
-import { completeOllamaJsonTask, parseOllamaJsonObject } from '@/services/interpretation/ollamaApi';
+import {
+  completeOllamaJsonTask,
+  parseOllamaJsonObject,
+} from '@/services/interpretation/ollamaJson';
 
 function linesFromToday(records: InteractionRecord[], max = 12): string {
   const slice = records.slice(0, max);
@@ -31,37 +33,29 @@ export async function generateSessionInsight(input: {
   highUrgencyCount: number;
   distressSummary?: string;
 }): Promise<SessionInsightPayload> {
-  if (!String(import.meta.env.VITE_RELAY_OLLAMA_BASE_URL ?? '').trim()) {
-    throw new GemmaNotConnectedError();
-  }
-
   const lines = linesFromToday(input.today);
 
-  return completeOllamaJsonTask<SessionInsightPayload>({
-    maxTokens: 400,
-    temperature: 0.2,
-    messages: [
-      {
-        role: 'system',
-        content: `You help nurses and family understand a resident's communication session from short interpreted lines.
+  const prompt = `You help nurses and family understand a resident's communication session from short interpreted lines.
 Return ONLY valid JSON with keys: headline (string), watchFor (array of strings), suggestedQuestions (array), continuity (array), disclaimer (string).
 Rules:
 - Non-diagnostic: no medical labels, no medication dosing, no diagnoses
 - Practical, respectful, concise bullets
 - disclaimer must state observations are from Relay interpretations, not clinical assessment
-- If there is no data, still return helpful generic continuity (e.g. "No interpretations yet today")`,
-      },
-      {
-        role: 'user',
-        content: `Today's interpreted lines (newest first, truncated):
+- If there is no data, still return helpful generic continuity (e.g. "No interpretations yet today")
+
+Today's interpreted lines (newest first, truncated):
 ${lines || '(none yet)'}
 
 Count of HIGH urgency lines today: ${input.highUrgencyCount}
 Distress heuristic summary: ${input.distressSummary?.trim() || '(none)'}
 
-Produce the JSON object.`,
-      },
-    ],
+Produce the JSON object.`;
+
+  return completeOllamaJsonTask<SessionInsightPayload>({
+    prompt,
+    tier: 'E4B',
+    numPredict: 480,
+    temperature: 0.2,
     parse: (raw) => {
       const o = parseOllamaJsonObject<Record<string, unknown>>(raw);
       const headline =

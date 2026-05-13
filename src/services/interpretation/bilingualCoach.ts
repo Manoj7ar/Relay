@@ -1,6 +1,5 @@
-import { GemmaNotConnectedError } from '@/lib/ollamaConfig';
 import type { BilingualCoachPayload } from '@/types/relayAi';
-import { completeOllamaJsonTask, parseOllamaJsonObject } from './ollamaApi';
+import { completeOllamaJsonTask, parseOllamaJsonObject } from './ollamaJson';
 
 export async function fetchBilingualCoachQuestion(input: {
   patientLanguage: string;
@@ -8,29 +7,20 @@ export async function fetchBilingualCoachQuestion(input: {
   primaryLine: string;
   partnerLine?: string;
 }): Promise<string | null> {
-  if (!String(import.meta.env.VITE_RELAY_OLLAMA_BASE_URL ?? '').trim()) {
-    throw new GemmaNotConnectedError();
-  }
+  const prompt = `You help when two languages are configured and Relay is unsure which was spoken. Output ONLY JSON: {"question":"..."} — one short clarifying question the listener can ask (no diagnosis, under 140 chars).
 
-  const payload = await completeOllamaJsonTask<BilingualCoachPayload>({
-    maxTokens: 120,
-    temperature: 0.2,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You help when two languages are configured and Relay is unsure which was spoken. Output ONLY JSON: {"question":"..."} — one short clarifying question the listener can ask (no diagnosis, under 140 chars).',
-      },
-      {
-        role: 'user',
-        content: `Patient language tag: ${input.patientLanguage}
+Patient language tag: ${input.patientLanguage}
 Caregiver language tag: ${input.caregiverLanguage}
 Resident-facing line: ${input.primaryLine}
 Partner line (if any): ${input.partnerLine ?? '(none)'}
 
-Return {"question":"..."}.`,
-      },
-    ],
+Return {"question":"..."}.`;
+
+  const payload = await completeOllamaJsonTask<BilingualCoachPayload>({
+    prompt,
+    tier: 'E2B',
+    numPredict: 120,
+    temperature: 0.2,
     parse: (raw) => {
       const o = parseOllamaJsonObject<{ question?: unknown }>(raw);
       const q =

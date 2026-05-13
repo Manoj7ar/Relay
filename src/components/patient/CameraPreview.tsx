@@ -22,7 +22,7 @@ interface CameraPreviewProps {
  * capture, the live camera stops and the vision toggle turns off; the home
  * card shows the thumbnail until you send (mic or type) or remove it.
  * `submit()` merges the photo with speech/text into one multimodal
- * `interpret()` call for Ollama.
+ * `interpret()` call against local Ollama (Gemma vision tier).
  */
 export function CameraPreview({ active, onToggleOff, compact }: CameraPreviewProps) {
   const permissions = usePermissions('camera');

@@ -1,9 +1,9 @@
 /**
  * Single "raw input → interpreted phrase" entry point.
  *
- * All UI + contexts call `interpret(input)`. This build routes patient
- * interpretation through **Ollama** (OpenAI-compatible chat). The returned shape
- * stays aligned to Relay's JSON contract so the UI stays stable.
+ * All UI + contexts call `interpret(input)`. This build routes every patient
+ * interpretation through **local Ollama** via the Gemma adapter. The returned
+ * shape stays aligned to Relay's JSON contract so the UI stays stable.
  */
 
 import type { InferenceTelemetry, Mood, Urgency } from '@/types/model';
@@ -72,7 +72,7 @@ export interface InterpretationResult {
   ttsLang: string;
   /** Model could not confidently match detectedLanguage to either configured language. */
   bilingualAmbiguous: boolean;
-  /** Hosted adapter id — `OLLAMA` for this build. */
+  /** Local Ollama tier id chosen by the deterministic router (`E2B` / `E4B` / `27B`). */
   sourceModel: string;
   sourceType: InterpretationSourceType;
   /** For the routing log. */

@@ -54,10 +54,10 @@ export function DeveloperPanel() {
         'navigator.permissions (with graceful fallback) + denied recovery copy.',
     },
     {
-      label: 'Ollama interpretation',
+      label: 'Local Ollama interpretation',
       status: 'real',
       detail:
-        'GemmaInterpreterAdapter — OpenAI-compatible chat completions (stream + JSON); GemmaNotConnectedError when unreachable.',
+        'GemmaInterpreterAdapter — POST /api/generate with stream + format:json; GemmaNotConnectedError when unreachable.',
     },
   ];
 
@@ -179,7 +179,7 @@ export function DeveloperPanel() {
 
       <SettingsSection
         title="Capability status"
-        description="What this build wires to real browser APIs and Ollama."
+        description="What this build wires to real browser APIs and local Ollama."
       >
         <SettingsControlCard className="divide-y divide-black/[0.06] p-0">
           {rows.map((row) => (

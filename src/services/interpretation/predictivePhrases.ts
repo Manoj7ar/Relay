@@ -1,6 +1,5 @@
-import { GemmaNotConnectedError } from '@/lib/ollamaConfig';
 import type { PredictivePhrasesPayload } from '@/types/relayAi';
-import { completeOllamaJsonTask, parseOllamaJsonObject } from './ollamaApi';
+import { completeOllamaJsonTask, parseOllamaJsonObject } from './ollamaJson';
 
 const MAX_PHRASES = 3;
 const MAX_LEN = 72;
@@ -30,22 +29,12 @@ export async function fetchPredictivePhrases(input: {
   /** Live speech partial while the mic is on — rank phrases as likely *next* completions. */
   partialTranscript?: string;
 }): Promise<string[]> {
-  if (!String(import.meta.env.VITE_RELAY_OLLAMA_BASE_URL ?? '').trim()) {
-    throw new GemmaNotConnectedError();
-  }
-
   const personal =
     input.personalPhrases.length > 0
       ? input.personalPhrases.map((p) => `"${p}"`).join(', ')
       : '(none)';
 
-  const payload = await completeOllamaJsonTask<PredictivePhrasesPayload>({
-    maxTokens: 220,
-    temperature: 0.35,
-    messages: [
-      {
-        role: 'system',
-        content: `You suggest short next things a non-speaking or speech-impaired resident might want to say to staff or family.
+  const prompt = `You suggest short next things a non-speaking or speech-impaired resident might want to say to staff or family.
 Output ONLY valid JSON: {"phrases":["..."]}
 Rules:
 - Exactly ${MAX_PHRASES} items in "phrases", ranked: index 0 = most likely next thing they would say
@@ -53,11 +42,9 @@ Rules:
 - No medical diagnosis or medication instructions
 - Deduplicate; do not repeat the last line verbatim
 - Mix personal shortcuts when relevant
-- If a partial transcript is given, treat it as what they are currently saying out loud; phrase 0 should feel like the best continuation or completion, not a random topic change`,
-      },
-      {
-        role: 'user',
-        content: `Time of day: ${input.timeOfDay}
+- If a partial transcript is given, treat it as what they are currently saying out loud; phrase 0 should feel like the best continuation or completion, not a random topic change
+
+Time of day: ${input.timeOfDay}
 Patient language (BCP-47): ${input.patientLanguage}
 Caregiver language: ${input.caregiverLanguage}
 Personal phrase shortcuts: ${personal}
@@ -67,9 +54,13 @@ Currently speaking (live partial, may be incomplete): ${input.partialTranscript?
 
 ${input.conversationTail.trim() || 'No recent exchanges.'}
 
-Return {"phrases":[...]} only.`,
-      },
-    ],
+Return {"phrases":[...]} only.`;
+
+  const payload = await completeOllamaJsonTask<PredictivePhrasesPayload>({
+    prompt,
+    tier: 'E2B',
+    numPredict: 220,
+    temperature: 0.35,
     parse: (raw) => {
       const obj = parseOllamaJsonObject<{ phrases?: unknown }>(raw);
       return { phrases: clampPhrases(obj.phrases) };

@@ -52,10 +52,10 @@ export interface SessionState {
   /** Last interpretation error (title + hint; optional technical in UI). */
   lastError: SessionInterpretationError | null;
   /**
-   * Wall-clock ms of the last successful Ollama interpretation (patient flow).
+   * Wall-clock ms of the last successful local Ollama interpretation (patient flow).
    * Keeps the connection badge aligned when the periodic health probe fails briefly.
    */
-  lastCloudAiSuccessAt: number | null;
+  lastInterpretationSuccessAt: number | null;
   /** Set when an interpretation request starts; drives the live timer pill. */
   requestStartedAt: number | null;
 }

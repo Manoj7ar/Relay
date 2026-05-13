@@ -3,7 +3,6 @@ import { Languages } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PillButton } from '@/components/primitives';
 import { fetchBilingualCoachQuestion } from '@/services/interpretation/bilingualCoach';
-import { isOllamaConfigured } from '@/lib/ollamaConfig';
 import { sessionErrorFromUnknown } from '@/lib/sessionInterpretationError';
 
 interface BilingualCoachStripProps {
@@ -26,10 +25,6 @@ export function BilingualCoachStrip({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isOllamaConfigured()) {
-      setQuestion(null);
-      return;
-    }
     let cancelled = false;
     setLoading(true);
     void fetchBilingualCoachQuestion({

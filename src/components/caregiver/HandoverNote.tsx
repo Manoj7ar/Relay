@@ -157,8 +157,9 @@ export function HandoverNote({ patientName, compact }: HandoverNoteProps) {
         </PillButton>
       </div>
       <p className="text-[11px] leading-snug text-muted">
-        Uses Ollama tool calling against local session history, dictionary deltas,
-        alert log, routing log, and a rule-based pattern tool.
+        Local Ollama drafts the note from your on-device session history,
+        dictionary deltas, alert log, routing log, and a rule-based pattern
+        tool. Nothing leaves the device.
       </p>
       {toolEvents.length ? (
         <div className="max-h-28 space-y-1 overflow-y-auto rounded-xl2 bg-black/[0.04] p-2">

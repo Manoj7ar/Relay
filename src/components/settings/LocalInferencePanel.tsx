@@ -9,10 +9,11 @@ export function LocalInferencePanel({ embedded }: { embedded?: boolean }) {
         <ShieldCheck className="h-5 w-5" aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-semibold">Ollama</p>
+        <p className="text-sm font-semibold">Local Ollama</p>
         <p className="text-xs leading-snug text-muted">
-          Relay routes AI features through Ollama. Tap-to-speak uses Ollama Whisper
-          (speech-to-text) then Ollama chat for interpretation.
+          Relay routes every AI feature through your local Ollama server. Audio
+          stays on-device — tap-to-speak uses the browser's Web Speech API and
+          falls back to your optional local STT sidecar.
         </p>
       </div>
     </div>
@@ -24,7 +25,7 @@ export function LocalInferencePanel({ embedded }: { embedded?: boolean }) {
 
   return (
     <Card padded={false} className="min-h-0 space-y-2 p-3">
-      <p className="text-xs font-semibold">Ollama inference</p>
+      <p className="text-xs font-semibold">Local inference</p>
       {body}
     </Card>
   );

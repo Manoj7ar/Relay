@@ -9,17 +9,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  /** Browser → Ollama API is CORS-restricted; dev proxy keeps same-origin fetches. */
-  server: {
-    proxy: {
-      '/__ollama': {
-        target: 'https://localhost:11434',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (p) => p.replace(/^\/__ollama/, ''),
-      },
-    },
-  },
   plugins: [
     react(),
     VitePWA({
@@ -28,15 +17,6 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
         navigateFallback: '/index.html',
-        /** Do not treat the Ollama dev proxy as an SPA navigation or cache it. */
-        navigateFallbackDenylist: [/^\/__ollama/],
-        runtimeCaching: [
-          {
-            urlPattern: ({ request, url }) =>
-              request.method === 'POST' && url.pathname.startsWith('/__ollama'),
-            handler: 'NetworkOnly',
-          },
-        ],
         mode: 'production',
         sourcemap: false,
         inlineWorkboxRuntime: true,

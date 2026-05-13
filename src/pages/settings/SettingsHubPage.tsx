@@ -19,7 +19,7 @@ export function SettingsHubPage() {
       <div className="shrink-0 pt-0.5">
         <PageHeader
           title="Settings"
-          subtitle="Choose a category. This build routes AI through Ollama."
+          subtitle="Choose a category. This build routes every AI feature through your local Ollama server."
         />
       </div>
 
@@ -53,7 +53,7 @@ export function SettingsHubPage() {
             to="/settings/models"
             icon={<Cpu className="h-5 w-5" aria-hidden />}
             title="Models & connectivity"
-            description="Ollama model, online status, and connection test."
+            description="Local Ollama URL, model tiers, and connection test."
           />
         </SettingsHubSection>
 
@@ -62,7 +62,7 @@ export function SettingsHubPage() {
             to="/settings/routing"
             icon={<Activity className="h-5 w-5" aria-hidden />}
             title="Routing log"
-            description="Recent Ollama interpretation and tool calls."
+            description="Recent Ollama interpretations and handover tool steps."
           />
           <SettingsNavRow
             to="/settings/developer"
