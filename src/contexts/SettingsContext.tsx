@@ -165,7 +165,7 @@ function reducer(state: SettingsState, action: Action): SettingsState {
     case 'SET_OLLAMA_BASE_URL':
       return {
         ...state,
-        ollama: { baseUrl: action.value.trim() },
+        ollama: { ...state.ollama, baseUrl: action.value.trim() },
       };
     case 'SET_PERFORMANCE_HUD':
       return {

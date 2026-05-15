@@ -11,12 +11,17 @@ import {
   SettingsSection,
   SettingsStack,
 } from '@/components/settings/SettingsShell';
+import { useSettings } from '@/contexts/SettingsContext';
 import {
   OLLAMA_MODEL_DEFAULT_TAG,
   getOllamaModelTagForTier,
   readOllamaModelOverrideRaw,
 } from '@/lib/ollamaModelConfig';
-import { getResolvedOllamaBaseUrl } from '@/lib/ollamaUrl';
+import {
+  DEFAULT_OLLAMA_BASE_URL,
+  normalizeOllamaBaseUrl,
+  resolveOllamaBaseUrl,
+} from '@/lib/ollamaUrl';
 
 type TestStatus =
   | { kind: 'idle' }
@@ -56,20 +61,52 @@ async function probeOllama(baseUrl: string): Promise<string[]> {
 }
 
 export function ModelConfigPanel() {
+  const { settings, dispatch } = useSettings();
   const [status, setStatus] = useState<TestStatus>({ kind: 'idle' });
-  const baseUrl = getResolvedOllamaBaseUrl();
+  const [draftUrl, setDraftUrl] = useState(settings.ollama.baseUrl);
+  const [urlError, setUrlError] = useState<string | null>(null);
+
+  const storedBase = settings.ollama.baseUrl.trim();
+  const effectiveBaseUrl = resolveOllamaBaseUrl(settings.ollama.baseUrl);
   const fastTag = getOllamaModelTagForTier('E2B');
   const fineTag = getOllamaModelTagForTier('E4B');
   const reasoningTag = getOllamaModelTagForTier('27B');
 
   useEffect(() => {
+    setDraftUrl(settings.ollama.baseUrl);
+  }, [settings.ollama.baseUrl]);
+
+  useEffect(() => {
     setStatus({ kind: 'idle' });
-  }, [baseUrl, fastTag, fineTag, reasoningTag]);
+  }, [effectiveBaseUrl, fastTag, fineTag, reasoningTag]);
+
+  const saveOllamaUrl = useCallback(() => {
+    setUrlError(null);
+    const raw = draftUrl.trim();
+    if (!raw) {
+      dispatch({ type: 'SET_OLLAMA_BASE_URL', value: '' });
+      return;
+    }
+    const normalized = normalizeOllamaBaseUrl(raw);
+    if (!normalized) {
+      setUrlError(
+        'Enter a valid http(s) URL (for example http://192.168.1.10:11434) or leave blank to use this device.',
+      );
+      return;
+    }
+    dispatch({ type: 'SET_OLLAMA_BASE_URL', value: normalized });
+  }, [dispatch, draftUrl]);
+
+  const resetOllamaUrl = useCallback(() => {
+    setUrlError(null);
+    setDraftUrl('');
+    dispatch({ type: 'SET_OLLAMA_BASE_URL', value: '' });
+  }, [dispatch]);
 
   const testOllama = useCallback(async () => {
     setStatus({ kind: 'checking' });
     try {
-      const tags = await probeOllama(baseUrl);
+      const tags = await probeOllama(effectiveBaseUrl);
       setStatus({ kind: 'ok', tags });
     } catch (err) {
       const message =
@@ -78,7 +115,7 @@ export function ModelConfigPanel() {
           : 'Ollama is not reachable.';
       setStatus({ kind: 'fail', message });
     }
-  }, [baseUrl]);
+  }, [effectiveBaseUrl]);
 
   const tiers: Array<['E2B' | 'E4B' | '27B', string, string]> = [
     ['E2B', TIER_LABELS.E2B, fastTag],
@@ -90,20 +127,56 @@ export function ModelConfigPanel() {
     <SettingsStack className="text-sm">
       <SettingsSection
         title="Local Ollama"
-        description="Patient interpretation, predictive phrases, bilingual coach, session insight, and the caregiver handover all run against your local Ollama server. No cloud LLM is contacted."
+        description="Patient interpretation, predictive phrases, bilingual coach, session insight, and the caregiver handover all run against your Ollama server at the URL below. Use another machine on your LAN, Docker, or Tailscale by entering its reachable http(s) address. No cloud LLM is contacted."
       >
-        <SettingsControlCard className="space-y-2">
+        <SettingsControlCard className="space-y-3">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-text">
             <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Server URL
+            Ollama server URL
           </div>
-          <p className="break-words font-mono text-[11px] leading-snug text-text">
-            {baseUrl}
-          </p>
-          <p className="text-[10px] leading-snug text-muted">
-            Resolved from Settings → Models &amp; connectivity, or the built-in
-            localhost default.
-          </p>
+          <label className="block text-[10px] font-medium text-muted" htmlFor="relay-ollama-url">
+            Custom base URL (optional)
+          </label>
+          <input
+            id="relay-ollama-url"
+            type="url"
+            inputMode="url"
+            autoComplete="url"
+            spellCheck={false}
+            placeholder={DEFAULT_OLLAMA_BASE_URL}
+            value={draftUrl}
+            onChange={(e) => {
+              setDraftUrl(e.target.value);
+              setUrlError(null);
+            }}
+            className="control-input w-full font-mono text-[12px]"
+          />
+          {urlError ? (
+            <p className="text-[11px] leading-snug text-[var(--danger)]" role="alert">
+              {urlError}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <PillButton size="sm" variant="accent" type="button" onClick={saveOllamaUrl}>
+              Save URL
+            </PillButton>
+            <PillButton size="sm" variant="glass" type="button" onClick={resetOllamaUrl}>
+              Use default ({DEFAULT_OLLAMA_BASE_URL})
+            </PillButton>
+          </div>
+          <div className="rounded-xl2 border border-black/[0.06] bg-black/[0.03] px-2.5 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              Effective endpoint
+            </p>
+            <p className="mt-0.5 break-all font-mono text-[11px] leading-snug text-text">
+              {effectiveBaseUrl}
+            </p>
+            <p className="mt-1 text-[10px] leading-snug text-muted">
+              {storedBase
+                ? 'Relay sends every /api/generate and /api/tags request here. The browser must be allowed to reach this host (same device, LAN, or HTTPS with valid CORS).'
+                : 'Blank uses the built-in default on this device. Save a URL to point Relay at Ollama on another host.'}
+            </p>
+          </div>
         </SettingsControlCard>
 
         {tiers.map(([tier, label, tag]) => {
@@ -131,8 +204,8 @@ export function ModelConfigPanel() {
         <SettingsControlCard className="space-y-2">
           <p className="text-[10px] leading-snug text-muted">
             Pings <code className="rounded bg-black/5 px-1">/api/tags</code> on
-            your Ollama server and lists installed model tags so you can confirm
-            the tags above are pulled.
+            the saved effective endpoint and lists installed model tags. If you
+            changed the URL field, tap Save URL first.
           </p>
           <PillButton
             size="sm"
@@ -172,7 +245,7 @@ export function ModelConfigPanel() {
               <p className="mt-1 text-[10px] text-muted">
                 Make sure <code className="rounded bg-black/5 px-1">ollama serve</code>{' '}
                 is running and that this browser can reach{' '}
-                <code className="rounded bg-black/5 px-1">{baseUrl}</code>.
+                <code className="rounded bg-black/5 px-1">{effectiveBaseUrl}</code>.
               </p>
             </div>
           ) : null}
