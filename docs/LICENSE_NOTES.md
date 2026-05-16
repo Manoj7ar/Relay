@@ -13,3 +13,7 @@ That sponsor requirement is **between you and the competition sponsor**; this fi
 ## Model weights
 
 Pretrained **Gemma** weights distributed through **Ollama** are subject to **Google’s license** for those weights, not replaced by Relay’s MIT license. Relay does not redistribute model binaries in this repo.
+
+## Documentation
+
+Competition and technical docs live under [`docs/`](./README.md).

@@ -19,9 +19,30 @@ This matches hackathon narratives for **local-first mobile** plus **intelligent 
 
 ## Trade-offs (for writeups and demos)
 
+| Tier | Reference median `latencyMs`¹ | When to use |
+|------|------------------------------|-------------|
+| **E2B** | ~840 ms (text) · ~1,190 ms (speech) | Typed shortcuts, default speech, JSON side tasks |
+| **E4B** | ~1,440 ms (symbols) | Symbol-board phrase expansion |
+| **27B** | ~4,910 ms (vision+speech) · ~6,280 ms (handover) | Multimodal, compound, HIGH urgency, shift handover |
+
+¹ Illustrative — Apple M2, local Ollama 0.6.2. See [LATENCY_AND_METRICS.md](./LATENCY_AND_METRICS.md).
+
 - **E2B** — Lower latency target for typed text and simple speech; good default for responsiveness.
 - **E4B** — Used for symbol-board style input where phrase expansion is emphasized in product narrative.
 - **27B** — Reserved for **multimodal** (camera frame), **compound** channels, and **HIGH** urgency hints where the stack steers toward a heavier model tag.
+
+## Handover and JSON side tasks
+
+| Caller | `chooseModel` input | Result tier |
+|--------|---------------------|-------------|
+| `HandoverAgent.generateHandoverNote` | `{ inputType: 'compound' }` | **27B** |
+| `completeOllamaJsonTask` (default) | Tier passed per call (often **E2B** for phrases/coach/insight) | As specified |
+
+Handover uses **non-streaming** `/api/generate` via `ollamaJson.ts`, not a separate routing policy file.
+
+## Storage keys (routing log)
+
+Persisted entries live under `relay.routing.log` (`ModelRoutingContext`). Each interpretation appends via `logEntryFromInterpretation`; handover tool timeline rows append via `routingEntryFromToolEvent` with `inputType: 'tool'`.
 
 ## Extending the router
 

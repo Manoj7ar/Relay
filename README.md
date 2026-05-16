@@ -138,7 +138,7 @@ Use this table as the source of truth for what is “real” versus stubbed. If 
 | Model routing policy | **Real** | `chooseModel` in `modelRouter.ts`—no LLM inside the router |
 | Gemma / interpretation | **Real when Ollama is reachable** | Streaming + JSON parse + client-side checks; fails honestly otherwise |
 | Bilingual patient / caregiver | **Real when Ollama is reachable** | Gemma returns `patientLanguageText` + `caregiverLanguageText` + `inferredSpeaker`; UI/TTS use `detectedLanguage` + bilingual routing. STT locale follows **session inference** (model + script heuristics + last turn), not biometrics — see `transcriptSpeakerHint.ts` |
-| Handover agent | **Real when Ollama tool calling is supported** | `/api/chat` tool loop reads local history/dictionary/alerts/routing and writes note to IndexedDB |
+| Handover agent | **Real when Ollama is reachable** | Client-side tool pipeline + **one** `POST /api/generate` JSON call (`HandoverAgent.ts`); note persisted to IndexedDB — **not** remote `/api/chat` tool loop |
 ---
 
 ## Key files (orientation)
@@ -180,14 +180,14 @@ Deployment hardening (CSP, secrets pattern): [docs/SECURITY.md](docs/SECURITY.md
 
 | Document | Purpose |
 |----------|---------|
-| [docs/SOURCE_LAYOUT.md](docs/SOURCE_LAYOUT.md) | `src/` folder map for orientation |
 | [docs/README.md](docs/README.md) | Index of `docs/` |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, flows, browser limits |
-| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma/Ollama + integration table (aligned with README) |
+| [docs/SOURCE_LAYOUT.md](docs/SOURCE_LAYOUT.md) | `src/` folder map for orientation |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, flows, browser limits, persistence |
+| [docs/GEMMA_AND_INTEGRATIONS.md](docs/GEMMA_AND_INTEGRATIONS.md) | Gemma/Ollama wire protocol + handover pipeline |
 | [docs/MODEL_ROUTING.md](docs/MODEL_ROUTING.md) | Deterministic E2B / E4B / 27B routing (Cactus-style narrative) |
-| [docs/GROUNDING.md](docs/GROUNDING.md) | Dictionary grounding + handover tools overview |
+| [docs/GROUNDING.md](docs/GROUNDING.md) | Dictionary grounding + handover client tools |
 | [docs/LATENCY_AND_METRICS.md](docs/LATENCY_AND_METRICS.md) | How to record interpretation latency (`latencyMs`) |
-| [docs/SECURITY.md](docs/SECURITY.md) | CSP notes, no repo secrets, Ollama/proxy trust |
+| [docs/SECURITY.md](docs/SECURITY.md) | Trust boundaries, CSP, env vars |
 | [docs/LICENSE_NOTES.md](docs/LICENSE_NOTES.md) | MIT repo + hackathon CC-BY winner note (informational) |
 
 ---
